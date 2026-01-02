@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="BehaviorJump" load_steps=2 format=3 uid="uid://ct2xasvmkdfa"]
+
+[ext_resource type="Script" uid="uid://ddj3k2c7ivmvm" path="res://Scripts/BehaviorJump.gd" id="1_gl2gu"]
+
+[resource]
+script = ExtResource("1_gl2gu")
+jump_force = 100.0

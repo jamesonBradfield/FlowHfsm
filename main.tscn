@@ -1,0 +1,52 @@
+[gd_scene load_steps=9 format=3 uid="uid://y3huy5p44b8l"]
+
+[ext_resource type="Script" uid="uid://pqwb18liy6pj" path="res://Scripts/physics_manager.gd" id="1_ig7tw"]
+[ext_resource type="Script" uid="uid://u8e3x4htq7mp" path="res://Scripts/RecursiveState.gd" id="2_xxxxx"]
+[ext_resource type="Resource" uid="uid://ct2xasvmkdfa" path="res://Resources/behaviors/jump.tres" id="3_7mycd"]
+[ext_resource type="Script" uid="uid://yvrfmkwm4ycd" path="res://Scripts/PlayerController.gd" id="3_yyyyy"]
+[ext_resource type="Script" uid="uid://bb3kdxy1f2623" path="res://Scripts/StateTransition.gd" id="4_272bh"]
+[ext_resource type="Resource" uid="uid://c6vupbattaru6" path="res://Resources/transitions/ToAirborne.tres" id="5_5vw27"]
+[ext_resource type="Resource" path="res://Resources/behaviors/run.tres" id="6_272bh"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_0xm2m"]
+
+[node name="RenderServer" type="Node3D"]
+
+[node name="CSGBox3D" type="CSGBox3D" parent="."]
+size = Vector3(25, 0.1, 25)
+
+[node name="CharacterBody3D" type="CharacterBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="CharacterBody3D"]
+shape = SubResource("CapsuleShape3D_0xm2m")
+
+[node name="PhysicsManager" type="Node3D" parent="CharacterBody3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.572326, 0, -9.063581)
+script = ExtResource("1_ig7tw")
+
+[node name="RootState" type="Node" parent="CharacterBody3D"]
+script = ExtResource("2_xxxxx")
+
+[node name="Grounded" type="Node" parent="CharacterBody3D/RootState"]
+script = ExtResource("2_xxxxx")
+metadata/_custom_type_script = "uid://u8e3x4htq7mp"
+
+[node name="Jump" type="Node" parent="CharacterBody3D/RootState/Grounded"]
+script = ExtResource("2_xxxxx")
+behavior = ExtResource("3_7mycd")
+transitions = Array[ExtResource("4_272bh")]([ExtResource("5_5vw27")])
+metadata/_custom_type_script = "uid://u8e3x4htq7mp"
+
+[node name="Run" type="Node" parent="CharacterBody3D/RootState/Grounded"]
+script = ExtResource("2_xxxxx")
+behavior = ExtResource("6_272bh")
+metadata/_custom_type_script = "uid://u8e3x4htq7mp"
+
+[node name="Airborne" type="Node" parent="CharacterBody3D/RootState"]
+script = ExtResource("2_xxxxx")
+metadata/_custom_type_script = "uid://u8e3x4htq7mp"
+
+[node name="PlayerController" type="Node" parent="CharacterBody3D" node_paths=PackedStringArray("root_state", "physics_manager")]
+script = ExtResource("3_yyyyy")
+root_state = NodePath("../RootState")
+physics_manager = NodePath("../PhysicsManager")

@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="BehaviorMove" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scripts/BehaviorMove.gd" id="1_rcykt"]
+
+[resource]
+script = ExtResource("1_rcykt")
+speed = 8.0
