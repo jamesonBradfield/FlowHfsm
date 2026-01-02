@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="StateTransition" load_steps=4 format=3 uid="uid://bfo4yx61e6wjj"]
+
+[ext_resource type="Script" uid="uid://b1wuc2hj2npg0" path="res://Scripts/StateCondition.gd" id="1_kxuj2"]
+[ext_resource type="Resource" uid="uid://bfxwbocaxqftb" path="res://Resources/conditions/input_jump.tres" id="2_82lc4"]
+[ext_resource type="Script" uid="uid://bb3kdxy1f2623" path="res://Scripts/StateTransition.gd" id="2_y86dc"]
+
+[resource]
+script = ExtResource("2_y86dc")
+conditions = Array[ExtResource("1_kxuj2")]([ExtResource("2_82lc4")])
+metadata/_custom_type_script = "uid://bb3kdxy1f2623"
