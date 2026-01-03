@@ -9,6 +9,14 @@ class_name PlayerController extends Node
 ## The physics manager component for handling movement.
 @export var physics_manager: PhysicsManager
 
+@export_group("Input Actions")
+@export var input_left: String = "ui_left"
+@export var input_right: String = "ui_right"
+@export var input_up: String = "ui_up"
+@export var input_down: String = "ui_down"
+@export var input_jump: String = "ui_accept"
+@export var input_fire: String = "ui_select"
+
 # The Blackboard: A shared dictionary for the entire hierarchy
 ## Shared data dictionary passed to all states.
 ## Contains input data, references to components, and other global state information.
@@ -48,12 +56,12 @@ func _process(delta: float) -> void:
 ## - `inputs`: Dictionary of boolean flags (jump, fire, etc.)
 func _poll_input() -> void:
 	# Get Vector2 input for movement
-	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
+	var input_dir = Input.get_vector(input_left, input_right, input_up, input_down)
 	blackboard["input_dir"] = input_dir
 	
 	# Get Boolean actions
 	var inputs = blackboard.get("inputs")
-	inputs["jump"] = Input.is_action_pressed("ui_accept")
-	inputs["fire"] = Input.is_action_pressed("ui_select") # Example
+	inputs["jump"] = Input.is_action_pressed(input_jump)
+	inputs["fire"] = Input.is_action_pressed(input_fire)
 	
 	# Add more inputs as needed...

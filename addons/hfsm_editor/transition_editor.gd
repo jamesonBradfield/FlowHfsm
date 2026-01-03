@@ -3,15 +3,20 @@ extends EditorProperty
 const PropertyFactory = preload("res://addons/hfsm_editor/property_factory.gd")
 
 var container = VBoxContainer.new()
+var file_dialog: EditorFileDialog
 
 func _init():
 	add_child(container)
 	container.add_theme_constant_override("separation", 10)
+	
+	file_dialog = EditorFileDialog.new()
+	add_child(file_dialog)
 
 func _update_property():
 	# Clear existing children
 	for child in container.get_children():
-		child.queue_free()
+		if child != file_dialog:
+			child.queue_free()
 	
 	var transitions = get_edited_object()[get_edited_property()]
 	
@@ -31,7 +36,8 @@ func _update_property():
 	header_box.add_child(spacer)
 	
 	var add_trans_btn = Button.new()
-	add_trans_btn.text = "+ Add Transition"
+	add_trans_btn.text = " Add "
+	add_trans_btn.icon = get_theme_icon("Add", "EditorIcons")
 	add_trans_btn.pressed.connect(_add_transition)
 	header_box.add_child(add_trans_btn)
 	
@@ -44,9 +50,13 @@ func _update_property():
 		
 		var panel = PanelContainer.new()
 		var panel_style = StyleBoxFlat.new()
-		panel_style.bg_color = Color(0.1, 0.1, 0.1, 0.3)
-		panel_style.border_width_left = 2
-		panel_style.border_color = Color.GREEN if t.operation == 0 else Color.ORANGE
+		panel_style.bg_color = Color(0.12, 0.12, 0.12, 0.6)
+		panel_style.corner_radius_top_left = 4
+		panel_style.corner_radius_top_right = 4
+		panel_style.corner_radius_bottom_left = 4
+		panel_style.corner_radius_bottom_right = 4
+		panel_style.border_width_left = 4
+		panel_style.border_color = Color(0.2, 0.8, 0.2) if t.operation == 0 else Color(1.0, 0.6, 0.0)
 		panel_style.content_margin_left = 8
 		panel_style.content_margin_right = 8
 		panel_style.content_margin_top = 8
@@ -74,17 +84,14 @@ func _update_property():
 		)
 		op_row.add_child(op_selector)
 
-		var expand_btn = Button.new()
-		expand_btn.text = "Open Resource"
-		expand_btn.pressed.connect(func(): EditorInterface.edit_resource(t), CONNECT_DEFERRED)
-		op_row.add_child(expand_btn)
-		
 		var op_spacer = Control.new()
 		op_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		op_row.add_child(op_spacer)
 		
 		var remove_trans_btn = Button.new()
-		remove_trans_btn.text = "Remove"
+		remove_trans_btn.tooltip_text = "Remove Transition"
+		remove_trans_btn.icon = get_theme_icon("Remove", "EditorIcons")
+		remove_trans_btn.flat = true
 		remove_trans_btn.modulate = Color(1, 0.4, 0.4)
 		remove_trans_btn.pressed.connect(func(): _remove_transition(i))
 		op_row.add_child(remove_trans_btn)
@@ -98,13 +105,14 @@ func _update_property():
 		v_box.add_child(cond_label)
 		
 		var cond_container = VBoxContainer.new()
+		cond_container.add_theme_constant_override("separation", 6)
 		v_box.add_child(cond_container)
 		
 		for j in range(t.conditions.size()):
 			var c = t.conditions[j]
 			var cond_box = VBoxContainer.new()
 			
-			# 1. Row: Picker + Info + Remove Button
+			# 1. Row: Picker + Toolbar + Remove
 			var cond_row = HBoxContainer.new()
 			
 			# Resource Picker
@@ -115,31 +123,25 @@ func _update_property():
 			picker.resource_changed.connect(func(res): 
 				t.conditions[j] = res
 				emit_changed(get_edited_property(), transitions)
-				_update_property() # Refresh to show properties
+				_update_property()
 			)
 			cond_row.add_child(picker)
-
-			# Shared/Local Info Label
+			
+			# Smart Resource Controls
 			if c:
-				var info_lbl = Label.new()
-				var info_text = ""
-				var is_shared_cond = false
-				
-				if not c.resource_path.is_empty() and not c.resource_path.contains("::"):
-					info_text = "(Shared)"
-					is_shared_cond = true
-				else:
-					# Use a similar heuristic or just mark as local
-					info_text = "(Local)"
-				
-				info_lbl.text = info_text
-				info_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5) if not is_shared_cond else Color(1, 0.8, 0.5))
-				info_lbl.add_theme_font_size_override("font_size", 10)
-				cond_row.add_child(info_lbl)
+				var toolbar = _create_resource_toolbar(c, func(new_res):
+					if new_res != c:
+						t.conditions[j] = new_res
+						emit_changed(get_edited_property(), transitions)
+					_update_property()
+				)
+				cond_row.add_child(toolbar)
 			
 			# Remove Condition Button
 			var del_cond_btn = Button.new()
-			del_cond_btn.text = "X"
+			del_cond_btn.icon = get_theme_icon("Remove", "EditorIcons")
+			del_cond_btn.tooltip_text = "Remove Condition"
+			del_cond_btn.flat = true
 			del_cond_btn.pressed.connect(func(): 
 				t.conditions.remove_at(j)
 				emit_changed(get_edited_property(), transitions)
@@ -153,8 +155,12 @@ func _update_property():
 			if c:
 				var props_panel = PanelContainer.new()
 				var props_style = StyleBoxFlat.new()
-				props_style.bg_color = Color(0.05, 0.05, 0.05, 0.2)
-				props_style.content_margin_left = 15
+				props_style.bg_color = Color(0.08, 0.08, 0.08, 0.4)
+				props_style.corner_radius_bottom_left = 4
+				props_style.corner_radius_bottom_right = 4
+				props_style.content_margin_left = 12
+				props_style.content_margin_top = 4
+				props_style.content_margin_bottom = 4
 				props_panel.add_theme_stylebox_override("panel", props_style)
 				
 				var props_list = VBoxContainer.new()
@@ -179,8 +185,6 @@ func _update_property():
 						
 						var editor = PropertyFactory.create_control_for_property(c, prop, func(name, val):
 							c.set(name, val)
-							# Note: Modifying a sub-resource might not trigger the main property changed signal automatically
-							# We force an update to be safe, though c.emit_changed() should handle it if Resource is set up right
 							emit_changed(get_edited_property(), transitions)
 						)
 						editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -193,15 +197,10 @@ func _update_property():
 			
 			cond_container.add_child(cond_box)
 			
-			# Add small separator if not last
-			if j < t.conditions.size() - 1:
-				var sep = HSeparator.new()
-				sep.modulate = Color(1, 1, 1, 0.1)
-				cond_container.add_child(sep)
-			
 		# Add Condition Button
 		var add_cond_btn = Button.new()
-		add_cond_btn.text = "+ Add Condition"
+		add_cond_btn.text = "Add Condition"
+		add_cond_btn.icon = get_theme_icon("Add", "EditorIcons")
 		add_cond_btn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 		add_cond_btn.pressed.connect(func(): 
 			t.conditions.append(null)
@@ -211,6 +210,56 @@ func _update_property():
 		v_box.add_child(add_cond_btn)
 
 		container.add_child(panel)
+
+func _create_resource_toolbar(resource: Resource, callback: Callable) -> Control:
+	var container = HBoxContainer.new()
+	container.add_theme_constant_override("separation", 5)
+	
+	var is_shared = not resource.resource_path.is_empty() and not resource.resource_path.contains("::")
+	
+	var label = Label.new()
+	label.text = "SHARED" if is_shared else "LOCAL"
+	label.add_theme_font_size_override("font_size", 10)
+	label.add_theme_color_override("font_color", Color(1, 0.8, 0.2) if is_shared else Color(0.6, 0.8, 1.0))
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	container.add_child(label)
+	
+	if is_shared:
+		var btn_unique = Button.new()
+		btn_unique.tooltip_text = "Make Unique (Duplicate)"
+		btn_unique.icon = get_theme_icon("Duplicate", "EditorIcons")
+		btn_unique.flat = true
+		btn_unique.pressed.connect(func():
+			var new_res = resource.duplicate()
+			callback.call(new_res)
+		)
+		container.add_child(btn_unique)
+	else:
+		var btn_save = Button.new()
+		btn_save.tooltip_text = "Save to File"
+		btn_save.icon = get_theme_icon("Save", "EditorIcons")
+		btn_save.flat = true
+		btn_save.pressed.connect(func():
+			file_dialog.file_mode = EditorFileDialog.FILE_MODE_SAVE_FILE
+			file_dialog.clear_filters()
+			file_dialog.add_filter("*.tres", "Resource")
+			
+			# Disconnect previous connections safely
+			var conns = file_dialog.file_selected.get_connections()
+			for c in conns:
+				file_dialog.file_selected.disconnect(c.callable)
+				
+			file_dialog.file_selected.connect(func(path):
+				ResourceSaver.save(resource, path)
+				resource.take_over_path(path)
+				callback.call(resource)
+			, CONNECT_ONE_SHOT)
+			
+			file_dialog.popup_centered_ratio(0.5)
+		)
+		container.add_child(btn_save)
+		
+	return container
 
 func _add_transition():
 	var transitions = get_edited_object()[get_edited_property()]

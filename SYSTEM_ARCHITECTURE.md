@@ -84,7 +84,12 @@ Weapons/Modes are **Parent States** that impose physics constraints on movement.
 * [x] `StateTransition` (AND/OR Logic).
 * [x] Standard Lib: `ConditionInput`, `ConditionIsGrounded`.
 
-### 🔲 Phase 4: Integration & Visuals
-* [ ] **Debug UI:** `StateDebugger` (Visualize Tree Path + Memory).
+### ✅ Phase 4: Integration & Visuals
+* [x] **Debug UI:** `StateDebugger` (Visualize Tree Path + Memory).
 * [ ] **Animation Sync:** Link `RecursiveState` active path to `AnimationTree` playback.
-* [ ] **First Playable:** Construct `Idle` -> `Run` -> `Jump` character.
+* [x] **First Playable:** Construct `Idle` -> `Run` -> `Jump` character.
+
+## 5. Recent Refactors
+*   **PlayerController:** Parameterized input action names for easier remapping.
+*   **PhysicsManager:** Added `terminal_velocity` and documentation updates.
+*   **StateDebugger:** Implemented recursive path visualization and memory inspection.

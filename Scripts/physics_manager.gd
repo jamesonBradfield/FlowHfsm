@@ -14,12 +14,15 @@ enum Frame {
 	ACTOR   
 }
 
-# Add a signal for debuggers
+## Emitted when the movement intent changes.
+## @param velocity: The target velocity vector requested by the state.
 signal intent_changed(velocity: Vector3)
 
 @export_group("Settings")
 ## Gravity applied when not on the floor (m/s^2).
 @export var gravity: float = 9.8
+## Terminal velocity (max falling speed).
+@export var terminal_velocity: float = 50.0
 ## Friction applied when on the floor. Higher values mean snappier stopping.
 @export var default_friction: float = 6.0
 ## Drag applied when in the air. Lower values allow more drift.
@@ -42,6 +45,7 @@ func _physics_process(delta: float) -> void:
 	# 1. Apply Gravity
 	if not body.is_on_floor():
 		body.velocity.y -= gravity * delta
+		body.velocity.y = maxf(body.velocity.y, -terminal_velocity)
 
 	# 2. Resolve Intent (Movement Requests)
 	# We interpret the requested velocity against the current velocity

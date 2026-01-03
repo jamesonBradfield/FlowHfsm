@@ -4,14 +4,19 @@ const PropertyFactory = preload("res://addons/hfsm_editor/property_factory.gd")
 
 var container = VBoxContainer.new()
 var is_expanded = true
+var file_dialog: EditorFileDialog
 
 func _init():
 	add_child(container)
+	
+	file_dialog = EditorFileDialog.new()
+	add_child(file_dialog)
 
 func _update_property():
 	# Clear existing children
 	for child in container.get_children():
-		child.queue_free()
+		if child != file_dialog:
+			child.queue_free()
 	
 	var behavior = get_edited_object()[get_edited_property()]
 	
@@ -40,10 +45,16 @@ func _update_property():
 	if behavior:
 		var panel = PanelContainer.new()
 		var style = StyleBoxFlat.new()
-		style.bg_color = Color(0.15, 0.15, 0.2, 0.5)
+		style.bg_color = Color(0.12, 0.12, 0.14, 0.6)
+		style.corner_radius_top_left = 4
+		style.corner_radius_top_right = 4
+		style.corner_radius_bottom_left = 4
+		style.corner_radius_bottom_right = 4
+		style.border_width_left = 4
+		style.border_color = Color(0.4, 0.5, 0.9) # Blue/Purple for Behavior
 		style.content_margin_left = 10
-		style.content_margin_top = 5
-		style.content_margin_bottom = 5
+		style.content_margin_top = 8
+		style.content_margin_bottom = 8
 		panel.add_theme_stylebox_override("panel", style)
 		
 		var props_box = VBoxContainer.new()
@@ -54,7 +65,7 @@ func _update_property():
 		
 		var toggle_btn = Button.new()
 		toggle_btn.flat = true
-		toggle_btn.text = "▼" if is_expanded else "▶"
+		toggle_btn.icon = get_theme_icon("GuiTreeArrowDown" if is_expanded else "GuiTreeArrowRight", "EditorIcons")
 		toggle_btn.pressed.connect(func(): 
 			is_expanded = not is_expanded
 			_update_property()
@@ -63,33 +74,31 @@ func _update_property():
 		
 		var script_lbl = Label.new()
 		var script_name = "Embedded"
-		var is_shared = false
 		
 		if behavior.get_script():
 			script_name = behavior.get_script().resource_path.get_file().get_basename()
 		
-		if not behavior.resource_path.is_empty() and not behavior.resource_path.contains("::"):
-			script_name += " (Shared)"
-			is_shared = true
-		else:
-			var owner_node = _find_owner_node(behavior)
-			if owner_node and owner_node != get_edited_object():
-				script_name += " (From: %s)" % owner_node.name
-				is_shared = true # Technically shared via reference
-			else:
-				script_name += " (Local)"
-			
 		script_lbl.text = script_name
-		script_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7) if not is_shared else Color(1, 0.8, 0.5))
+		script_lbl.add_theme_font_size_override("font_size", 13)
+		script_lbl.add_theme_color_override("font_color", Color(1, 1, 1, 0.9))
 		panel_header.add_child(script_lbl)
+		
+		# Add Smart Resource Toolbar
+		var toolbar = _create_resource_toolbar(behavior, func(new_res):
+			if new_res != behavior:
+				emit_changed(get_edited_property(), new_res)
+			_update_property()
+		)
+		panel_header.add_child(toolbar)
 		
 		var h_spacer = Control.new()
 		h_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		panel_header.add_child(h_spacer)
 		
 		var open_btn = Button.new()
-		open_btn.text = "Edit"
 		open_btn.tooltip_text = "Open Resource in full Inspector"
+		open_btn.icon = get_theme_icon("Edit", "EditorIcons")
+		open_btn.flat = true
 		open_btn.pressed.connect(func(): EditorInterface.edit_resource(behavior), CONNECT_DEFERRED)
 		panel_header.add_child(open_btn)
 		
@@ -100,7 +109,8 @@ func _update_property():
 			var list_container = VBoxContainer.new()
 			# Indent slightly
 			var margin_container = MarginContainer.new()
-			margin_container.add_theme_constant_override("margin_left", 20)
+			margin_container.add_theme_constant_override("margin_left", 24)
+			margin_container.add_theme_constant_override("margin_top", 4)
 			margin_container.add_child(list_container)
 			
 			props_box.add_child(margin_container)
@@ -130,6 +140,56 @@ func _update_property():
 					list_container.add_child(row)
 				
 		container.add_child(panel)
+
+func _create_resource_toolbar(resource: Resource, callback: Callable) -> Control:
+	var container = HBoxContainer.new()
+	container.add_theme_constant_override("separation", 5)
+	
+	var is_shared = not resource.resource_path.is_empty() and not resource.resource_path.contains("::")
+	
+	var label = Label.new()
+	label.text = "SHARED" if is_shared else "LOCAL"
+	label.add_theme_font_size_override("font_size", 10)
+	label.add_theme_color_override("font_color", Color(1, 0.8, 0.2) if is_shared else Color(0.6, 0.8, 1.0))
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	container.add_child(label)
+	
+	if is_shared:
+		var btn_unique = Button.new()
+		btn_unique.tooltip_text = "Make Unique (Duplicate)"
+		btn_unique.icon = get_theme_icon("Duplicate", "EditorIcons")
+		btn_unique.flat = true
+		btn_unique.pressed.connect(func():
+			var new_res = resource.duplicate()
+			callback.call(new_res)
+		)
+		container.add_child(btn_unique)
+	else:
+		var btn_save = Button.new()
+		btn_save.tooltip_text = "Save to File"
+		btn_save.icon = get_theme_icon("Save", "EditorIcons")
+		btn_save.flat = true
+		btn_save.pressed.connect(func():
+			file_dialog.file_mode = EditorFileDialog.FILE_MODE_SAVE_FILE
+			file_dialog.clear_filters()
+			file_dialog.add_filter("*.tres", "Resource")
+			
+			# Disconnect previous connections safely
+			var conns = file_dialog.file_selected.get_connections()
+			for c in conns:
+				file_dialog.file_selected.disconnect(c.callable)
+				
+			file_dialog.file_selected.connect(func(path):
+				ResourceSaver.save(resource, path)
+				resource.take_over_path(path)
+				callback.call(resource)
+			, CONNECT_ONE_SHOT)
+			
+			file_dialog.popup_centered_ratio(0.5)
+		)
+		container.add_child(btn_save)
+		
+	return container
 
 func _find_owner_node(resource: Resource) -> Node:
 	# This is a bit of a hack to guess where an embedded resource comes from.
