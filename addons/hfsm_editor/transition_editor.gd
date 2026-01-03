@@ -6,6 +6,7 @@ var container = VBoxContainer.new()
 var file_dialog: EditorFileDialog
 
 func _init():
+	label = ""
 	add_child(container)
 	container.add_theme_constant_override("separation", 10)
 	

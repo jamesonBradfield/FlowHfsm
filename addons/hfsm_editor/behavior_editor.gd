@@ -7,6 +7,7 @@ var is_expanded = true
 var file_dialog: EditorFileDialog
 
 func _init():
+	label = ""
 	add_child(container)
 	
 	file_dialog = EditorFileDialog.new()
@@ -37,14 +38,15 @@ func _update_property():
 	if behavior:
 		var panel = PanelContainer.new()
 		var style = StyleBoxFlat.new()
-		style.bg_color = Color(0.12, 0.12, 0.14, 0.6)
+		style.bg_color = Color(0.12, 0.12, 0.12, 0.6)
 		style.corner_radius_top_left = 4
 		style.corner_radius_top_right = 4
 		style.corner_radius_bottom_left = 4
 		style.corner_radius_bottom_right = 4
 		style.border_width_left = 4
 		style.border_color = Color(0.4, 0.5, 0.9) # Blue/Purple for Behavior
-		style.content_margin_left = 10
+		style.content_margin_left = 8
+		style.content_margin_right = 8
 		style.content_margin_top = 8
 		style.content_margin_bottom = 8
 		panel.add_theme_stylebox_override("panel", style)
@@ -63,17 +65,6 @@ func _update_property():
 			_update_property()
 		)
 		panel_header.add_child(toggle_btn)
-		
-		var script_lbl = Label.new()
-		var script_name = "Embedded"
-		
-		if behavior.get_script():
-			script_name = behavior.get_script().resource_path.get_file().get_basename()
-		
-		script_lbl.text = script_name
-		script_lbl.add_theme_font_size_override("font_size", 13)
-		script_lbl.add_theme_color_override("font_color", Color(1, 1, 1, 0.9))
-		panel_header.add_child(script_lbl)
 		
 		# Add Smart Resource Toolbar
 		var toolbar = _create_resource_toolbar(behavior, func(new_res):
