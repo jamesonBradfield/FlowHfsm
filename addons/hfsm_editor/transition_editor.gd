@@ -8,6 +8,7 @@ var file_dialog: EditorFileDialog
 func _init():
 	label = ""
 	add_child(container)
+	container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	container.add_theme_constant_override("separation", 10)
 	
 	file_dialog = EditorFileDialog.new()
