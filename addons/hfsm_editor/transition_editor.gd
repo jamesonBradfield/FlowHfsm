@@ -3,22 +3,17 @@ extends EditorProperty
 const PropertyFactory = preload("res://addons/hfsm_editor/property_factory.gd")
 
 var container = VBoxContainer.new()
-var file_dialog: EditorFileDialog
 
 func _init():
 	label = ""
 	add_child(container)
 	container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	container.add_theme_constant_override("separation", 10)
-	
-	file_dialog = EditorFileDialog.new()
-	add_child(file_dialog)
 
 func _update_property():
 	# Clear existing children
 	for child in container.get_children():
-		if child != file_dialog:
-			child.queue_free()
+		child.queue_free()
 	
 	var transitions = get_edited_object()[get_edited_property()]
 	
@@ -50,19 +45,8 @@ func _update_property():
 			bg_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			panel.add_child(bg_rect)
 			
-		var panel_style = StyleBoxFlat.new()
-		panel_style.bg_color = Color(0.12, 0.12, 0.14, 0.6)
-		panel_style.corner_radius_top_left = 4
-		panel_style.corner_radius_top_right = 4
-		panel_style.corner_radius_bottom_left = 4
-		panel_style.corner_radius_bottom_right = 4
-		panel_style.border_width_left = 4
-		panel_style.border_color = Color(0.2, 0.8, 0.2) if t.operation == 0 else Color(1.0, 0.6, 0.0)
-		panel_style.content_margin_left = 8
-		panel_style.content_margin_right = 8
-		panel_style.content_margin_top = 8
-		panel_style.content_margin_bottom = 8
-		panel.add_theme_stylebox_override("panel", panel_style)
+		var border_color = Color(0.2, 0.8, 0.2) if t.operation == 0 else Color(1.0, 0.6, 0.0)
+		panel.add_theme_stylebox_override("panel", PropertyFactory.create_panel_style(border_color))
 		
 		var v_box = VBoxContainer.new()
 		panel.add_child(v_box)
@@ -144,7 +128,7 @@ func _update_property():
 			
 			# Smart Resource Controls
 			if c:
-				var toolbar = _create_resource_toolbar(c, func(new_res):
+				var toolbar = PropertyFactory.create_resource_toolbar(c, self, func(new_res):
 					if new_res != c:
 						t.conditions[j] = new_res
 						emit_changed(get_edited_property(), transitions)
@@ -229,56 +213,6 @@ func _update_property():
 	add_trans_btn.alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_trans_btn.pressed.connect(_add_transition)
 	container.add_child(add_trans_btn)
-
-func _create_resource_toolbar(resource: Resource, callback: Callable) -> Control:
-	var container = HBoxContainer.new()
-	container.add_theme_constant_override("separation", 5)
-	
-	var is_shared = not resource.resource_path.is_empty() and not resource.resource_path.contains("::")
-	
-	var label = Label.new()
-	label.text = "SHARED" if is_shared else "LOCAL"
-	label.add_theme_font_size_override("font_size", 10)
-	label.add_theme_color_override("font_color", Color(1, 0.8, 0.2) if is_shared else Color(0.6, 0.8, 1.0))
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	container.add_child(label)
-	
-	if is_shared:
-		var btn_unique = Button.new()
-		btn_unique.tooltip_text = "Make Unique (Duplicate)"
-		btn_unique.icon = get_theme_icon("Duplicate", "EditorIcons")
-		btn_unique.flat = true
-		btn_unique.pressed.connect(func():
-			var new_res = resource.duplicate()
-			callback.call(new_res)
-		)
-		container.add_child(btn_unique)
-	else:
-		var btn_save = Button.new()
-		btn_save.tooltip_text = "Save to File"
-		btn_save.icon = get_theme_icon("Save", "EditorIcons")
-		btn_save.flat = true
-		btn_save.pressed.connect(func():
-			file_dialog.file_mode = EditorFileDialog.FILE_MODE_SAVE_FILE
-			file_dialog.clear_filters()
-			file_dialog.add_filter("*.tres", "Resource")
-			
-			# Disconnect previous connections safely
-			var conns = file_dialog.file_selected.get_connections()
-			for c in conns:
-				file_dialog.file_selected.disconnect(c.callable)
-				
-			file_dialog.file_selected.connect(func(path):
-				ResourceSaver.save(resource, path)
-				resource.take_over_path(path)
-				callback.call(resource)
-			, CONNECT_ONE_SHOT)
-			
-			file_dialog.popup_centered_ratio(0.5)
-		)
-		container.add_child(btn_save)
-		
-	return container
 
 func _add_transition():
 	var transitions = get_edited_object()[get_edited_property()]

@@ -4,20 +4,15 @@ const PropertyFactory = preload("res://addons/hfsm_editor/property_factory.gd")
 
 var container = VBoxContainer.new()
 var is_expanded = true
-var file_dialog: EditorFileDialog
 
 func _init():
 	label = ""
 	add_child(container)
-	
-	file_dialog = EditorFileDialog.new()
-	add_child(file_dialog)
 
 func _update_property():
 	# Clear existing children
 	for child in container.get_children():
-		if child != file_dialog:
-			child.queue_free()
+		child.queue_free()
 	
 	var behavior = get_edited_object()[get_edited_property()]
 	
@@ -37,19 +32,8 @@ func _update_property():
 	# If we have a behavior, show its properties inline
 	if behavior:
 		var panel = PanelContainer.new()
-		var style = StyleBoxFlat.new()
-		style.bg_color = Color(0.12, 0.12, 0.12, 0.6)
-		style.corner_radius_top_left = 4
-		style.corner_radius_top_right = 4
-		style.corner_radius_bottom_left = 4
-		style.corner_radius_bottom_right = 4
-		style.border_width_left = 4
-		style.border_color = Color(0.4, 0.5, 0.9) # Blue/Purple for Behavior
-		style.content_margin_left = 8
-		style.content_margin_right = 8
-		style.content_margin_top = 8
-		style.content_margin_bottom = 8
-		panel.add_theme_stylebox_override("panel", style)
+		var border_color = Color(0.4, 0.5, 0.9) # Blue/Purple for Behavior
+		panel.add_theme_stylebox_override("panel", PropertyFactory.create_panel_style(border_color))
 		
 		var props_box = VBoxContainer.new()
 		panel.add_child(props_box)
@@ -67,7 +51,7 @@ func _update_property():
 		panel_header.add_child(toggle_btn)
 		
 		# Add Smart Resource Toolbar
-		var toolbar = _create_resource_toolbar(behavior, func(new_res):
+		var toolbar = PropertyFactory.create_resource_toolbar(behavior, self, func(new_res):
 			if new_res != behavior:
 				emit_changed(get_edited_property(), new_res)
 			_update_property()
@@ -124,56 +108,6 @@ func _update_property():
 					list_container.add_child(row)
 				
 		container.add_child(panel)
-
-func _create_resource_toolbar(resource: Resource, callback: Callable) -> Control:
-	var container = HBoxContainer.new()
-	container.add_theme_constant_override("separation", 5)
-	
-	var is_shared = not resource.resource_path.is_empty() and not resource.resource_path.contains("::")
-	
-	var label = Label.new()
-	label.text = "SHARED" if is_shared else "LOCAL"
-	label.add_theme_font_size_override("font_size", 10)
-	label.add_theme_color_override("font_color", Color(1, 0.8, 0.2) if is_shared else Color(0.6, 0.8, 1.0))
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	container.add_child(label)
-	
-	if is_shared:
-		var btn_unique = Button.new()
-		btn_unique.tooltip_text = "Make Unique (Duplicate)"
-		btn_unique.icon = get_theme_icon("Duplicate", "EditorIcons")
-		btn_unique.flat = true
-		btn_unique.pressed.connect(func():
-			var new_res = resource.duplicate()
-			callback.call(new_res)
-		)
-		container.add_child(btn_unique)
-	else:
-		var btn_save = Button.new()
-		btn_save.tooltip_text = "Save to File"
-		btn_save.icon = get_theme_icon("Save", "EditorIcons")
-		btn_save.flat = true
-		btn_save.pressed.connect(func():
-			file_dialog.file_mode = EditorFileDialog.FILE_MODE_SAVE_FILE
-			file_dialog.clear_filters()
-			file_dialog.add_filter("*.tres", "Resource")
-			
-			# Disconnect previous connections safely
-			var conns = file_dialog.file_selected.get_connections()
-			for c in conns:
-				file_dialog.file_selected.disconnect(c.callable)
-				
-			file_dialog.file_selected.connect(func(path):
-				ResourceSaver.save(resource, path)
-				resource.take_over_path(path)
-				callback.call(resource)
-			, CONNECT_ONE_SHOT)
-			
-			file_dialog.popup_centered_ratio(0.5)
-		)
-		container.add_child(btn_save)
-		
-	return container
 
 func _find_owner_node(resource: Resource) -> Node:
 	# This is a bit of a hack to guess where an embedded resource comes from.

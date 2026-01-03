@@ -1,6 +1,71 @@
 @tool
 extends Node
 
+static func create_panel_style(border_color: Color) -> StyleBoxFlat:
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(0.12, 0.12, 0.12, 0.6)
+	style.corner_radius_top_left = 4
+	style.corner_radius_top_right = 4
+	style.corner_radius_bottom_left = 4
+	style.corner_radius_bottom_right = 4
+	style.border_width_left = 4
+	style.border_color = border_color
+	style.content_margin_left = 8
+	style.content_margin_right = 8
+	style.content_margin_top = 8
+	style.content_margin_bottom = 8
+	return style
+
+static func create_resource_toolbar(resource: Resource, parent_control: Control, callback: Callable) -> Control:
+	var container = HBoxContainer.new()
+	container.add_theme_constant_override("separation", 5)
+	
+	var is_shared = not resource.resource_path.is_empty() and not resource.resource_path.contains("::")
+	
+	var label = Label.new()
+	label.text = "SHARED" if is_shared else "LOCAL"
+	label.add_theme_font_size_override("font_size", 10)
+	label.add_theme_color_override("font_color", Color(1, 0.8, 0.2) if is_shared else Color(0.6, 0.8, 1.0))
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	container.add_child(label)
+	
+	if is_shared:
+		var btn_unique = Button.new()
+		btn_unique.tooltip_text = "Make Unique (Duplicate)"
+		btn_unique.icon = parent_control.get_theme_icon("Duplicate", "EditorIcons")
+		btn_unique.flat = true
+		btn_unique.pressed.connect(func():
+			var new_res = resource.duplicate()
+			callback.call(new_res)
+		)
+		container.add_child(btn_unique)
+	else:
+		var btn_save = Button.new()
+		btn_save.tooltip_text = "Save to File"
+		btn_save.icon = parent_control.get_theme_icon("Save", "EditorIcons")
+		btn_save.flat = true
+		btn_save.pressed.connect(func():
+			var file_dialog = EditorFileDialog.new()
+			parent_control.add_child(file_dialog)
+			file_dialog.file_mode = EditorFileDialog.FILE_MODE_SAVE_FILE
+			file_dialog.clear_filters()
+			file_dialog.add_filter("*.tres", "Resource")
+			
+			file_dialog.file_selected.connect(func(path):
+				ResourceSaver.save(resource, path)
+				resource.take_over_path(path)
+				callback.call(resource)
+				file_dialog.queue_free()
+			, CONNECT_ONE_SHOT)
+			
+			file_dialog.canceled.connect(func(): file_dialog.queue_free(), CONNECT_ONE_SHOT)
+			
+			file_dialog.popup_centered_ratio(0.5)
+		)
+		container.add_child(btn_save)
+		
+	return container
+
 static func _apply_tooltip(control: Control, property: Dictionary):
 	if property.get("hint_string", "") != "":
 		control.tooltip_text = property.hint_string
