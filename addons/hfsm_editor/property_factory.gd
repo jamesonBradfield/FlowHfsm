@@ -16,6 +16,7 @@ static func create_control_for_property(object: Object, property: Dictionary, ch
 		TYPE_BOOL:
 			var cb = CheckBox.new()
 			cb.button_pressed = value
+			cb.tooltip_text = property.name.capitalize()
 			_apply_tooltip(cb, property)
 			cb.toggled.connect(func(v): changed_callback.call(name, v))
 			return cb
@@ -62,6 +63,7 @@ static func create_control_for_property(object: Object, property: Dictionary, ch
 			sb.allow_greater = true
 			sb.allow_lesser = true
 			sb.custom_minimum_size.x = 80
+			sb.tooltip_text = property.name.capitalize()
 			_apply_tooltip(sb, property)
 			sb.value_changed.connect(func(v): changed_callback.call(name, v))
 			return sb
@@ -70,7 +72,8 @@ static func create_control_for_property(object: Object, property: Dictionary, ch
 			var le = LineEdit.new()
 			le.text = value
 			le.expand_to_text_length = true
-			le.custom_minimum_size.x = 100
+			le.custom_minimum_size.x = 110
+			le.tooltip_text = property.name.capitalize()
 			_apply_tooltip(le, property)
 			le.text_changed.connect(func(v): changed_callback.call(name, v))
 			return le

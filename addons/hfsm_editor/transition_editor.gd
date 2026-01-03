@@ -25,30 +25,28 @@ func _update_property():
 		transitions = []
 		get_edited_object()[get_edited_property()] = transitions
 
-	# --- Header ---
-	var header_box = HBoxContainer.new()
-	var header = Label.new()
-	header.text = "Transitions (%d)" % transitions.size()
-	header_box.add_child(header)
-	
-	var spacer = Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header_box.add_child(spacer)
-	
-	var add_trans_btn = Button.new()
-	add_trans_btn.text = " Add "
-	add_trans_btn.icon = get_theme_icon("Add", "EditorIcons")
-	add_trans_btn.pressed.connect(_add_transition)
-	header_box.add_child(add_trans_btn)
-	
-	container.add_child(header_box)
-	
 	# --- List ---
+	if transitions.is_empty():
+		var empty_label = Label.new()
+		empty_label.text = "No transitions defined."
+		empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		empty_label.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+		container.add_child(empty_label)
+
 	for i in range(transitions.size()):
 		var t = transitions[i]
 		if not t: continue
 		
 		var panel = PanelContainer.new()
+		
+		# Zebra Striping
+		if i % 2 != 0:
+			var bg_rect = ColorRect.new()
+			bg_rect.color = Color(1, 1, 1, 0.03)
+			bg_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			bg_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			panel.add_child(bg_rect)
+			
 		var panel_style = StyleBoxFlat.new()
 		panel_style.bg_color = Color(0.12, 0.12, 0.12, 0.6)
 		panel_style.corner_radius_top_left = 4
@@ -77,6 +75,7 @@ func _update_property():
 		op_selector.add_item("AND (All True)", 0)
 		op_selector.add_item("OR (Any True)", 1)
 		op_selector.selected = t.operation
+		op_selector.tooltip_text = "Logic Operation"
 		op_selector.item_selected.connect(func(idx): 
 			t.operation = idx
 			emit_changed(get_edited_property(), transitions)
@@ -87,6 +86,24 @@ func _update_property():
 		var op_spacer = Control.new()
 		op_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		op_row.add_child(op_spacer)
+		
+		# Move Up
+		var btn_up = Button.new()
+		btn_up.flat = true
+		btn_up.icon = get_theme_icon("MoveUp", "EditorIcons")
+		btn_up.tooltip_text = "Move Up"
+		if i == 0: btn_up.disabled = true
+		btn_up.pressed.connect(func(): _move_transition(i, -1))
+		op_row.add_child(btn_up)
+
+		# Move Down
+		var btn_down = Button.new()
+		btn_down.flat = true
+		btn_down.icon = get_theme_icon("MoveDown", "EditorIcons")
+		btn_down.tooltip_text = "Move Down"
+		if i == transitions.size() - 1: btn_down.disabled = true
+		btn_down.pressed.connect(func(): _move_transition(i, 1))
+		op_row.add_child(btn_down)
 		
 		var remove_trans_btn = Button.new()
 		remove_trans_btn.tooltip_text = "Remove Transition"
@@ -178,8 +195,9 @@ func _update_property():
 						
 						var p_lbl = Label.new()
 						p_lbl.text = p_name.capitalize()
+						p_lbl.tooltip_text = p_name
 						p_lbl.modulate = Color(0.7, 0.7, 0.7)
-						p_lbl.custom_minimum_size.x = 90
+						p_lbl.custom_minimum_size.x = 110
 						p_lbl.add_theme_font_size_override("font_size", 12)
 						p_row.add_child(p_lbl)
 						
@@ -210,6 +228,15 @@ func _update_property():
 		v_box.add_child(add_cond_btn)
 
 		container.add_child(panel)
+
+	# --- Add Transition Button (Bottom, Full Width) ---
+	var add_trans_btn = Button.new()
+	add_trans_btn.text = "Add Transition"
+	add_trans_btn.icon = get_theme_icon("Add", "EditorIcons")
+	add_trans_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	add_trans_btn.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	add_trans_btn.pressed.connect(_add_transition)
+	container.add_child(add_trans_btn)
 
 func _create_resource_toolbar(resource: Resource, callback: Callable) -> Control:
 	var container = HBoxContainer.new()
@@ -275,3 +302,13 @@ func _remove_transition(index: int):
 	transitions.remove_at(index)
 	emit_changed(get_edited_property(), transitions)
 	_update_property()
+
+func _move_transition(index: int, direction: int):
+	var transitions = get_edited_object()[get_edited_property()]
+	var target_index = index + direction
+	if target_index >= 0 and target_index < transitions.size():
+		var t = transitions[index]
+		transitions.remove_at(index)
+		transitions.insert(target_index, t)
+		emit_changed(get_edited_property(), transitions)
+		_update_property()

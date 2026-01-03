@@ -23,14 +23,6 @@ func _update_property():
 	var header_box = HBoxContainer.new()
 	container.add_child(header_box)
 	
-	var label = Label.new()
-	label.text = "Behavior"
-	header_box.add_child(label)
-	
-	var spacer = Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header_box.add_child(spacer)
-	
 	# Resource Picker for the main behavior slot
 	var picker = EditorResourcePicker.new()
 	picker.base_type = "StateBehavior"
@@ -126,8 +118,9 @@ func _update_property():
 					
 					var p_label = Label.new()
 					p_label.text = p_name.capitalize()
+					p_label.tooltip_text = p_name
 					p_label.modulate = Color(0.8, 0.8, 0.8)
-					p_label.custom_minimum_size.x = 100
+					p_label.custom_minimum_size.x = 110
 					row.add_child(p_label)
 					
 					var editor = PropertyFactory.create_control_for_property(behavior, prop, func(name, val):
