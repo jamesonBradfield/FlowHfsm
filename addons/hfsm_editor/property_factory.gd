@@ -72,6 +72,37 @@ static func _apply_tooltip(control: Control, property: Dictionary):
 	else:
 		control.tooltip_text = property.name.capitalize()
 
+static func create_property_list(resource: Resource, changed_callback: Callable) -> Control:
+	var container = VBoxContainer.new()
+	
+	for prop in resource.get_property_list():
+		if prop.usage & PROPERTY_USAGE_EDITOR:
+			var p_name = prop.name
+			if p_name in ["script", "resource_name", "resource_path", "resource_local_to_scene"]:
+				continue
+				
+			var row = HBoxContainer.new()
+			row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			
+			var p_label = Label.new()
+			p_label.text = p_name.capitalize()
+			p_label.tooltip_text = p_name
+			p_label.modulate = Color(0.8, 0.8, 0.8)
+			p_label.custom_minimum_size.x = 110
+			p_label.add_theme_font_size_override("font_size", 12)
+			row.add_child(p_label)
+			
+			var editor = create_control_for_property(resource, prop, func(name, val):
+				resource.set(name, val)
+				changed_callback.call()
+			)
+			editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			row.add_child(editor)
+			
+			container.add_child(row)
+			
+	return container
+
 static func create_control_for_property(object: Object, property: Dictionary, changed_callback: Callable) -> Control:
 	var type = property.type
 	var name = property.name

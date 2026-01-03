@@ -73,39 +73,17 @@ func _update_property():
 		
 		# --- Properties List ---
 		if is_expanded:
-			var list_container = VBoxContainer.new()
 			# Indent slightly
 			var margin_container = MarginContainer.new()
 			margin_container.add_theme_constant_override("margin_left", 24)
 			margin_container.add_theme_constant_override("margin_top", 4)
-			margin_container.add_child(list_container)
+			
+			var props_list = PropertyFactory.create_property_list(behavior, func():
+				emit_changed(get_edited_property(), behavior)
+			)
+			margin_container.add_child(props_list)
 			
 			props_box.add_child(margin_container)
-			
-			for prop in behavior.get_property_list():
-				if prop.usage & PROPERTY_USAGE_EDITOR:
-					var p_name = prop.name
-					if p_name in ["script", "resource_name", "resource_path", "resource_local_to_scene"]:
-						continue
-						
-					var row = HBoxContainer.new()
-					row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-					
-					var p_label = Label.new()
-					p_label.text = p_name.capitalize()
-					p_label.tooltip_text = p_name
-					p_label.modulate = Color(0.8, 0.8, 0.8)
-					p_label.custom_minimum_size.x = 110
-					row.add_child(p_label)
-					
-					var editor = PropertyFactory.create_control_for_property(behavior, prop, func(name, val):
-						behavior.set(name, val)
-						emit_changed(get_edited_property(), behavior)
-					)
-					editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-					row.add_child(editor)
-					
-					list_container.add_child(row)
 				
 		container.add_child(panel)
 

@@ -156,37 +156,12 @@ func _update_property():
 				margin.add_theme_constant_override("margin_left", 24)
 				margin.add_theme_constant_override("margin_top", 4)
 				
-				var props_list = VBoxContainer.new()
-				margin.add_child(props_list)
-				
-				# Show exports
-				for prop in c.get_property_list():
-					if prop.usage & PROPERTY_USAGE_EDITOR:
-						var p_name = prop.name
-						if p_name in ["script", "resource_name", "resource_path", "resource_local_to_scene"]:
-							continue
-							
-						var p_row = HBoxContainer.new()
-						p_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-						
-						var p_lbl = Label.new()
-						p_lbl.text = p_name.capitalize()
-						p_lbl.tooltip_text = p_name
-						p_lbl.modulate = Color(0.7, 0.7, 0.7)
-						p_lbl.custom_minimum_size.x = 110
-						p_lbl.add_theme_font_size_override("font_size", 12)
-						p_row.add_child(p_lbl)
-						
-						var editor = PropertyFactory.create_control_for_property(c, prop, func(name, val):
-							c.set(name, val)
-							emit_changed(get_edited_property(), transitions)
-						)
-						editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-						p_row.add_child(editor)
-						
-						props_list.add_child(p_row)
+				var props_list = PropertyFactory.create_property_list(c, func():
+					emit_changed(get_edited_property(), transitions)
+				)
 				
 				if props_list.get_child_count() > 0:
+					margin.add_child(props_list)
 					cond_box.add_child(margin)
 			
 			cond_container.add_child(cond_box)
