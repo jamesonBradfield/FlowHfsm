@@ -6,17 +6,27 @@ class_name PhysicsManager extends Node
 
 # Frame of Reference for inputs
 enum Frame { 
-	WORLD,  # Absolute Vector (1,0,0) is always World East
-	CAMERA, # Relative to Camera View (Up is Forward)
-	ACTOR   # Relative to Character Model (Up is Local Forward)
+	## Absolute Vector (1,0,0) is always World East. Good for 2D/Isometric.
+	WORLD,  
+	## Relative to Camera View (Up is Forward). Good for Third-Person/FPS.
+	CAMERA, 
+	## Relative to Character Model (Up is Local Forward). Good for Tank Controls/Vehicles.
+	ACTOR   
 }
 
+# Add a signal for debuggers
+signal intent_changed(velocity: Vector3)
+
 @export_group("Settings")
+## Gravity applied when not on the floor (m/s^2).
 @export var gravity: float = 9.8
+## Friction applied when on the floor. Higher values mean snappier stopping.
 @export var default_friction: float = 6.0
+## Drag applied when in the air. Lower values allow more drift.
 @export var air_drag: float = 2.0
 
 # The Parent Body
+## The CharacterBody3D node that this manager controls.
 @onready var body: CharacterBody3D = get_parent()
 
 # Accumulators
@@ -24,6 +34,8 @@ var _intent_velocity: Vector3 = Vector3.ZERO
 var _external_forces: Vector3 = Vector3.ZERO
 var _snap_vector: Vector3 = Vector3.DOWN
 
+## Main physics loop.
+## Applies gravity, resolves movement intent, applies external forces, and calls `move_and_slide`.
 func _physics_process(delta: float) -> void:
 	if not body: return
 
@@ -58,8 +70,11 @@ func _physics_process(delta: float) -> void:
 # --- PUBLIC API FOR STATES ---
 
 ## Called by States to request movement. 
-## input_dir: Normalized Vector2 from Input (x, y)
-## speed: Desired speed in meters/sec
+## Calculates the 3D velocity vector based on the input direction and frame of reference.
+##
+## @param input_dir: Normalized Vector2 from Input (x=Right, y=Down/Back).
+## @param speed: Desired speed in meters/sec.
+## @param frame: The frame of reference for the input direction (WORLD, CAMERA, or ACTOR).
 func move_intent(input_dir: Vector2, speed: float, frame: Frame = Frame.CAMERA) -> void:
 	if input_dir.length_squared() < 0.01:
 		_intent_velocity = Vector3.ZERO
@@ -94,7 +109,11 @@ func move_intent(input_dir: Vector2, speed: float, frame: Frame = Frame.CAMERA) 
 			move_dir = (actor_basis.z * input_dir.y + actor_basis.x * input_dir.x).normalized()
 
 	_intent_velocity = move_dir * speed
+	intent_changed.emit(_intent_velocity)
 
-## Called by Enemies or Hazards
+## Applies an external impulse (force * time) to the character.
+## Used for knockback, explosions, etc.
+##
+## @param force: The force vector to apply (Direction * Strength).
 func apply_impulse(force: Vector3) -> void:
 	_external_forces += force

@@ -6,6 +6,5 @@
 
 [resource]
 script = ExtResource("3_ijs50")
-target_state = "Grounded"
 conditions = Array[ExtResource("1_rcyj0")]([ExtResource("2_rvolj")])
 metadata/_custom_type_script = "uid://bb3kdxy1f2623"

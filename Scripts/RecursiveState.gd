@@ -6,23 +6,39 @@ class_name RecursiveState extends Node
 
 # --- EXPORTS (The Strategy) ---
 @export_group("Logic")
-@export var behavior: StateBehavior ## The "Brain" (Resource)
-@export var transitions: Array[StateTransition] ## The "Gates" (Resources)
+## The "Brain" (Resource). Defines what this state does (e.g., Move, Jump).
+@export var behavior: StateBehavior 
+## The "Triggers" (Resources). A list of conditions that cause this state to activate (Incoming).
+## Used by the Parent to auto-select this child (e.g., Jump triggers when Space is pressed).
+## This decoupling allows the state to be dropped into any container without knowing its neighbors.
+## NOTE: Transitions are checked in order. First one to satisfy conditions wins.
+@export var transitions: Array[StateTransition]
 
 @export_group("Settings")
+## If true, this state will be the active child when the parent is entered.
 @export var is_starting_state: bool = false
-@export var is_locked: bool = false ## If true, Parent cannot transition out of this state.
+## If true, this state will remember its active child when exited, resuming it on re-entry.
+## If false, it resets to the starting child on re-entry.
+@export var has_history: bool = false
+## If true, Parent cannot transition out of this state. Useful for committed actions like attacks.
+## NOTE: This is a LOCAL lock. To check if the branch is locked, use `is_hierarchy_locked()`.
+@export var is_locked: bool = false 
 
 # --- STATE VARIABLES (The Memory) ---
+## The parent state in the hierarchy. Null if this is the root state.
 var parent: RecursiveState = null
+## The currently active child state. Null if this is a leaf state.
 var active_child: RecursiveState = null
 
-# The "Bucket" for the Behavior to store runtime data (Timer, Counters, etc.)
-# Key = String ("charge_time"), Value = Any
+## The "Bucket" for the Behavior to store runtime data (Timer, Counters, etc.)
+## Key = String ("charge_time"), Value = Any.
+## Cleared when the state is entered.
 var memory: Dictionary = {}
 
 # --- LIFECYCLE ---
 
+## Called when the node enters the scene tree for the first time.
+## Establishes the parent-child relationship in the HFSM.
 func _ready() -> void:
 	# 1. Wire up hierarchy
 	var p = get_parent()
@@ -31,19 +47,25 @@ func _ready() -> void:
 
 # --- THE MAIN LOOP ---
 
+## The core update loop for the state.
+## 1. Checks for transitions (if not locked).
+## 2. Updates the active behavior.
+## 3. Recursively updates the active child.
+##
+## @param delta: Time elapsed since the last frame.
+## @param actor: The owner of the state machine (usually a CharacterBody3D/2D).
+## @param blackboard: Shared data dictionary for the entire HFSM.
 func process_state(delta: float, actor: Node, blackboard: Dictionary) -> void:
-	# 1. PROHIBITIVE CHECKS (Logic flows DOWN)
-	# If I have transitions, check them first.
-	# But ONLY if I am not locked (e.g. Attacking).
-	if not is_locked:
-		for transition in transitions:
-			if transition.is_triggered(actor, blackboard):
-				# Tell parent to switch me out
-				if parent:
-					# CRITICAL FIX: Only stop processing if the transition actually SUCCEEDED.
-					# If the target state doesn't exist (Blocked by Hierarchy), we must continue our logic.
-					if parent.change_active_child_by_name(transition.target_state):
-						return # Stop processing this branch
+	# 1. SELECTOR LOGIC (Check Children Triggers)
+	# This implements "Parent Responsibility": The parent checks if any child (state) 
+	# should become active based on that child's conditions.
+	# "Hierarchical Blocking": We check if the active child OR any of its descendants are locked.
+	if not active_child or not active_child.is_hierarchy_locked():
+		for child in get_children():
+			if child is RecursiveState and child != active_child:
+				if child.check_transitions(actor, blackboard):
+					change_active_child(child, actor, blackboard)
+					break # Found a winner, stop checking others (Priority = Tree Order)
 
 	# 2. BEHAVIOR UPDATE (The "Brain")
 	if behavior:
@@ -55,6 +77,11 @@ func process_state(delta: float, actor: Node, blackboard: Dictionary) -> void:
 
 # --- API ---
 
+## Called when the state becomes active.
+## Clears memory, resets locks, enters the behavior, and recursively enters the starting child.
+##
+## @param actor: The owner of the state machine.
+## @param blackboard: Shared data dictionary.
 func enter(actor: Node, blackboard: Dictionary) -> void:
 	# Reset local memory on entry so we don't have stale data (e.g. old timers)
 	memory.clear()
@@ -73,6 +100,8 @@ func enter(actor: Node, blackboard: Dictionary) -> void:
 	if active_child:
 		active_child.enter(actor, blackboard)
 
+## Helper to find the default starting child state.
+## Returns the child marked as `is_starting_state`, or the first `RecursiveState` child found.
 func _get_starting_child() -> RecursiveState:
 	for child in get_children():
 		if child is RecursiveState and child.is_starting_state:
@@ -85,59 +114,68 @@ func _get_starting_child() -> RecursiveState:
 	
 	return null
 
+## Called when the state becomes inactive.
+## Recursively exits the active child and the current behavior.
+##
+## @param actor: The owner of the state machine.
+## @param blackboard: Shared data dictionary.
 func exit(actor: Node, blackboard: Dictionary) -> void:
 	if active_child:
 		active_child.exit(actor, blackboard)
+		# Forget the active child if we don't have history enabled
+		if not has_history:
+			active_child = null
 		
 	if behavior:
 		behavior.exit(self, actor, blackboard)
 
 # --- CHILD MANAGEMENT ---
 
-func change_active_child(new_node: RecursiveState) -> void:
-	# We need the actor/blackboard to call exit/enter properly.
-	# Since this is usually called from inside process_state, we can grab them there.
-	# BUT, to keep it clean, we might need to store a reference to actor in 'enter'
-	# or pass it down. For now, assuming standard flow:
-	
-	# Note: This is a slight architectural friction point. 
-	# Ideally, 'change_active_child' happens inside the tick where we have the context.
-	
-	if active_child == new_node: return
-	
-	# We can't call exit() properly without the Actor reference if we do it purely by signal.
-	# So we just swap the var, and the next 'process_state' tick handles the logic? 
-	# No, that causes frame gaps.
-	
-	# Solution: The Parent handles the swap immediately using stored context if available,
-	# or we enforce that transitions only happen during process().
-	active_child = new_node
-
-func change_active_child_by_name(state_name: String) -> bool:
-	var node = get_node_or_null(state_name)
-	if node and node is RecursiveState:
-		if active_child == node:
-			return true
-			
-		# We need to perform the swap. 
-		# If this is called from process_state, we have context.
-		# If called from a Signal, we might need to store 'current_actor' in memory.
-		
-		# For this implementation, we assume transitions happen during the tick.
-		# We will handle the actual enter/exit calls in a "Deferred" way or 
-		# pass the actor context up.
-		
-		# SIMPLIFICATION FOR PHASE 2:
-		# We will make 'process_state' return a REQUEST instead of void?
-		# Or just assume we can access the actor via the PhysicsManager/Owner.
-		
-		# Let's trust the standard "Owner" pattern for now.
-		var actor = owner
-		if active_child:
-			active_child.exit(actor, {}) # Passing empty dict for now, might need fix
-		
-		active_child = node
-		active_child.enter(actor, {})
+## Checks if this state or any active descendant is locked.
+func is_hierarchy_locked() -> bool:
+	if is_locked: 
 		return true
 	
+	if active_child:
+		return active_child.is_hierarchy_locked()
+		
 	return false
+
+## Checks if any of the triggers for this state are met.
+func check_transitions(actor: Node, blackboard: Dictionary) -> bool:
+	if transitions.is_empty():
+		return false
+		
+	for transition in transitions:
+		if transition.is_triggered(actor, blackboard):
+			return true
+	return false
+
+## Returns the full path of active states (e.g. ["Root", "Grounded", "Run"])
+func get_active_hierarchy_path() -> Array[String]:
+	var path: Array[String] = [name]
+	if active_child:
+		path.append_array(active_child.get_active_hierarchy_path())
+	return path
+
+## Directly changes the active child to the specified node.
+## Handles the full exit/enter lifecycle.
+##
+## @param new_node: The new child state to make active.
+## @param actor: The owner of the state machine.
+## @param blackboard: Shared data dictionary.
+func change_active_child(new_node: RecursiveState, actor: Node = null, blackboard: Dictionary = {}) -> void:
+	if active_child == new_node: return
+	
+	# Fallback to owner if actor is missing (e.g. signal call)
+	if not actor:
+		actor = owner
+	
+	if active_child:
+		active_child.exit(actor, blackboard)
+	
+	active_child = new_node
+	
+	if active_child:
+		active_child.enter(actor, blackboard)
+

@@ -4,12 +4,17 @@ class_name PlayerController extends Node
 ## Polls input, updates the Blackboard, and ticks the State Machine.
 ## Attached to the CharacterBody3D (or an empty node inside it).
 
+## The root state of the HFSM hierarchy.
 @export var root_state: RecursiveState
+## The physics manager component for handling movement.
 @export var physics_manager: PhysicsManager
 
 # The Blackboard: A shared dictionary for the entire hierarchy
+## Shared data dictionary passed to all states.
+## Contains input data, references to components, and other global state information.
 var blackboard: Dictionary = {}
 
+## Initializes the controller, blackboard, and starts the state machine.
 func _ready() -> void:
 	# Ensure dependencies
 	if not root_state:
@@ -27,6 +32,8 @@ func _ready() -> void:
 	if root_state:
 		root_state.enter(get_parent(), blackboard)
 
+## Main loop for input polling and state machine updates.
+## Logic runs in `_process` (frame-dependent), while physics runs in `_physics_process`.
 func _process(delta: float) -> void:
 	# 1. POLL INPUT
 	_poll_input()
@@ -36,6 +43,9 @@ func _process(delta: float) -> void:
 	if root_state:
 		root_state.process_state(delta, get_parent(), blackboard)
 
+## Polls input from the InputMap and updates the blackboard.
+## - `input_dir`: Vector2 (WASD/Joystick)
+## - `inputs`: Dictionary of boolean flags (jump, fire, etc.)
 func _poll_input() -> void:
 	# Get Vector2 input for movement
 	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")

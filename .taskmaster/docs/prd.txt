@@ -1,0 +1,18 @@
+Title: HFSM Refactor to Atomic Activation & Tooling
+
+- [ ] Refactor Architecture to Priority/Condition based Switching
+    - [ ] Modify `RecursiveState.gd`
+        - [ ] Remove `transitions` property.
+        - [ ] Add `activation_conditions: Array[StateCondition]`.
+        - [ ] Add `priority: int` (or rely on child order).
+        - [ ] Implement `check_activation(actor, blackboard) -> bool`.
+    - [ ] Update `process_state` in `RecursiveState.gd`
+        - [ ] Logic: Iterate children -> Find highest priority child that meets conditions -> Switch if different from current.
+        - [ ] Handle `is_locked` logic (Current state prevents switch until unlocked).
+    - [ ] Deprecate/Remove `StateTransition.gd` (since the condition *is* the transition logic now).
+- [ ] Update Setup Script
+    - [ ] Update `Scripts/SetupHFSM.gd` to use the new API.
+    - [ ] Assign conditions directly to States.
+- [ ] Documentation & Tooling
+    - [ ] Add GDScript documentation comments (`##`) to all properties in `RecursiveState`, `StateBehavior`.
+    - [ ] Add Tooltips for Editor.

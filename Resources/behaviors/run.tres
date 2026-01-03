@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="BehaviorMove" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="BehaviorMove" load_steps=2 format=3 uid="uid://3jwmhj1f7oge"]
 
-[ext_resource type="Script" path="res://Scripts/BehaviorMove.gd" id="1_rcykt"]
+[ext_resource type="Script" uid="uid://c5q6daepo0p4m" path="res://Scripts/BehaviorMove.gd" id="1_rcykt"]
 
 [resource]
 script = ExtResource("1_rcykt")

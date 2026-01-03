@@ -1,65 +1,74 @@
-[gd_scene load_steps=27 format=3 uid="uid://dgwj7bii26hme"]
+[gd_scene load_steps=34 format=3 uid="uid://dgwj7bii26hme"]
 
-[ext_resource type="Script" uid="uid://pqwb18liy6pj" path="res://Scripts/physics_manager.gd" id="1_60fax"]
-[ext_resource type="Script" uid="uid://u8e3x4htq7mp" path="res://Scripts/RecursiveState.gd" id="2_1pr8x"]
-[ext_resource type="Script" uid="uid://bb3kdxy1f2623" path="res://Scripts/StateTransition.gd" id="3_py2qr"]
-[ext_resource type="Script" uid="uid://b1wuc2hj2npg0" path="res://Scripts/StateCondition.gd" id="4_b6d0d"]
-[ext_resource type="Resource" uid="uid://bfxwbocaxqftb" path="res://Resources/conditions/input_jump.tres" id="5_j3fy0"]
-[ext_resource type="Resource" uid="uid://bdl1sasy1fsne" path="res://Resources/conditions/is_moving.tres" id="6_7pee2"]
-[ext_resource type="Resource" path="res://Resources/behaviors/run.tres" id="7_m1ygr"]
-[ext_resource type="Resource" uid="uid://b8xpmpgakhyf3" path="res://Resources/conditions/not_moving.tres" id="8_ys1e8"]
-[ext_resource type="Resource" uid="uid://ct2xasvmkdfa" path="res://Resources/behaviors/jump.tres" id="9_ovhxj"]
-[ext_resource type="Resource" uid="uid://d3svpt2r3vi0l" path="res://Resources/conditions/is_grounded.tres" id="10_4g5nw"]
-[ext_resource type="Script" uid="uid://yvrfmkwm4ycd" path="res://Scripts/PlayerController.gd" id="11_lfd5b"]
-[ext_resource type="Script" uid="uid://csjccrhj5wnx7" path="res://addons/phantom_camera/scripts/phantom_camera/phantom_camera_3d.gd" id="12_b6d0d"]
-[ext_resource type="Script" uid="uid://8umksf8e80fw" path="res://addons/phantom_camera/scripts/resources/tween_resource.gd" id="13_j3fy0"]
-[ext_resource type="Script" uid="uid://bd046eokvcnu2" path="res://addons/phantom_camera/scripts/phantom_camera_host/phantom_camera_host.gd" id="14_7pee2"]
+[ext_resource type="Texture2D" uid="uid://beve8jjch6gsb" path="res://addons/PrototypeTextures/Dark/texture_01.png" id="1_7pee2"]
+[ext_resource type="Script" uid="uid://pqwb18liy6pj" path="res://Scripts/physics_manager.gd" id="1_b6d0d"]
+[ext_resource type="Script" uid="uid://u8e3x4htq7mp" path="res://Scripts/RecursiveState.gd" id="2_j3fy0"]
+[ext_resource type="Script" uid="uid://bb3kdxy1f2623" path="res://Scripts/StateTransition.gd" id="3_7pee2"]
+[ext_resource type="Script" uid="uid://b1wuc2hj2npg0" path="res://Scripts/StateCondition.gd" id="4_m1ygr"]
+[ext_resource type="Resource" uid="uid://b8xpmpgakhyf3" path="res://Resources/conditions/not_moving.tres" id="5_ys1e8"]
+[ext_resource type="Resource" uid="uid://d3svpt2r3vi0l" path="res://Resources/conditions/is_grounded.tres" id="6_ovhxj"]
+[ext_resource type="Resource" uid="uid://3jwmhj1f7oge" path="res://Resources/behaviors/run.tres" id="7_4g5nw"]
+[ext_resource type="Resource" uid="uid://bdl1sasy1fsne" path="res://Resources/conditions/is_moving.tres" id="8_lfd5b"]
+[ext_resource type="Resource" uid="uid://ct2xasvmkdfa" path="res://Resources/behaviors/jump.tres" id="9_0r22l"]
+[ext_resource type="Resource" uid="uid://bfxwbocaxqftb" path="res://Resources/conditions/input_jump.tres" id="10_8i6hi"]
+[ext_resource type="Script" uid="uid://yvrfmkwm4ycd" path="res://Scripts/PlayerController.gd" id="11_r74qv"]
+[ext_resource type="Script" uid="uid://ig41cgq1agpf" path="res://Scripts/ConditionIsGrounded.gd" id="12_ovhxj"]
+[ext_resource type="Script" uid="uid://bd046eokvcnu2" path="res://addons/phantom_camera/scripts/phantom_camera_host/phantom_camera_host.gd" id="12_r38ha"]
+[ext_resource type="Script" uid="uid://csjccrhj5wnx7" path="res://addons/phantom_camera/scripts/phantom_camera/phantom_camera_3d.gd" id="13_d2hee"]
+[ext_resource type="Script" uid="uid://8umksf8e80fw" path="res://addons/phantom_camera/scripts/resources/tween_resource.gd" id="14_fu4eq"]
 [ext_resource type="Script" uid="uid://budt1k5nl4y5t" path="res://Scripts/StateDebugger.gd" id="14_j3fy0"]
+[ext_resource type="Script" uid="uid://2uss1henrr7p" path="res://Scripts/Tools/StateBuilder.gd" id="17_ys1e8"]
+[ext_resource type="Resource" uid="uid://d0yf0p4syg5cw" path="res://Resources/conditions/is_airborne.tres" id="18_ovhxj"]
+[ext_resource type="Resource" path="res://Resources/conditions/input_jump_just_pressed.tres" id="19_4g5nw"]
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_b6d0d"]
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_7pee2"]
 sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
 ground_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
 
-[sub_resource type="Sky" id="Sky_j3fy0"]
-sky_material = SubResource("ProceduralSkyMaterial_b6d0d")
+[sub_resource type="Sky" id="Sky_m1ygr"]
+sky_material = SubResource("ProceduralSkyMaterial_7pee2")
 
-[sub_resource type="Environment" id="Environment_7pee2"]
+[sub_resource type="Environment" id="Environment_ys1e8"]
 background_mode = 2
-sky = SubResource("Sky_j3fy0")
+sky = SubResource("Sky_m1ygr")
 tonemap_mode = 2
 glow_enabled = true
 
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_m1ygr"]
+albedo_texture = ExtResource("1_7pee2")
+
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_0xm2m"]
 
+[sub_resource type="Resource" id="Resource_4g5nw"]
+script = ExtResource("3_7pee2")
+conditions = Array[ExtResource("4_m1ygr")]([ExtResource("6_ovhxj")])
+metadata/_custom_type_script = "uid://bb3kdxy1f2623"
+
+[sub_resource type="Resource" id="Resource_qfcqw"]
+script = ExtResource("3_7pee2")
+conditions = Array[ExtResource("4_m1ygr")]([ExtResource("5_ys1e8")])
+
+[sub_resource type="Resource" id="Resource_rfg57"]
+script = ExtResource("3_7pee2")
+conditions = Array[ExtResource("4_m1ygr")]([ExtResource("8_lfd5b")])
+
+[sub_resource type="Resource" id="Resource_ngus6"]
+script = ExtResource("3_7pee2")
+conditions = Array[ExtResource("4_m1ygr")]([ExtResource("10_8i6hi")])
+
+[sub_resource type="Resource" id="Resource_lfd5b"]
+script = ExtResource("12_ovhxj")
+reverse_result = true
+
 [sub_resource type="Resource" id="Resource_0r22l"]
-script = ExtResource("3_py2qr")
-target_state = "Jump"
-conditions = Array[ExtResource("4_b6d0d")]([ExtResource("5_j3fy0")])
+script = ExtResource("3_7pee2")
+conditions = Array[ExtResource("4_m1ygr")]([SubResource("Resource_lfd5b")])
+metadata/_custom_type_script = "uid://bb3kdxy1f2623"
 
-[sub_resource type="Resource" id="Resource_8i6hi"]
-script = ExtResource("3_py2qr")
-target_state = "Run"
-conditions = Array[ExtResource("4_b6d0d")]([ExtResource("6_7pee2")])
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_ys1e8"]
 
-[sub_resource type="Resource" id="Resource_r74qv"]
-script = ExtResource("3_py2qr")
-target_state = "Jump"
-conditions = Array[ExtResource("4_b6d0d")]([ExtResource("5_j3fy0")])
-
-[sub_resource type="Resource" id="Resource_r38ha"]
-script = ExtResource("3_py2qr")
-target_state = "Idle"
-conditions = Array[ExtResource("4_b6d0d")]([ExtResource("8_ys1e8")])
-
-[sub_resource type="Resource" id="Resource_d2hee"]
-script = ExtResource("3_py2qr")
-target_state = "Idle"
-conditions = Array[ExtResource("4_b6d0d")]([ExtResource("10_4g5nw")])
-
-[sub_resource type="Resource" id="Resource_m1ygr"]
-script = ExtResource("13_j3fy0")
-
-[sub_resource type="CapsuleMesh" id="CapsuleMesh_b6d0d"]
+[sub_resource type="Resource" id="Resource_b1hnw"]
+script = ExtResource("14_fu4eq")
 
 [node name="RenderServer" type="Node3D"]
 
@@ -68,75 +77,101 @@ transform = Transform3D(-0.8660254, -0.43301278, 0.25, 0, 0.49999997, 0.86602545
 shadow_enabled = true
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
-environment = SubResource("Environment_7pee2")
+environment = SubResource("Environment_ys1e8")
 
 [node name="CSGBox3D" type="CSGBox3D" parent="."]
 use_collision = true
 size = Vector3(25, 0.1, 25)
+material = SubResource("StandardMaterial3D_m1ygr")
 
 [node name="CharacterBody3D" type="CharacterBody3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.48069, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.1114464, 0)
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="CharacterBody3D"]
 shape = SubResource("CapsuleShape3D_0xm2m")
 
 [node name="PhysicsManager" type="Node3D" parent="CharacterBody3D"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.572326, 0, -9.063581)
-script = ExtResource("1_60fax")
+script = ExtResource("1_b6d0d")
 
 [node name="RootState" type="Node" parent="CharacterBody3D"]
-script = ExtResource("2_1pr8x")
+script = ExtResource("2_j3fy0")
 
-[node name="Idle" type="Node" parent="CharacterBody3D/RootState"]
-script = ExtResource("2_1pr8x")
-transitions = Array[ExtResource("3_py2qr")]([SubResource("Resource_0r22l"), SubResource("Resource_8i6hi")])
+[node name="Grounded" type="Node" parent="CharacterBody3D/RootState"]
+script = ExtResource("2_j3fy0")
+transitions = Array[ExtResource("3_7pee2")]([SubResource("Resource_4g5nw")])
+metadata/_custom_type_script = "uid://u8e3x4htq7mp"
+
+[node name="Idle" type="Node" parent="CharacterBody3D/RootState/Grounded"]
+script = ExtResource("2_j3fy0")
+transitions = Array[ExtResource("3_7pee2")]([SubResource("Resource_qfcqw")])
 is_starting_state = true
 
-[node name="Run" type="Node" parent="CharacterBody3D/RootState"]
-script = ExtResource("2_1pr8x")
-behavior = ExtResource("7_m1ygr")
-transitions = Array[ExtResource("3_py2qr")]([SubResource("Resource_r74qv"), SubResource("Resource_r38ha")])
+[node name="Run" type="Node" parent="CharacterBody3D/RootState/Grounded"]
+script = ExtResource("2_j3fy0")
+behavior = ExtResource("7_4g5nw")
+transitions = Array[ExtResource("3_7pee2")]([SubResource("Resource_rfg57")])
 
-[node name="Jump" type="Node" parent="CharacterBody3D/RootState"]
-script = ExtResource("2_1pr8x")
-behavior = ExtResource("9_ovhxj")
-transitions = Array[ExtResource("3_py2qr")]([SubResource("Resource_d2hee")])
+[node name="Jump" type="Node" parent="CharacterBody3D/RootState/Grounded"]
+script = ExtResource("2_j3fy0")
+behavior = ExtResource("9_0r22l")
+transitions = Array[ExtResource("3_7pee2")]([SubResource("Resource_ngus6")])
+
+[node name="Airborne" type="Node" parent="CharacterBody3D/RootState"]
+script = ExtResource("2_j3fy0")
+transitions = Array[ExtResource("3_7pee2")]([SubResource("Resource_0r22l")])
+metadata/_custom_type_script = "uid://u8e3x4htq7mp"
+
+[node name="Idle" type="Node" parent="CharacterBody3D/RootState/Airborne"]
+script = ExtResource("2_j3fy0")
+transitions = Array[ExtResource("3_7pee2")]([SubResource("Resource_qfcqw")])
+is_starting_state = true
+
+[node name="Run" type="Node" parent="CharacterBody3D/RootState/Airborne"]
+script = ExtResource("2_j3fy0")
+behavior = ExtResource("7_4g5nw")
+transitions = Array[ExtResource("3_7pee2")]([SubResource("Resource_rfg57")])
 
 [node name="PlayerController" type="Node" parent="CharacterBody3D" node_paths=PackedStringArray("root_state", "physics_manager")]
-script = ExtResource("11_lfd5b")
+script = ExtResource("11_r74qv")
 root_state = NodePath("../RootState")
 physics_manager = NodePath("../PhysicsManager")
 
-[node name="PhantomCamera3D" type="Node3D" parent="CharacterBody3D" node_paths=PackedStringArray("follow_target")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 7.7)
-script = ExtResource("12_b6d0d")
-follow_mode = 6
-follow_target = NodePath("..")
-tween_resource = SubResource("Resource_m1ygr")
-follow_offset = Vector3(0, 0, 6.7)
-align_transform_with_view = Callable()
-align_position_with_view = Callable()
-align_rotation_with_view = Callable()
-metadata/_custom_type_script = "uid://csjccrhj5wnx7"
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="CharacterBody3D"]
-mesh = SubResource("CapsuleMesh_b6d0d")
-
 [node name="StateDebugger" type="Label3D" parent="CharacterBody3D" node_paths=PackedStringArray("root_state")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4718351, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5409756, 0)
 billboard = 1
-double_sided = false
-font_size = 64
 script = ExtResource("14_j3fy0")
 root_state = NodePath("../RootState")
 metadata/_custom_type_script = "uid://budt1k5nl4y5t"
 
-[node name="Camera3D" type="Camera3D" parent="."]
-physics_interpolation_mode = 1
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.48069, 7.7)
+[node name="MeshInstance3D" type="MeshInstance3D" parent="CharacterBody3D"]
+mesh = SubResource("CapsuleMesh_ys1e8")
 
-[node name="PhantomCameraHost" type="Node" parent="Camera3D"]
+[node name="MainCamera" type="Camera3D" parent="."]
+physics_interpolation_mode = 1
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.1114464, 3.97)
+
+[node name="PhantomCameraHost" type="Node" parent="MainCamera"]
 process_priority = 300
 process_physics_priority = 300
-script = ExtResource("14_7pee2")
-metadata/_custom_type_script = "uid://bd046eokvcnu2"
+script = ExtResource("12_r38ha")
+
+[node name="PlayerCamera" type="Node3D" parent="." node_paths=PackedStringArray("follow_target")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.1114464, 3.97)
+script = ExtResource("13_d2hee")
+priority = 20
+follow_mode = 6
+follow_target = NodePath("../CharacterBody3D")
+tween_resource = SubResource("Resource_b1hnw")
+follow_offset = Vector3(0, 0, -1.03)
+follow_distance = 5.0
+spring_length = 5.0
+align_transform_with_view = Callable()
+align_position_with_view = Callable()
+align_rotation_with_view = Callable()
+
+[node name="Node" type="Node" parent="." node_paths=PackedStringArray("target_state")]
+script = ExtResource("17_ys1e8")
+target_state = NodePath("../CharacterBody3D/RootState/Grounded/Idle")
+available_conditions = Array[ExtResource("4_m1ygr")]([ExtResource("10_8i6hi"), ExtResource("19_4g5nw"), ExtResource("18_ovhxj"), ExtResource("6_ovhxj"), ExtResource("8_lfd5b"), ExtResource("5_ys1e8")])
+debug_output = "Found 6 conditions."

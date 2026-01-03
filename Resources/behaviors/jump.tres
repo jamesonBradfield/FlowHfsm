@@ -4,4 +4,4 @@
 
 [resource]
 script = ExtResource("1_gl2gu")
-jump_force = 100.0
+jump_force = 12.0

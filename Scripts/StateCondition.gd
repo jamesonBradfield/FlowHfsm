@@ -5,13 +5,26 @@ class_name StateCondition extends Resource
 ## Returns true/false.
 
 @export_group("Logic Modifiers")
-@export var reverse_result: bool = false ## If true, this acts as a NOT gate.
+## If true, this acts as a NOT gate, reversing the result of the condition.
+@export var reverse_result: bool = false 
 
 # Virtual Function - Override this!
+
+## Internal evaluation function. Override this in subclasses.
+##
+## @param actor: The owner of the state machine.
+## @param blackboard: Shared data dictionary.
+## @return: The raw result of the condition check.
 func _evaluate(actor: Node, blackboard: Dictionary) -> bool:
 	return false
 
 # Public Wrapper (Handles the "NOT" logic automatically)
+
+## Evaluates the condition, applying the `reverse_result` modifier if set.
+##
+## @param actor: The owner of the state machine.
+## @param blackboard: Shared data dictionary.
+## @return: The final result of the condition.
 func evaluate(actor: Node, blackboard: Dictionary) -> bool:
 	var result = _evaluate(actor, blackboard)
 	return not result if reverse_result else result
