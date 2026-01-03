@@ -118,11 +118,6 @@ func _update_property():
 		v_box.add_child(op_row)
 		
 		# 2. Conditions List
-		var cond_label = Label.new()
-		cond_label.text = "Conditions:"
-		cond_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
-		v_box.add_child(cond_label)
-		
 		var cond_container = VBoxContainer.new()
 		cond_container.add_theme_constant_override("separation", 6)
 		v_box.add_child(cond_container)
@@ -172,18 +167,12 @@ func _update_property():
 
 			# 2. Inline Properties (if condition exists)
 			if c:
-				var props_panel = PanelContainer.new()
-				var props_style = StyleBoxFlat.new()
-				props_style.bg_color = Color(0.08, 0.08, 0.08, 0.4)
-				props_style.corner_radius_bottom_left = 4
-				props_style.corner_radius_bottom_right = 4
-				props_style.content_margin_left = 12
-				props_style.content_margin_top = 4
-				props_style.content_margin_bottom = 4
-				props_panel.add_theme_stylebox_override("panel", props_style)
+				var margin = MarginContainer.new()
+				margin.add_theme_constant_override("margin_left", 24)
+				margin.add_theme_constant_override("margin_top", 4)
 				
 				var props_list = VBoxContainer.new()
-				props_panel.add_child(props_list)
+				margin.add_child(props_list)
 				
 				# Show exports
 				for prop in c.get_property_list():
@@ -213,7 +202,7 @@ func _update_property():
 						props_list.add_child(p_row)
 				
 				if props_list.get_child_count() > 0:
-					cond_box.add_child(props_panel)
+					cond_box.add_child(margin)
 			
 			cond_container.add_child(cond_box)
 			
