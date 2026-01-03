@@ -40,6 +40,7 @@ func _update_property():
 		if not t: continue
 		
 		var panel = PanelContainer.new()
+		panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		
 		# Zebra Striping
 		if i % 2 != 0:
@@ -50,7 +51,7 @@ func _update_property():
 			panel.add_child(bg_rect)
 			
 		var panel_style = StyleBoxFlat.new()
-		panel_style.bg_color = Color(0.12, 0.12, 0.12, 0.6)
+		panel_style.bg_color = Color(0.12, 0.12, 0.14, 0.6)
 		panel_style.corner_radius_top_left = 4
 		panel_style.corner_radius_top_right = 4
 		panel_style.corner_radius_bottom_left = 4
