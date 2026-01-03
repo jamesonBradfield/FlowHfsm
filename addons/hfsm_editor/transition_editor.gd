@@ -111,8 +111,8 @@ func _update_property():
 			var c = t.conditions[j]
 			var cond_box = VBoxContainer.new()
 			
-			# 1. Row: Picker + Toolbar + Remove
-			var cond_row = HBoxContainer.new()
+			# 1. Top Row: Picker + Remove
+			var picker_row = HBoxContainer.new()
 			
 			# Resource Picker
 			var picker = EditorResourcePicker.new()
@@ -124,17 +124,7 @@ func _update_property():
 				emit_changed(get_edited_property(), transitions)
 				_update_property()
 			)
-			cond_row.add_child(picker)
-			
-			# Smart Resource Controls
-			if c:
-				var toolbar = PropertyFactory.create_resource_toolbar(c, self, func(new_res):
-					if new_res != c:
-						t.conditions[j] = new_res
-						emit_changed(get_edited_property(), transitions)
-					_update_property()
-				)
-				cond_row.add_child(toolbar)
+			picker_row.add_child(picker)
 			
 			# Remove Condition Button
 			var del_cond_btn = Button.new()
@@ -146,23 +136,60 @@ func _update_property():
 				emit_changed(get_edited_property(), transitions)
 				_update_property()
 			)
-			cond_row.add_child(del_cond_btn)
+			picker_row.add_child(del_cond_btn)
 			
-			cond_box.add_child(cond_row)
+			cond_box.add_child(picker_row)
 
-			# 2. Inline Properties (if condition exists)
+			# 2. Condition Inspector Panel (if condition exists)
 			if c:
+				var panel = PanelContainer.new()
+				# Use a distinct color for Conditions (e.g., Teal/Cyan) to differentiate from Behavior (Blue) and Transition (Green/Orange)
+				var border_color = Color(0.2, 0.7, 0.7) 
+				panel.add_theme_stylebox_override("panel", PropertyFactory.create_panel_style(border_color))
+				
+				var props_box = VBoxContainer.new()
+				panel.add_child(props_box)
+				
+				# Header
+				var panel_header = HBoxContainer.new()
+				
+				# Toolbar (Shared/Local, Save, Make Unique)
+				var toolbar = PropertyFactory.create_resource_toolbar(c, self, func(new_res):
+					if new_res != c:
+						t.conditions[j] = new_res
+						emit_changed(get_edited_property(), transitions)
+					_update_property()
+				)
+				panel_header.add_child(toolbar)
+				
+				var h_spacer = Control.new()
+				h_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				panel_header.add_child(h_spacer)
+				
+				# Open Button
+				var open_btn = Button.new()
+				open_btn.tooltip_text = "Open Resource in full Inspector"
+				open_btn.icon = get_theme_icon("Edit", "EditorIcons")
+				open_btn.flat = true
+				open_btn.pressed.connect(func(): EditorInterface.edit_resource(c), CONNECT_DEFERRED)
+				panel_header.add_child(open_btn)
+				
+				props_box.add_child(panel_header)
+				
+				# Properties List
 				var margin = MarginContainer.new()
-				margin.add_theme_constant_override("margin_left", 24)
+				margin.add_theme_constant_override("margin_left", 12)
 				margin.add_theme_constant_override("margin_top", 4)
 				
 				var props_list = PropertyFactory.create_property_list(c, func():
 					emit_changed(get_edited_property(), transitions)
 				)
+				margin.add_child(props_list)
 				
 				if props_list.get_child_count() > 0:
-					margin.add_child(props_list)
-					cond_box.add_child(margin)
+					props_box.add_child(margin)
+					
+				cond_box.add_child(panel)
 			
 			cond_container.add_child(cond_box)
 			
