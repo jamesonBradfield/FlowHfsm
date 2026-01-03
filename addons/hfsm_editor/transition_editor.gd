@@ -1,6 +1,7 @@
+@tool
 extends EditorProperty
 
-const HFSMPropertyFactory = preload("res://addons/hfsm_editor/property_factory.gd")
+const Factory = preload("res://addons/hfsm_editor/property_factory.gd")
 
 var container = VBoxContainer.new()
 
@@ -46,7 +47,7 @@ func _update_property():
 			panel.add_child(bg_rect)
 			
 		var border_color = Color(0.2, 0.8, 0.2) if t.operation == 0 else Color(1.0, 0.6, 0.0)
-		panel.add_theme_stylebox_override("panel", HFSMPropertyFactory.create_panel_style(border_color))
+		panel.add_theme_stylebox_override("panel", Factory.create_panel_style(border_color))
 		
 		var v_box = VBoxContainer.new()
 		panel.add_child(v_box)
@@ -142,19 +143,19 @@ func _update_property():
 
 			# 2. Condition Inspector Panel (if condition exists)
 			if c:
-				var panel = PanelContainer.new()
+				var cond_panel = PanelContainer.new()
 				# Use a distinct color for Conditions (e.g., Teal/Cyan) to differentiate from Behavior (Blue) and Transition (Green/Orange)
 				var cond_border_color = Color(0.2, 0.7, 0.7) 
-				panel.add_theme_stylebox_override("panel", HFSMPropertyFactory.create_panel_style(cond_border_color))
+				cond_panel.add_theme_stylebox_override("panel", Factory.create_panel_style(cond_border_color))
 				
 				var props_box = VBoxContainer.new()
-				panel.add_child(props_box)
+				cond_panel.add_child(props_box)
 				
 				# Header
 				var panel_header = HBoxContainer.new()
 				
 				# Toolbar (Shared/Local, Save, Make Unique)
-				var toolbar = HFSMPropertyFactory.create_resource_toolbar(c, self, func(new_res):
+				var toolbar = Factory.create_resource_toolbar(c, self, func(new_res):
 					if new_res != c:
 						t.conditions[j] = new_res
 						emit_changed(get_edited_property(), transitions)
@@ -181,7 +182,7 @@ func _update_property():
 				margin.add_theme_constant_override("margin_left", 12)
 				margin.add_theme_constant_override("margin_top", 4)
 				
-				var props_list = HFSMPropertyFactory.create_property_list(c, func():
+				var props_list = Factory.create_property_list(c, func():
 					emit_changed(get_edited_property(), transitions)
 				)
 				margin.add_child(props_list)
@@ -189,7 +190,7 @@ func _update_property():
 				if props_list.get_child_count() > 0:
 					props_box.add_child(margin)
 					
-				cond_box.add_child(panel)
+				cond_box.add_child(cond_panel)
 			
 			cond_container.add_child(cond_box)
 			

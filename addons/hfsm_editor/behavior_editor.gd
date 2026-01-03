@@ -1,6 +1,7 @@
+@tool
 extends EditorProperty
 
-const HFSMPropertyFactory = preload("res://addons/hfsm_editor/property_factory.gd")
+const Factory = preload("res://addons/hfsm_editor/property_factory.gd")
 
 var container = VBoxContainer.new()
 var is_expanded = true
@@ -33,7 +34,7 @@ func _update_property():
 	if behavior:
 		var panel = PanelContainer.new()
 		var border_color = Color(0.4, 0.5, 0.9) # Blue/Purple for Behavior
-		panel.add_theme_stylebox_override("panel", HFSMPropertyFactory.create_panel_style(border_color))
+		panel.add_theme_stylebox_override("panel", Factory.create_panel_style(border_color))
 		
 		var props_box = VBoxContainer.new()
 		panel.add_child(props_box)
@@ -51,7 +52,7 @@ func _update_property():
 		panel_header.add_child(toggle_btn)
 		
 		# Add Smart Resource Toolbar
-		var toolbar = HFSMPropertyFactory.create_resource_toolbar(behavior, self, func(new_res):
+		var toolbar = Factory.create_resource_toolbar(behavior, self, func(new_res):
 			if new_res != behavior:
 				emit_changed(get_edited_property(), new_res)
 			_update_property()
@@ -78,7 +79,7 @@ func _update_property():
 			margin_container.add_theme_constant_override("margin_left", 24)
 			margin_container.add_theme_constant_override("margin_top", 4)
 			
-			var props_list = HFSMPropertyFactory.create_property_list(behavior, func():
+			var props_list = Factory.create_property_list(behavior, func():
 				emit_changed(get_edited_property(), behavior)
 			)
 			margin_container.add_child(props_list)
