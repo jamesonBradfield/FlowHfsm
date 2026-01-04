@@ -1,7 +1,7 @@
 @tool
 extends EditorPlugin
 
-const InspectorPlugin = preload("res://addons/hfsm_editor/hfsm_inspector.gd")
+const InspectorPlugin = preload("res://addons/hfsm_editor/editor/hfsm_inspector.gd")
 var inspector_plugin
 
 func _enter_tree():
