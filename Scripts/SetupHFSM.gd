@@ -8,9 +8,9 @@ func _init():
 	do_setup()
 	quit()
 
-## Constructs the HFSM hierarchy (Idle, Run, Jump) and saves it to a scene file.
+## Constructs the HFSM hierarchy (Grounded, Airborne) and saves it to a scene file.
 func do_setup():
-	var main_scene = load("res://main.tscn").instantiate()
+	var main_scene = load("res://playable_scene.tscn").instantiate()
 	var character = main_scene.get_node("CharacterBody3D")
 	var root_state = character.get_node("RootState")
 	
@@ -22,59 +22,102 @@ func do_setup():
 	var beh_run = load("res://Resources/behaviors/run.tres")
 	var beh_jump = load("res://Resources/behaviors/jump.tres")
 	
-	var cond_input_jump = load("res://Resources/conditions/input_jump.tres")
-	var cond_is_grounded = load("res://Resources/conditions/is_grounded.tres")
-	var cond_is_moving = load("res://Resources/conditions/is_moving.tres")
-	var cond_not_moving = load("res://Resources/conditions/not_moving.tres")
+	# Load Scripts for Conditions (we instantiate them to ensure unique configuration)
+	var ScriptIsGrounded = load("res://Scripts/ConditionIsGrounded.gd")
+	var ScriptMovement = load("res://Scripts/ConditionMovement.gd")
+	var ScriptInput = load("res://Scripts/ConditionInput.gd")
 	
 	# --- Create States ---
 	
-	# 1. Idle
-	var state_idle = RecursiveState.new()
-	state_idle.name = "Idle"
-	state_idle.is_starting_state = true 
+	# 1. Grounded State
+	var state_grounded = RecursiveState.new()
+	state_grounded.name = "Grounded"
 	
-	# Idle Activation: "Active if not moving and grounded"
-	state_idle.activation_conditions = [cond_not_moving, cond_is_grounded]
-	state_idle.activation_mode = RecursiveState.ActivationMode.AND
+	var cond_grounded = ScriptIsGrounded.new()
+	set_conditions(state_grounded, [cond_grounded])
 	
-	# 2. Run
-	var state_run = RecursiveState.new()
-	state_run.name = "Run"
-	state_run.behavior = beh_run
+	# 2. Airborne State
+	var state_airborne = RecursiveState.new()
+	state_airborne.name = "Airborne"
 	
-	# Run Activation: "Active if moving and grounded"
-	state_run.activation_conditions = [cond_is_moving, cond_is_grounded]
-	state_run.activation_mode = RecursiveState.ActivationMode.AND
+	var cond_airborne = ScriptIsGrounded.new()
+	cond_airborne.reverse_result = true
+	set_conditions(state_airborne, [cond_airborne])
 	
-	# 3. Jump
-	var state_jump = RecursiveState.new()
-	state_jump.name = "Jump"
-	state_jump.behavior = beh_jump
+	# --- Grounded Sub-States ---
 	
-	# Jump Activation: "Active if Jump Pressed and Grounded"
-	# Note: Once in Jump, we might be airborne, so we don't want to switch out immediately 
-	# just because "moving" or "not moving" conditions match for other states?
-	# Wait. If Jump is active (Airborne), "Run" trigger checks "Grounded". "Idle" trigger checks "Grounded".
-	# If we are Airborne, neither matches. So Jump stays active.
-	# But Jump trigger itself? "Input Jump" + "Grounded".
-	# If we are in Jump, and frame 2 comes. Grounded is false (hopefully).
-	# So we stay in Jump.
+	# Grounded -> Idle
+	var state_g_idle = RecursiveState.new()
+	state_g_idle.name = "Idle"
+	state_g_idle.is_starting_state = true
 	
-	state_jump.activation_conditions = [cond_input_jump, cond_is_grounded]
-	state_jump.activation_mode = RecursiveState.ActivationMode.AND
+	var cond_not_moving = ScriptMovement.new()
+	cond_not_moving.reverse_result = true
+	set_conditions(state_g_idle, [cond_not_moving])
 	
-	# --- Add to Root ---
-	root_state.add_child(state_idle)
-	state_idle.owner = main_scene # Important for packing
+	# Grounded -> Run
+	var state_g_run = RecursiveState.new()
+	state_g_run.name = "Run"
+	state_g_run.behavior = beh_run
 	
-	root_state.add_child(state_run)
-	state_run.owner = main_scene
+	var cond_moving = ScriptMovement.new()
+	set_conditions(state_g_run, [cond_moving])
 	
-	root_state.add_child(state_jump)
-	state_jump.owner = main_scene
+	# Grounded -> Jump
+	var state_g_jump = RecursiveState.new()
+	state_g_jump.name = "Jump"
+	state_g_jump.behavior = beh_jump
+	
+	var cond_jump_input = ScriptInput.new()
+	cond_jump_input.action_name = "jump"
+	set_conditions(state_g_jump, [cond_jump_input])
+	
+	# --- Airborne Sub-States ---
+	
+	# Airborne -> Idle
+	var state_a_idle = RecursiveState.new()
+	state_a_idle.name = "Idle"
+	state_a_idle.is_starting_state = true
+	
+	var cond_a_not_moving = ScriptMovement.new()
+	cond_a_not_moving.reverse_result = true
+	set_conditions(state_a_idle, [cond_a_not_moving])
+	
+	# Airborne -> Run
+	var state_a_run = RecursiveState.new()
+	state_a_run.name = "Run"
+	state_a_run.behavior = beh_run
+	
+	var cond_a_moving = ScriptMovement.new()
+	set_conditions(state_a_run, [cond_a_moving])
+	
+	# --- Assemble Hierarchy ---
+	
+	# Add Grounded and its children
+	root_state.add_child(state_grounded)
+	state_grounded.owner = main_scene
+	
+	state_grounded.add_child(state_g_idle)
+	state_g_idle.owner = main_scene
+	
+	state_grounded.add_child(state_g_run)
+	state_g_run.owner = main_scene
+	
+	state_grounded.add_child(state_g_jump)
+	state_g_jump.owner = main_scene
+	
+	# Add Airborne and its children
+	root_state.add_child(state_airborne)
+	state_airborne.owner = main_scene
+	
+	state_airborne.add_child(state_a_idle)
+	state_a_idle.owner = main_scene
+	
+	state_airborne.add_child(state_a_run)
+	state_a_run.owner = main_scene
 	
 	# --- Camera Setup (Phantom Camera) ---
+	# Preserving existing camera setup logic as it handles the camera rig
 	var camera = main_scene.get_node_or_null("MainCamera")
 	if not camera:
 		camera = Camera3D.new()
@@ -108,3 +151,10 @@ func do_setup():
 	packed.pack(main_scene)
 	ResourceSaver.save(packed, "res://playable_scene.tscn")
 	print("Saved res://playable_scene.tscn")
+
+func set_conditions(state: RecursiveState, conditions: Array):
+	var typed_conditions: Array[StateCondition] = []
+	for c in conditions:
+		if c is StateCondition:
+			typed_conditions.append(c)
+	state.activation_conditions = typed_conditions
