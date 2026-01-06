@@ -2,23 +2,33 @@
 extends EditorProperty
 
 const Factory = preload("res://addons/hfsm_editor/editor/property_factory.gd")
-
+const ThemeResource = preload("res://addons/hfsm_editor/editor/hfsm_editor_theme.tres")
+	
 var container = VBoxContainer.new()
-var is_expanded = true
-
+var current_behavior: Resource
+var updating_from_ui = false
+	
 func _init():
 	label = ""
+	container.theme = ThemeResource
 	add_child(container)
 
 func _update_property():
+	if updating_from_ui: return
+	
 	# Clear existing children
 	for child in container.get_children():
 		child.queue_free()
 	
 	var behavior = get_edited_object()[get_edited_property()]
 	
-	var header_box = HBoxContainer.new()
-	container.add_child(header_box)
+	if current_behavior != behavior:
+		if current_behavior and current_behavior.changed.is_connected(_on_behavior_changed):
+			current_behavior.changed.disconnect(_on_behavior_changed)
+		current_behavior = behavior
+		if current_behavior:
+			if not current_behavior.changed.is_connected(_on_behavior_changed):
+				current_behavior.changed.connect(_on_behavior_changed)
 	
 	# Resource Picker for the main behavior slot
 	var picker = EditorResourcePicker.new()
@@ -26,67 +36,53 @@ func _update_property():
 	picker.edited_resource = behavior
 	picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	picker.resource_changed.connect(func(res):
-		emit_changed(get_edited_property(), res)
+		var ur = EditorInterface.get_editor_undo_redo()
+		var object = get_edited_object()
+		var property = get_edited_property()
+		var old_res = object.get(property)
+		
+		ur.create_action("Change Behavior Resource")
+		ur.add_do_property(object, property, res)
+		ur.add_undo_property(object, property, old_res)
+		
+		if object.has_method("notify_property_list_changed"):
+			ur.add_do_method(object, "notify_property_list_changed")
+			ur.add_undo_method(object, "notify_property_list_changed")
+			
+		ur.commit_action()
 	)
-	header_box.add_child(picker)
-
-	# If we have a behavior, show its properties inline
+	container.add_child(picker)
+	
+	# If we have a behavior, show its properties inline directly
 	if behavior:
-		var panel = PanelContainer.new()
-		var border_color = Color(0.4, 0.5, 0.9) # Blue/Purple for Behavior
-		panel.add_theme_stylebox_override("panel", Factory.create_panel_style(border_color))
-		
 		var props_box = VBoxContainer.new()
-		panel.add_child(props_box)
 		
-		# --- Header with Toggle and Open Button ---
-		var panel_header = HBoxContainer.new()
+		# Indent slightly
+		var margin_container = MarginContainer.new()
 		
-		var toggle_btn = Button.new()
-		toggle_btn.flat = true
-		toggle_btn.icon = get_theme_icon("GuiTreeArrowDown" if is_expanded else "GuiTreeArrowRight", "EditorIcons")
-		toggle_btn.pressed.connect(func(): 
-			is_expanded = not is_expanded
-			_update_property()
-		)
-		panel_header.add_child(toggle_btn)
-		
-		# Add Smart Resource Toolbar
-		var toolbar = Factory.create_resource_toolbar(behavior, self, func(new_res):
-			if new_res != behavior:
-				emit_changed(get_edited_property(), new_res)
-			_update_property()
-		)
-		panel_header.add_child(toolbar)
-		
-		var h_spacer = Control.new()
-		h_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		panel_header.add_child(h_spacer)
-		
-		var open_btn = Button.new()
-		open_btn.tooltip_text = "Open Resource in full Inspector"
-		open_btn.icon = get_theme_icon("Edit", "EditorIcons")
-		open_btn.flat = true
-		open_btn.pressed.connect(func(): EditorInterface.edit_resource(behavior), CONNECT_DEFERRED)
-		panel_header.add_child(open_btn)
-		
-		props_box.add_child(panel_header)
-		
-		# --- Properties List ---
-		if is_expanded:
-			# Indent slightly
-			var margin_container = MarginContainer.new()
-			margin_container.add_theme_constant_override("margin_left", 24)
-			margin_container.add_theme_constant_override("margin_top", 4)
+		var props_list = Factory.create_property_list(behavior, func(prop_name, new_val):
+			updating_from_ui = true
+			var ur = EditorInterface.get_editor_undo_redo()
+			var old_val = behavior.get(prop_name)
 			
-			var props_list = Factory.create_property_list(behavior, func():
-				emit_changed(get_edited_property(), behavior)
-			)
-			margin_container.add_child(props_list)
+			ur.create_action("Change Behavior Property: " + prop_name)
+			ur.add_do_method(behavior, "set", prop_name, new_val)
+			ur.add_undo_method(behavior, "set", prop_name, old_val)
 			
-			props_box.add_child(margin_container)
+			if behavior.has_method("emit_changed"):
+				ur.add_do_method(behavior, "emit_changed")
+				ur.add_undo_method(behavior, "emit_changed")
 				
-		container.add_child(panel)
+			ur.commit_action()
+			updating_from_ui = false
+		)
+		margin_container.add_child(props_list)
+		
+		props_box.add_child(margin_container)
+		container.add_child(props_box)
+
+func _on_behavior_changed():
+	_update_property()
 
 func _find_owner_node(resource: Resource) -> Node:
 	# This is a bit of a hack to guess where an embedded resource comes from.

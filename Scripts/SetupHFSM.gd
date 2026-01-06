@@ -34,31 +34,25 @@ func do_setup():
 	state_idle.name = "Idle"
 	state_idle.is_starting_state = true 
 	
-	# Idle Trigger (Incoming): "Pick me if not moving and grounded"
-	var trigger_idle = StateTransition.new()
-	var conds_idle: Array[StateCondition] = [cond_not_moving, cond_is_grounded]
-	trigger_idle.conditions = conds_idle
-	var idle_transitions: Array[StateTransition] = [trigger_idle]
-	state_idle.transitions = idle_transitions
+	# Idle Activation: "Active if not moving and grounded"
+	state_idle.activation_conditions = [cond_not_moving, cond_is_grounded]
+	state_idle.activation_mode = RecursiveState.ActivationMode.AND
 	
 	# 2. Run
 	var state_run = RecursiveState.new()
 	state_run.name = "Run"
 	state_run.behavior = beh_run
 	
-	# Run Trigger (Incoming): "Pick me if moving and grounded"
-	var trigger_run = StateTransition.new()
-	var conds_run: Array[StateCondition] = [cond_is_moving, cond_is_grounded]
-	trigger_run.conditions = conds_run
-	var run_transitions: Array[StateTransition] = [trigger_run]
-	state_run.transitions = run_transitions
+	# Run Activation: "Active if moving and grounded"
+	state_run.activation_conditions = [cond_is_moving, cond_is_grounded]
+	state_run.activation_mode = RecursiveState.ActivationMode.AND
 	
 	# 3. Jump
 	var state_jump = RecursiveState.new()
 	state_jump.name = "Jump"
 	state_jump.behavior = beh_jump
 	
-	# Jump Trigger (Incoming): "Pick me if Jump Pressed and Grounded"
+	# Jump Activation: "Active if Jump Pressed and Grounded"
 	# Note: Once in Jump, we might be airborne, so we don't want to switch out immediately 
 	# just because "moving" or "not moving" conditions match for other states?
 	# Wait. If Jump is active (Airborne), "Run" trigger checks "Grounded". "Idle" trigger checks "Grounded".
@@ -67,11 +61,8 @@ func do_setup():
 	# If we are in Jump, and frame 2 comes. Grounded is false (hopefully).
 	# So we stay in Jump.
 	
-	var trigger_jump = StateTransition.new()
-	var conds_jump: Array[StateCondition] = [cond_input_jump, cond_is_grounded]
-	trigger_jump.conditions = conds_jump
-	var jump_transitions: Array[StateTransition] = [trigger_jump]
-	state_jump.transitions = jump_transitions
+	state_jump.activation_conditions = [cond_input_jump, cond_is_grounded]
+	state_jump.activation_mode = RecursiveState.ActivationMode.AND
 	
 	# --- Add to Root ---
 	root_state.add_child(state_idle)

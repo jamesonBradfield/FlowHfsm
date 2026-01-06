@@ -1,18 +1,34 @@
-Title: HFSM Refactor to Atomic Activation & Tooling
+Title: HFSM Refactor: Atomic Activation & Tooling Updates
 
-- [ ] Refactor Architecture to Priority/Condition based Switching
-    - [ ] Modify `RecursiveState.gd`
-        - [ ] Remove `transitions` property.
-        - [ ] Add `activation_conditions: Array[StateCondition]`.
-        - [ ] Add `priority: int` (or rely on child order).
-        - [ ] Implement `check_activation(actor, blackboard) -> bool`.
-    - [ ] Update `process_state` in `RecursiveState.gd`
-        - [ ] Logic: Iterate children -> Find highest priority child that meets conditions -> Switch if different from current.
-        - [ ] Handle `is_locked` logic (Current state prevents switch until unlocked).
-    - [ ] Deprecate/Remove `StateTransition.gd` (since the condition *is* the transition logic now).
-- [ ] Update Setup Script
-    - [ ] Update `Scripts/SetupHFSM.gd` to use the new API.
-    - [ ] Assign conditions directly to States.
-- [ ] Documentation & Tooling
-    - [ ] Add GDScript documentation comments (`##`) to all properties in `RecursiveState`, `StateBehavior`.
-    - [ ] Add Tooltips for Editor.
+1. Core Architecture Refactor (Behavior Tree / Atomic Conditions)
+   - [ ] Modify `addons/hfsm_editor/runtime/RecursiveState.gd`
+       - [ ] Remove `transitions: Array[StateTransition]` export.
+       - [ ] Add `activation_conditions: Array[StateCondition]` export.
+       - [ ] Add `activation_mode: int` (Enum: AND=0, OR=1) to control condition logic.
+       - [ ] Rename `check_transitions()` to `can_activate(actor, blackboard) -> bool`.
+           - Implement logic to evaluate `activation_conditions` based on `activation_mode`.
+       - [ ] Update `process_state()`:
+           - Iterate children in order (Tree Order = Priority).
+           - Call `child.can_activate()`.
+           - Switch active child if a higher-priority child meets conditions (and current is not locked).
+
+2. Cleanup & Deprecation
+   - [ ] Delete `addons/hfsm_editor/runtime/StateTransition.gd` (Obsolete).
+   - [ ] Delete `Resources/transitions/*.tres` (Cleanup old assets).
+
+3. Tooling & Editor Updates
+   - [ ] Update `addons/hfsm_editor/editor/hfsm_inspector.gd`
+       - [ ] Remove custom inspector logic for Transitions.
+       - [ ] Ensure `activation_conditions` are editable (Standard Array Inspector or Custom).
+   - [ ] Delete `addons/hfsm_editor/editor/transition_editor.gd` (if exists and unused).
+
+4. Game Logic & Setup Updates
+   - [ ] Update `Scripts/SetupHFSM.gd`
+       - [ ] Refactor code to assign conditions directly to `RecursiveState.activation_conditions`.
+       - [ ] Remove `StateTransition` instantiation.
+   - [ ] Update `Scripts/Tools/StateBuilder.gd`
+       - [ ] Align with new API.
+
+5. Documentation
+   - [ ] Add GDScript documentation comments (`##`) to `RecursiveState`.
+   - [ ] Explain the "Priority by Order" logic in class docs.

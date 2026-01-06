@@ -1,0 +1,142 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Modify RecursiveState.gd Exports for Atomic Conditions",
+        "description": "Refactor `addons/hfsm_editor/runtime/RecursiveState.gd` by removing the `transitions` export and introducing `activation_conditions` and `activation_mode` exports to support atomic state activation.",
+        "details": "1. Open `addons/hfsm_editor/runtime/RecursiveState.gd`.2. Remove `export(Array, TYPE_OBJECT) var transitions = []` or similar declaration.3. Add `export(Array, TYPE_OBJECT) var activation_conditions = []` to hold `StateCondition` objects.4. Add `enum ActivationMode { AND, OR }` at the top of the script.5. Add `export(int, \"AND\", \"OR\") var activation_mode = ActivationMode.AND` to control how conditions are evaluated.",
+        "testStrategy": "1. Open the HFSM editor.2. Create a new `RecursiveState` resource.3. Verify that the 'transitions' property is no longer visible in the inspector.4. Verify that 'activation_conditions' (an array) and 'activation_mode' (a dropdown with AND/OR) properties are visible and editable in the inspector.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 2,
+        "title": "Implement can_activate() in RecursiveState.gd",
+        "description": "Rename `check_transitions()` to `can_activate(actor, blackboard) -> bool` in `RecursiveState.gd` and implement the logic to evaluate `activation_conditions` based on the specified `activation_mode`.",
+        "details": "1. In `addons/hfsm_editor/runtime/RecursiveState.gd`, rename the existing `check_transitions()` method to `can_activate(actor, blackboard) -> bool`.2. Implement the logic within `can_activate()`:   ```gdscript   func can_activate(actor, blackboard) -> bool:       if activation_conditions.empty():           return true # No conditions means always activatable       var met_count = 0       for condition in activation_conditions:           if condition.is_met(actor, blackboard):               met_count += 1       if activation_mode == ActivationMode.AND:           return met_count == activation_conditions.size()       elif activation_mode == ActivationMode.OR:           return met_count > 0       return false   ```",
+        "testStrategy": "1. Create a test scene with an `actor` and `blackboard` (e.g., a Dictionary).2. Instantiate `RecursiveState` and several `StateCondition` resources (e.g., always true, always false, or based on blackboard values).3. Assign conditions to `RecursiveState.activation_conditions`.4. Test `can_activate()` with `activation_mode` set to `AND` and `OR` with various combinations of true/false conditions.5. Verify the method returns `true` or `false` as expected for each mode and condition set.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "Update process_state() for Priority-Based Child Activation",
+        "description": "Modify the `process_state()` method in `RecursiveState.gd` to iterate children in tree order (priority), call `child.can_activate()`, and switch the active child if a higher-priority child meets conditions and the current state is not locked.",
+        "details": "1. In `addons/hfsm_editor/runtime/RecursiveState.gd`, locate the `process_state()` method.2. Modify the child iteration logic:   ```gdscript   func process_state(delta, actor, blackboard):       # ... existing process_state logic ...       for i in range(get_child_count()):           var child = get_child(i)           if child is RecursiveState: # Ensure it's a state               if child.can_activate(actor, blackboard):                   if active_child != child:                       if active_child and active_child.is_locked():                           continue # Cannot switch if current child is locked                       # Deactivate current child if any                   if active_child:                       active_child.exit_state(actor, blackboard)                   active_child = child                   active_child.enter_state(actor, blackboard)                   break # A higher priority child activated, stop checking               elif active_child == child:                   # If the current active child can no longer activate, deactivate it                   active_child.exit_state(actor, blackboard)                   active_child = null                   break # Current child deactivated, re-evaluate next frame or find new active child immediately? (PRD implies immediate switch if higher priority, or fall through if current cannot activate)       # ... existing active_child.process_state() call ...   ```   *Self-correction: The PRD implies switching if a higher-priority child meets conditions. If the current active child fails its own `can_activate`, it should deactivate and allow the loop to find a new one.*   Revised `process_state` logic:   ```gdscript   func process_state(delta, actor, blackboard):       var new_active_child = null       for i in range(get_child_count()):           var child = get_child(i)           if child is RecursiveState:               if child.can_activate(actor, blackboard):                   new_active_child = child                   break # Found highest priority activatable child       if new_active_child != active_child:           if active_child and active_child.is_locked():               # If current child is locked, we cannot switch, so keep it active               # and prevent new_active_child from being set.               new_active_child = active_child           else:               # Switch to new_active_child               if active_child:                   active_child.exit_state(actor, blackboard)               active_child = new_active_child               if active_child:                   active_child.enter_state(actor, blackboard)       if active_child:           active_child.process_state(delta, actor, blackboard)   ```",
+        "testStrategy": "1. Create a state machine with multiple child states, some with `activation_conditions` that can be toggled.2. Set different priorities by ordering children in the scene tree.3. Simulate `actor` and `blackboard` changes that cause different children to become activatable.4. Verify that `process_state()` correctly switches to the highest priority activatable child.5. Test scenarios where the current active child becomes unactivatable and a lower priority child (or no child) should become active.6. Test the `is_locked()` behavior: if the active child is locked, ensure no switch occurs even if a higher-priority child becomes activatable.",
+        "priority": "high",
+        "dependencies": [
+          1,
+          2
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "Delete Obsolete StateTransition Script and Resources",
+        "description": "Remove the `addons/hfsm_editor/runtime/StateTransition.gd` script and clean up any old `Resources/transitions/*.tres` assets as they are no longer used by the new HFSM architecture.",
+        "details": "1. Navigate to `addons/hfsm_editor/runtime/`.2. Delete `StateTransition.gd`.3. Navigate to `Resources/transitions/`.4. Delete all `.tres` files within this directory. (Ensure these are indeed only old transition resources and not other critical assets).",
+        "testStrategy": "1. Verify that `StateTransition.gd` is no longer present in the project.2. Verify that no `.tres` files related to old transitions exist in `Resources/transitions/`.3. Perform a project-wide search for any references to `StateTransition` to ensure no other scripts are inadvertently relying on it.",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Update HFSM Inspector for Activation Conditions",
+        "description": "Modify `addons/hfsm_editor/editor/hfsm_inspector.gd` to remove custom inspector logic for `StateTransition` and ensure that `activation_conditions` are properly displayed and editable in the editor.",
+        "details": "1. Open `addons/hfsm_editor/editor/hfsm_inspector.gd`.2. Identify and remove any custom `_update_property_list()` or `_get_property_list()` logic, or `_set()`/`_get()` overrides specifically handling `transitions` or `StateTransition` objects.3. The `activation_conditions` array should be editable using Godot's standard array inspector. Verify this behavior; if not, ensure the `_can_handle()` method correctly identifies `RecursiveState` and doesn't interfere with array property drawing.",
+        "testStrategy": "1. Open the HFSM editor and select a `RecursiveState` node.2. Verify that the `activation_conditions` array can be expanded, and new `StateCondition` resources can be assigned or created within it.3. Ensure there are no errors or warnings related to property inspection for `RecursiveState` nodes.4. Verify that the old 'Transitions' section is completely absent from the inspector.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Delete Obsolete Transition Editor Script",
+        "description": "Remove `addons/hfsm_editor/editor/transition_editor.gd` if it exists and is no longer used, as its functionality is now obsolete.",
+        "details": "1. Navigate to `addons/hfsm_editor/editor/`.2. Confirm the existence of `transition_editor.gd`.3. Delete `transition_editor.gd` if it's present and confirmed to be unused after the inspector updates.",
+        "testStrategy": "1. Verify that `transition_editor.gd` is no longer present in the project.2. Open the Godot editor and interact with HFSM nodes to ensure no errors or missing editor functionality arise from its removal.",
+        "priority": "medium",
+        "dependencies": [
+          5
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "Refactor Game Logic in SetupHFSM.gd",
+        "description": "Update `Scripts/SetupHFSM.gd` to align with the new `RecursiveState` API, assigning `StateCondition` objects directly to `activation_conditions` and removing `StateTransition` instantiation.",
+        "details": "1. Open `Scripts/SetupHFSM.gd`.2. Locate any code that instantiates `StateTransition` objects or assigns to `state.transitions`.3. Refactor this code to instead create `StateCondition` objects (or reuse existing ones) and add them to `state.activation_conditions`.4. Ensure `activation_mode` is set appropriately for each state if needed.",
+        "testStrategy": "1. Run the game scene that uses `SetupHFSM.gd`.2. Verify that the state machine initializes without errors.3. Observe the behavior of the HFSM and ensure states activate and deactivate correctly based on the new condition logic, matching the intended game flow.",
+        "priority": "high",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Align StateBuilder.gd with New API",
+        "description": "Update `Scripts/Tools/StateBuilder.gd` to use the new `RecursiveState` API for setting up state conditions, replacing any old `StateTransition` related logic.",
+        "details": "1. Open `Scripts/Tools/StateBuilder.gd`.2. Identify and update any methods or properties that were previously used to create or manage `StateTransition` objects.3. Modify the builder logic to instead populate `RecursiveState.activation_conditions` with `StateCondition` instances and set `activation_mode`.",
+        "testStrategy": "1. Use `StateBuilder.gd` to programmatically construct a simple HFSM.2. Inspect the generated `RecursiveState` nodes to ensure `activation_conditions` are correctly populated and `activation_mode` is set.3. Run a test scene using the built HFSM to confirm its runtime behavior is correct.",
+        "priority": "medium",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Add GDScript Documentation to RecursiveState.gd",
+        "description": "Add comprehensive GDScript documentation comments (`##`) to the `RecursiveState` class, its new exports (`activation_conditions`, `activation_mode`), and methods (`can_activate`, `process_state`).",
+        "details": "1. Open `addons/hfsm_editor/runtime/RecursiveState.gd`.2. Add `##` comments for the class itself, explaining its purpose as a recursive state in an HFSM.3. Document `activation_conditions`, explaining its role in atomic activation.4. Document `activation_mode`, explaining the `AND`/`OR` logic.5. Document `can_activate(actor, blackboard)` explaining its purpose and how it evaluates conditions.6. Document `process_state(delta, actor, blackboard)` explaining the priority-based child activation.",
+        "testStrategy": "1. Generate documentation using Godot's built-in documentation generation tools (if applicable) or a third-party tool.2. Review the generated documentation to ensure it is clear, accurate, and complete for `RecursiveState` and its new features.3. Hover over `RecursiveState` in the script editor to verify tooltips show the new documentation.",
+        "priority": "low",
+        "dependencies": [
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Document 'Priority by Order' Logic in RecursiveState",
+        "description": "Explicitly document the 'Priority by Order' logic within the class documentation of `RecursiveState.gd`, clarifying how child states are prioritized based on their order in the scene tree.",
+        "details": "1. Open `addons/hfsm_editor/runtime/RecursiveState.gd`.2. Within the main class-level `##` documentation block, add a dedicated section explaining:   - 'Child State Priority: Child states are evaluated for activation based on their order in the scene tree. Children appearing earlier in the tree (higher up in the inspector list) have higher priority. If multiple children can activate, the highest priority activatable child will become the active state.'",
+        "testStrategy": "1. Review the `RecursiveState.gd` script's class documentation.2. Ensure the explanation of 'Priority by Order' is clear, concise, and accurately reflects the implementation in `process_state()`.3. Verify that the documentation is easily understandable for new users of the HFSM system.",
+        "priority": "low",
+        "dependencies": [
+          9
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2026-01-05T15:02:17.176Z",
+      "updated": "2026-01-05T15:02:17.176Z",
+      "description": "Tasks for master context"
+    }
+  }
+}

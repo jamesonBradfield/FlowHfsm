@@ -1,0 +1,5 @@
+[gd_resource type="Theme" format=3]
+
+[resource]
+MarginContainer/constants/margin_left = 24
+MarginContainer/constants/margin_top = 4

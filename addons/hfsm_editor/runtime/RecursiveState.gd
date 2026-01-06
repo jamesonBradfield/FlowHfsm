@@ -1,18 +1,28 @@
 class_name RecursiveState extends Node
 
 ## THE CONTAINER
-## Acts as a generic host for a Behavior (Logic) and Transitions (Gates).
+## Acts as a generic host for a Behavior (Logic) and Atomic Activation Conditions.
 ## Holds the "State" (Memory) for the Behavior to use.
+##
+## Child State Priority:
+## Child states are evaluated for activation based on their order in the scene tree.
+## Children appearing earlier in the tree (higher up in the inspector list) have higher priority.
+## If multiple children can activate, the highest priority activatable child will become the active state.
 
 # --- EXPORTS (The Strategy) ---
 @export_group("Logic")
 ## The "Brain" (Resource). Defines what this state does (e.g., Move, Jump).
 @export var behavior: StateBehavior 
-## The "Triggers" (Resources). A list of conditions that cause this state to activate (Incoming).
-## Used by the Parent to auto-select this child (e.g., Jump triggers when Space is pressed).
-## This decoupling allows the state to be dropped into any container without knowing its neighbors.
-## NOTE: Transitions are checked in order. First one to satisfy conditions wins.
-@export var transitions: Array[StateTransition]
+
+enum ActivationMode { AND, OR }
+
+## The "Gate" (Conditions). A list of conditions that must be met for this state to be active.
+## Used by the Parent to auto-select this child (e.g., Jump activates when Space is pressed).
+@export var activation_conditions: Array[StateCondition]
+## How to combine the activation conditions.
+## AND: All conditions must be true.
+## OR: At least one condition must be true.
+@export_enum("AND", "OR") var activation_mode: int = ActivationMode.AND
 
 @export_group("Settings")
 ## If true, this state will be the active child when the parent is entered.
@@ -48,7 +58,7 @@ func _ready() -> void:
 # --- THE MAIN LOOP ---
 
 ## The core update loop for the state.
-## 1. Checks for transitions (if not locked).
+## 1. Checks for child activation (Priority by Order).
 ## 2. Updates the active behavior.
 ## 3. Recursively updates the active child.
 ##
@@ -56,17 +66,23 @@ func _ready() -> void:
 ## @param actor: The owner of the state machine (usually a CharacterBody3D/2D).
 ## @param blackboard: Shared data dictionary for the entire HFSM.
 func process_state(delta: float, actor: Node, blackboard: Dictionary) -> void:
-	# 1. SELECTOR LOGIC (Check Children Triggers)
-	# This implements "Parent Responsibility": The parent checks if any child (state) 
-	# should become active based on that child's conditions.
-	# "Hierarchical Blocking": We check if the active child OR any of its descendants are locked.
-	if not active_child or not active_child.is_hierarchy_locked():
-		for child in get_children():
-			if child is RecursiveState and child != active_child:
-				if child.check_transitions(actor, blackboard):
-					change_active_child(child, actor, blackboard)
-					break # Found a winner, stop checking others (Priority = Tree Order)
-
+	# 1. SELECTOR LOGIC (Priority-Based Child Activation)
+	# Iterate through children in order. The first one that CAN activate becomes the active child.
+	# If the current active child is locked, we SKIP switching until it unlocks.
+	
+	var best_child: RecursiveState = null
+	
+	for child in get_children():
+		if child is RecursiveState:
+			if child.can_activate(actor, blackboard):
+				best_child = child
+				break # Found the highest priority child that wants to run.
+	
+	# Try to switch if we found a better candidate AND we are not locked
+	if best_child != null and best_child != active_child:
+		if not active_child or not active_child.is_hierarchy_locked():
+			change_active_child(best_child, actor, blackboard)
+	
 	# 2. BEHAVIOR UPDATE (The "Brain")
 	if behavior:
 		behavior.update(self, delta, actor, blackboard)
@@ -141,14 +157,28 @@ func is_hierarchy_locked() -> bool:
 		
 	return false
 
-## Checks if any of the triggers for this state are met.
-func check_transitions(actor: Node, blackboard: Dictionary) -> bool:
-	if transitions.is_empty():
-		return false
+## Checks if this state can be active.
+## Evaluates activation_conditions based on activation_mode.
+func can_activate(actor: Node, blackboard: Dictionary) -> bool:
+	# No conditions = Always Active (if reached by priority)
+	if activation_conditions.is_empty():
+		return true
 		
-	for transition in transitions:
-		if transition.is_triggered(actor, blackboard):
+	match activation_mode:
+		ActivationMode.AND:
+			# ALL conditions must be true
+			for condition in activation_conditions:
+				if not condition.evaluate(actor, blackboard):
+					return false
 			return true
+			
+		ActivationMode.OR:
+			# AT LEAST ONE condition must be true
+			for condition in activation_conditions:
+				if condition.evaluate(actor, blackboard):
+					return true
+			return false
+			
 	return false
 
 ## Returns the full path of active states (e.g. ["Root", "Grounded", "Run"])

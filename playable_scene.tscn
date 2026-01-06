@@ -1,18 +1,19 @@
-[gd_scene load_steps=34 format=3 uid="uid://dgwj7bii26hme"]
+[gd_scene load_steps=36 format=3 uid="uid://dgwj7bii26hme"]
 
 [ext_resource type="Texture2D" uid="uid://beve8jjch6gsb" path="res://addons/PrototypeTextures/Dark/texture_01.png" id="1_7pee2"]
 [ext_resource type="Script" uid="uid://pqwb18liy6pj" path="res://Scripts/physics_manager.gd" id="1_b6d0d"]
 [ext_resource type="Script" uid="uid://u8e3x4htq7mp" path="res://addons/hfsm_editor/runtime/RecursiveState.gd" id="2_j3fy0"]
-[ext_resource type="Script" uid="uid://bb3kdxy1f2623" path="res://addons/hfsm_editor/runtime/StateTransition.gd" id="3_7pee2"]
 [ext_resource type="Script" uid="uid://b1wuc2hj2npg0" path="res://addons/hfsm_editor/runtime/StateCondition.gd" id="4_m1ygr"]
+[ext_resource type="Script" uid="uid://ig41cgq1agpf" path="res://Scripts/ConditionIsGrounded.gd" id="5_lfd5b"]
 [ext_resource type="Resource" uid="uid://b8xpmpgakhyf3" path="res://Resources/conditions/not_moving.tres" id="5_ys1e8"]
+[ext_resource type="Script" uid="uid://bbe61t4o2pc12" path="res://Scripts/ConditionMovement.gd" id="6_4g5nw"]
 [ext_resource type="Resource" uid="uid://d3svpt2r3vi0l" path="res://Resources/conditions/is_grounded.tres" id="6_ovhxj"]
 [ext_resource type="Resource" uid="uid://3jwmhj1f7oge" path="res://Resources/behaviors/run.tres" id="7_4g5nw"]
+[ext_resource type="Script" uid="uid://csd78s20sfilv" path="res://Scripts/ConditionInput.gd" id="8_0r22l"]
 [ext_resource type="Resource" uid="uid://bdl1sasy1fsne" path="res://Resources/conditions/is_moving.tres" id="8_lfd5b"]
 [ext_resource type="Resource" uid="uid://ct2xasvmkdfa" path="res://Resources/behaviors/jump.tres" id="9_0r22l"]
 [ext_resource type="Resource" uid="uid://bfxwbocaxqftb" path="res://Resources/conditions/input_jump.tres" id="10_8i6hi"]
 [ext_resource type="Script" uid="uid://yvrfmkwm4ycd" path="res://Scripts/PlayerController.gd" id="11_r74qv"]
-[ext_resource type="Script" uid="uid://ig41cgq1agpf" path="res://Scripts/ConditionIsGrounded.gd" id="12_ovhxj"]
 [ext_resource type="Script" uid="uid://bd046eokvcnu2" path="res://addons/phantom_camera/scripts/phantom_camera_host/phantom_camera_host.gd" id="12_r38ha"]
 [ext_resource type="Script" uid="uid://csjccrhj5wnx7" path="res://addons/phantom_camera/scripts/phantom_camera/phantom_camera_3d.gd" id="13_d2hee"]
 [ext_resource type="Script" uid="uid://8umksf8e80fw" path="res://addons/phantom_camera/scripts/resources/tween_resource.gd" id="14_fu4eq"]
@@ -39,31 +40,37 @@ albedo_texture = ExtResource("1_7pee2")
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_0xm2m"]
 
-[sub_resource type="Resource" id="Resource_4g5nw"]
-script = ExtResource("3_7pee2")
-conditions = Array[ExtResource("4_m1ygr")]([ExtResource("6_ovhxj")])
-metadata/_custom_type_script = "uid://bb3kdxy1f2623"
-
-[sub_resource type="Resource" id="Resource_qfcqw"]
-script = ExtResource("3_7pee2")
-conditions = Array[ExtResource("4_m1ygr")]([ExtResource("5_ys1e8")])
-
-[sub_resource type="Resource" id="Resource_rfg57"]
-script = ExtResource("3_7pee2")
-conditions = Array[ExtResource("4_m1ygr")]([ExtResource("8_lfd5b")])
-
-[sub_resource type="Resource" id="Resource_ngus6"]
-script = ExtResource("3_7pee2")
-conditions = Array[ExtResource("4_m1ygr")]([ExtResource("10_8i6hi")])
+[sub_resource type="Resource" id="Resource_0r22l"]
+script = ExtResource("5_lfd5b")
+metadata/_custom_type_script = "uid://ig41cgq1agpf"
 
 [sub_resource type="Resource" id="Resource_lfd5b"]
-script = ExtResource("12_ovhxj")
+script = ExtResource("6_4g5nw")
 reverse_result = true
+metadata/_custom_type_script = "uid://bbe61t4o2pc12"
 
-[sub_resource type="Resource" id="Resource_0r22l"]
-script = ExtResource("3_7pee2")
-conditions = Array[ExtResource("4_m1ygr")]([SubResource("Resource_lfd5b")])
-metadata/_custom_type_script = "uid://bb3kdxy1f2623"
+[sub_resource type="Resource" id="Resource_8i6hi"]
+script = ExtResource("6_4g5nw")
+metadata/_custom_type_script = "uid://bbe61t4o2pc12"
+
+[sub_resource type="Resource" id="Resource_r74qv"]
+script = ExtResource("8_0r22l")
+action_name = "jump"
+metadata/_custom_type_script = "uid://csd78s20sfilv"
+
+[sub_resource type="Resource" id="Resource_d2hee"]
+script = ExtResource("5_lfd5b")
+reverse_result = true
+metadata/_custom_type_script = "uid://ig41cgq1agpf"
+
+[sub_resource type="Resource" id="Resource_fu4eq"]
+script = ExtResource("6_4g5nw")
+reverse_result = true
+metadata/_custom_type_script = "uid://bbe61t4o2pc12"
+
+[sub_resource type="Resource" id="Resource_r38ha"]
+script = ExtResource("6_4g5nw")
+metadata/_custom_type_script = "uid://bbe61t4o2pc12"
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_ys1e8"]
 
@@ -99,38 +106,38 @@ script = ExtResource("2_j3fy0")
 
 [node name="Grounded" type="Node" parent="CharacterBody3D/RootState"]
 script = ExtResource("2_j3fy0")
-transitions = Array[ExtResource("3_7pee2")]([SubResource("Resource_4g5nw")])
+activation_conditions = Array[ExtResource("4_m1ygr")]([SubResource("Resource_0r22l")])
 metadata/_custom_type_script = "uid://u8e3x4htq7mp"
 
 [node name="Idle" type="Node" parent="CharacterBody3D/RootState/Grounded"]
 script = ExtResource("2_j3fy0")
-transitions = Array[ExtResource("3_7pee2")]([SubResource("Resource_qfcqw")])
+activation_conditions = Array[ExtResource("4_m1ygr")]([SubResource("Resource_lfd5b")])
 is_starting_state = true
 
 [node name="Run" type="Node" parent="CharacterBody3D/RootState/Grounded"]
 script = ExtResource("2_j3fy0")
 behavior = ExtResource("7_4g5nw")
-transitions = Array[ExtResource("3_7pee2")]([SubResource("Resource_rfg57")])
+activation_conditions = Array[ExtResource("4_m1ygr")]([SubResource("Resource_8i6hi")])
 
 [node name="Jump" type="Node" parent="CharacterBody3D/RootState/Grounded"]
 script = ExtResource("2_j3fy0")
 behavior = ExtResource("9_0r22l")
-transitions = Array[ExtResource("3_7pee2")]([SubResource("Resource_ngus6")])
+activation_conditions = Array[ExtResource("4_m1ygr")]([SubResource("Resource_r74qv")])
 
 [node name="Airborne" type="Node" parent="CharacterBody3D/RootState"]
 script = ExtResource("2_j3fy0")
-transitions = Array[ExtResource("3_7pee2")]([SubResource("Resource_0r22l")])
+activation_conditions = Array[ExtResource("4_m1ygr")]([SubResource("Resource_d2hee")])
 metadata/_custom_type_script = "uid://u8e3x4htq7mp"
 
 [node name="Idle" type="Node" parent="CharacterBody3D/RootState/Airborne"]
 script = ExtResource("2_j3fy0")
-transitions = Array[ExtResource("3_7pee2")]([SubResource("Resource_qfcqw")])
+activation_conditions = Array[ExtResource("4_m1ygr")]([SubResource("Resource_fu4eq")])
 is_starting_state = true
 
 [node name="Run" type="Node" parent="CharacterBody3D/RootState/Airborne"]
 script = ExtResource("2_j3fy0")
 behavior = ExtResource("7_4g5nw")
-transitions = Array[ExtResource("3_7pee2")]([SubResource("Resource_rfg57")])
+activation_conditions = Array[ExtResource("4_m1ygr")]([SubResource("Resource_r38ha")])
 
 [node name="PlayerController" type="Node" parent="CharacterBody3D" node_paths=PackedStringArray("root_state", "physics_manager")]
 script = ExtResource("11_r74qv")

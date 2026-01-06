@@ -14,18 +14,18 @@ extends Node
 		target_state = value
 		_update_status()
 
-@export_group("2. Add Transition")
-## Select conditions to form a transition.
+@export_group("2. Add Conditions")
+## Select conditions to form the activation gate.
 ## (This list is populated by scanning 'res://Resources/conditions')
 @export var available_conditions: Array[StateCondition] = []
 ## Click to scan project for conditions.
 @export var scan_conditions_button: bool = false : set = _scan_conditions
-## Conditions selected for the new transition.
+## Conditions selected for the state activation.
 @export var selected_conditions: Array[StateCondition] = []
 ## How to combine them (AND/OR).
-@export var operation: StateTransition.Operation = StateTransition.Operation.AND
-## Click to create the transition on the Target State.
-@export var add_transition_button: bool = false : set = _add_transition
+@export var activation_mode: RecursiveState.ActivationMode = RecursiveState.ActivationMode.AND
+## Click to apply conditions to the Target State.
+@export var apply_conditions_button: bool = false : set = _apply_conditions
 
 @export_group("3. Create New State")
 ## Name for the new state node.
@@ -78,34 +78,21 @@ func _recursive_scan(path: String):
 	else:
 		print("[StateBuilder] Could not open directory: " + path)
 
-# --- TRANSITION BUILDING ---
+# --- CONDITION ASSIGNMENT ---
 
-func _add_transition(_val):
+func _apply_conditions(_val):
 	if not _val: return
-	add_transition_button = false # Reset
+	apply_conditions_button = false # Reset
 	
 	if not target_state:
 		printerr("[StateBuilder] No Target State selected!")
 		return
 		
-	if selected_conditions.is_empty():
-		printerr("[StateBuilder] No conditions selected!")
-		return
-		
-	# Create the transition resource
-	# We create it as an embedded sub-resource for simplicity, 
-	# but you could save it to disk if you want reusability of the EXACT transition combo.
-	var new_transition = StateTransition.new()
-	new_transition.operation = operation
-	new_transition.conditions = selected_conditions.duplicate()
-	new_transition.resource_name = "Transition"
+	# Update State
+	target_state.activation_conditions = selected_conditions.duplicate()
+	target_state.activation_mode = activation_mode
 	
-	# Add to state
-	target_state.transitions.append(new_transition)
-	print("[StateBuilder] Added Transition to '%s' with %d conditions." % [target_state.name, selected_conditions.size()])
-	
-	# Clear selection for next time?
-	# selected_conditions.clear()
+	print("[StateBuilder] Applied %d conditions to '%s' (Mode: %s)." % [selected_conditions.size(), target_state.name, RecursiveState.ActivationMode.keys()[activation_mode]])
 	
 	# Mark as dirty so editor saves it
 	_mark_scene_dirty()

@@ -217,8 +217,7 @@ static func create_property_list(resource: Resource, changed_callback: Callable)
 			row.add_child(p_label)
 			
 			var editor = create_control_for_property(resource, prop, func(name, val):
-				resource.set(name, val)
-				changed_callback.call()
+				changed_callback.call(name, val)
 			)
 			editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			row.add_child(editor)
