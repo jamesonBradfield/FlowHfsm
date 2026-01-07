@@ -1,7 +1,6 @@
-[gd_resource type="Resource" script_class="BehaviorJump" load_steps=2 format=3 uid="uid://ct2xasvmkdfa"]
+[gd_resource type="Resource" script_class="BehaviorImpulse" load_steps=2 format=3 uid="uid://ct2xasvmkdfa"]
 
-[ext_resource type="Script" uid="uid://ddj3k2c7ivmvm" path="res://Scripts/BehaviorJump.gd" id="1_gl2gu"]
+[ext_resource type="Script" uid="uid://bmxwiq2mt8hbm" path="res://Scripts/behavior_impulse.gd" id="1_v0whs"]
 
 [resource]
-script = ExtResource("1_gl2gu")
-jump_force = 50.0
+script = ExtResource("1_v0whs")

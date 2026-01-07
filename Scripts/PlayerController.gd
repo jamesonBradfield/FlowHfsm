@@ -10,12 +10,12 @@ class_name PlayerController extends Node
 @export var physics_manager: PhysicsManager
 
 @export_group("Input Actions")
-@export var input_left: String = "ui_left"
-@export var input_right: String = "ui_right"
-@export var input_up: String = "ui_up"
-@export var input_down: String = "ui_down"
-@export var input_jump: String = "ui_accept"
-@export var input_fire: String = "ui_select"
+@export var input_left: String = "left"
+@export var input_right: String = "right"
+@export var input_up: String = "up"
+@export var input_down: String = "down"
+@export var input_jump: String = "jump"
+@export var input_fire: String = "fire"
 
 # The Blackboard: A shared dictionary for the entire hierarchy
 ## Shared data dictionary passed to all states.
@@ -56,7 +56,7 @@ func _process(delta: float) -> void:
 ## - `inputs`: Dictionary of boolean flags (jump, fire, etc.)
 func _poll_input() -> void:
 	# Get Vector2 input for movement
-	var input_dir = Input.get_vector(input_left, input_right, input_up, input_down)
+	var input_dir = Input.get_vector(input_left, input_right, input_down, input_up)
 	blackboard["input_dir"] = input_dir
 	
 	# Get Boolean actions

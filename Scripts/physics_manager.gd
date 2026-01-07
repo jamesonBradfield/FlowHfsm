@@ -115,9 +115,17 @@ func move_intent(input_dir: Vector2, speed: float, frame: Frame = Frame.CAMERA) 
 	_intent_velocity = move_dir * speed
 	intent_changed.emit(_intent_velocity)
 
-## Applies an external impulse (force * time) to the character.
-## Used for knockback, explosions, etc.
+## Applies an external force (acceleration) to the character.
+## Used for continuous forces like wind or gravity zones.
 ##
-## @param force: The force vector to apply (Direction * Strength).
-func apply_impulse(force: Vector3) -> void:
+## @param force: The force vector to apply.
+func apply_force(force: Vector3) -> void:
 	_external_forces += force
+
+## Applies an immediate velocity change (impulse).
+## Used for jumping, explosions, or sudden impacts.
+##
+## @param impulse: The velocity change vector to apply.
+func apply_impulse(impulse: Vector3) -> void:
+	if body:
+		body.velocity += impulse

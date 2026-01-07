@@ -10,10 +10,11 @@ enum DirectionType {
 @export var speed: float = 5.0
 ## Determines where the movement direction comes from (Input or Fixed).
 @export var direction_source: DirectionType = DirectionType.INPUT
+## The key in the blackboard for the input direction (Vector2).
+@export var input_blackboard_key: String = "input_dir"
 ## How fast the character rotates towards the movement direction (radians/sec).
 @export var rotation_speed : float = 1.0
 ## Only used if direction_source is FIXED.
-## (0, -1) is usually Forward in Godot 3D local space, but adjust for your setup.
 @export var fixed_direction: Vector2 = Vector2(0, -1) 
 
 ## The frame of reference for the movement (Camera, World, or Actor).
@@ -28,7 +29,7 @@ func update(node, delta, actor, blackboard):
     match direction_source:
         DirectionType.INPUT:
             # Standard Locomotion
-            move_dir = blackboard.get("input_dir", Vector2.ZERO)
+            move_dir = blackboard.get(input_blackboard_key, Vector2.ZERO)
             
         DirectionType.FIXED:
             # Forced Movement (Dodges, Lunges, AI)

@@ -12,7 +12,7 @@
 * [x] `StateTransition` (AND/OR Logic).
 * [x] Standard Lib: `ConditionInput`, `ConditionIsGrounded`.
 
-### 🔲 Phase 4: Integration & Visuals
-* [ ] **Debug UI:** `StateDebugger` (Visualize Tree Path + Memory).
+### ✅ Phase 4: Integration & Visuals
+* [x] **Debug UI:** `StateDebugger` (Visualize Tree Path + Memory).
 * [ ] **Animation Sync:** Link `RecursiveState` active path to `AnimationTree` playback.
-* [ ] **First Playable:** Construct `Idle` -> `Run` -> `Jump` character.
+* [x] **First Playable:** Construct `Idle` -> `Run` -> `Jump` character.

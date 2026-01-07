@@ -6,8 +6,8 @@ class_name RecursiveState extends Node
 ##
 ## Child State Priority:
 ## Child states are evaluated for activation based on their order in the scene tree.
-## Children appearing earlier in the tree (higher up in the inspector list) have higher priority.
-## If multiple children can activate, the highest priority activatable child will become the active state.
+## All children are evaluated. If multiple children can activate, the one appearing LATEST in the list
+## (lowest in the inspector) becomes the active state.
 
 # --- EXPORTS (The Strategy) ---
 @export_group("Logic")
@@ -76,7 +76,6 @@ func process_state(delta: float, actor: Node, blackboard: Dictionary) -> void:
 		if child is RecursiveState:
 			if child.can_activate(actor, blackboard):
 				best_child = child
-				break # Found the highest priority child that wants to run.
 	
 	# Try to switch if we found a better candidate AND we are not locked
 	if best_child != null and best_child != active_child:

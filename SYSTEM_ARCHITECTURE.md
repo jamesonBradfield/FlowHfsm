@@ -32,7 +32,7 @@ The generic Node script attached to the Scene Tree.
 * **Recursion:** Ticks its `active_child`. If a Parent transitions, the Child is implicitly exited.
 
 ### C. The Brain: `StateBehavior` (Resource)
-The reusable logic asset (e.g., `BehaviorMove.tres`, `BehaviorJump.tres`).
+The reusable logic asset (e.g., `BehaviorMove.tres`, `BehaviorImpulse.tres`).
 * **Role:** The "Software". Defines *what* the state does.
 * **Stateless:** Stores **no** variables. Reads from `blackboard` (Global) and reads/writes to `node.memory` (Local).
 * **Capabilities:**
@@ -108,3 +108,4 @@ Weapons/Modes are **Parent States** that impose physics constraints on movement.
 *   **PlayerController:** Parameterized input action names for easier remapping.
 *   **PhysicsManager:** Added `terminal_velocity` and documentation updates.
 *   **StateDebugger:** Implemented recursive path visualization and memory inspection.
+*   **BehaviorImpulse:** Refactored `BehaviorJump` to `BehaviorImpulse` to support generic instantaneous force application.
