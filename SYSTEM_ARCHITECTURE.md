@@ -88,13 +88,13 @@ Weapons/Modes are **Parent States** that impose physics constraints on movement.
 * [x] **Debug UI:** `StateDebugger` (Visualize Tree Path + Memory).
 * [ ] **Animation Sync:** Link `RecursiveState` active path to `AnimationTree` playback, be able to define blending for movement, and linking data in the blackboard to animationTree (so users can utilize AnimationStateMachine in their own custom states).
 * [x] **First Playable:** Construct `Idle` -> `Run` -> `Jump` character.
-* [ ] **Add UndoRedo to UI/Plugin** allow UndoRedo in Custom UI.
+* [x] **Add UndoRedo to UI/Plugin** allow UndoRedo in Custom UI.
 
 ###  Phase 5: Debugging/Unit testing.
 * [ ] **Memory Debugging** find out why data is displayed as empty in statedebugger, this might just be us not utilizing the blackboard rn.
-* [ ] **Add Transitions button Error** TODO: add ERROR here
-* [ ] **Unified Themes for all custom Inspectors** Transition Custom inspector resizes smaller than Behavior Custom Inspector, we should look into a theme to unify both.
-* [ ] **Test Custom UI somehow** :shrug:
+* [x] **Add Transitions button Error** TODO: add ERROR here
+* [x] **Unified Themes for all custom Inspectors** Transition Custom inspector resizes smaller than Behavior Custom Inspector, we should look into a theme to unify both.
+* [x] **Test Custom UI somehow** :shrug:
 * [ ] **Build example scenes to test all functionality** not sure what test cases we need, but we can use gdunit to run these and simulate input for each case.
 
 
