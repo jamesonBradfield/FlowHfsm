@@ -23,6 +23,7 @@
 * [x] **Add Transitions button Error** TODO: add ERROR here
 * [x] **Unified Themes for all custom Inspectors** Transition Custom inspector resizes smaller than Behavior Custom Inspector, we should look into a theme to unify both.
 * [x] **Test Custom UI somehow** :shrug:
+* [ ] **Test Animation Sync:** Verify `StateAnimationLink` works with a real rigged character and BlendSpaces.
 * [ ] **Build example scenes to test all functionality** not sure what test cases we need, but we can use gdunit to run these and simulate input for each case.
 
 

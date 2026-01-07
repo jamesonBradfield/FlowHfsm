@@ -57,9 +57,10 @@ Weapons/Modes are **Parent States** that impose physics constraints on movement.
 
 ### F. The Visuals: `StateAnimationLink` (Node)
 A generic bridge that synchronizes the HFSM state with a Godot `AnimationTree`.
-* **Mechanism:** Listens to `state_entered` signals from the hierarchy.
-* **Logic:** When a state is entered, it tells the `AnimationNodeStateMachine` to `travel()` to a node with the same name.
-* **Usage:** Simplifies animation setup by enforcing a naming convention (State Name == Animation Name).
+* **Mechanism:** 
+    1.  Listens to `state_entered` signals to trigger `playback.travel(state_name)`.
+    2.  Polls `property_mapping` in `_process` to sync Blackboard data (like `input_dir`) to AnimationTree parameters (like `blend_position`).
+* **Usage:** Simplifies animation setup by enforcing a naming convention and allowing direct data mapping in the Inspector.
 
 ## 3. Data Flow
 
@@ -93,7 +94,7 @@ A generic bridge that synchronizes the HFSM state with a Godot `AnimationTree`.
 
 ### ✅ Phase 4: Integration & Visuals
 * [x] **Debug UI:** `StateDebugger` (Visualize Tree Path + Memory).
-* [ ] **Animation Sync:** Link `RecursiveState` active path to `AnimationTree` playback, be able to define blending for movement, and linking data in the blackboard to animationTree (so users can utilize AnimationStateMachine in their own custom states).
+* [x] **Animation Sync:** Link `RecursiveState` active path to `AnimationTree` playback, be able to define blending for movement, and linking data in the blackboard to animationTree (so users can utilize AnimationStateMachine in their own custom states).
 * [x] **First Playable:** Construct `Idle` -> `Run` -> `Jump` character.
 * [x] **Add UndoRedo to UI/Plugin** allow UndoRedo in Custom UI.
 
