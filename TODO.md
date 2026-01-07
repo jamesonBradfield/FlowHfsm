@@ -19,7 +19,7 @@
 * [x] **Add UndoRedo to UI/Plugin** allow UndoRedo in Custom UI.
 
 ###  Phase 5: Debugging/Unit testing.
-* [ ] **Memory Debugging** find out why data is displayed as empty in statedebugger, this might just be us not utilizing the blackboard rn.
+* [x] **Memory Debugging** Fixed: `StateDebugger` now explicitly links to `PlayerController` to display the global `Blackboard`. `node.memory` was empty because most behaviors are stateless.
 * [x] **Add Transitions button Error** TODO: add ERROR here
 * [x] **Unified Themes for all custom Inspectors** Transition Custom inspector resizes smaller than Behavior Custom Inspector, we should look into a theme to unify both.
 * [x] **Test Custom UI somehow** :shrug:

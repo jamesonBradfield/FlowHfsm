@@ -134,18 +134,13 @@ activation_conditions = Array[ExtResource("4_m1ygr")]([SubResource("Resource_fu4
 script = ExtResource("11_r74qv")
 root_state = NodePath("../RootState")
 physics_manager = NodePath("../PhysicsManager")
-input_left = "left"
-input_right = "right"
-input_up = "up"
-input_down = "down"
-input_jump = "jump"
-input_fire = "fire"
 
-[node name="StateDebugger" type="Label3D" parent="CharacterBody3D" node_paths=PackedStringArray("root_state")]
+[node name="StateDebugger" type="Label3D" parent="CharacterBody3D" node_paths=PackedStringArray("root_state", "player_controller")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5409756, 0)
 billboard = 1
 script = ExtResource("14_j3fy0")
 root_state = NodePath("../RootState")
+player_controller = NodePath("../PlayerController")
 metadata/_custom_type_script = "uid://budt1k5nl4y5t"
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="CharacterBody3D"]
