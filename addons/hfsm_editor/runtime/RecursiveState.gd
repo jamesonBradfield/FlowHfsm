@@ -45,6 +45,10 @@ var active_child: RecursiveState = null
 ## Cleared when the state is entered.
 var memory: Dictionary = {}
 
+# --- SIGNALS ---
+signal state_entered(state: RecursiveState)
+signal state_exited(state: RecursiveState)
+
 # --- LIFECYCLE ---
 
 ## Called when the node enters the scene tree for the first time.
@@ -102,6 +106,8 @@ func enter(actor: Node, blackboard: Dictionary) -> void:
 	memory.clear()
 	is_locked = false 
 	
+	state_entered.emit(self)
+	
 	# Auto-resolve initial child if none is active
 	if not active_child and get_child_count() > 0:
 		var start_node = _get_starting_child()
@@ -143,6 +149,8 @@ func exit(actor: Node, blackboard: Dictionary) -> void:
 		
 	if behavior:
 		behavior.exit(self, actor, blackboard)
+	
+	state_exited.emit(self)
 
 # --- CHILD MANAGEMENT ---
 

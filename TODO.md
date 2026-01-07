@@ -14,7 +14,7 @@
 
 ### ✅ Phase 4: Integration & Visuals
 * [x] **Debug UI:** `StateDebugger` (Visualize Tree Path + Memory).
-* [ ] **Animation Sync:** Link `RecursiveState` active path to `AnimationTree` playback.
+* [x] **Animation Sync:** Link `RecursiveState` active path to `AnimationTree` playback.
 * [x] **First Playable:** Construct `Idle` -> `Run` -> `Jump` character.
 * [x] **Add UndoRedo to UI/Plugin** allow UndoRedo in Custom UI.
 

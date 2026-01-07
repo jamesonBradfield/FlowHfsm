@@ -30,6 +30,7 @@ The generic Node script attached to the Scene Tree.
 * **Role:** The "Hardware". It holds the position in the hierarchy and the runtime data.
 * **Memory:** Contains a `memory: Dictionary` for ephemeral data (timers, counters) unique to *this* instance.
 * **Recursion:** Ticks its `active_child`. If a Parent transitions, the Child is implicitly exited.
+* **Signals:** Emits `state_entered(state)` and `state_exited(state)` for integration.
 
 ### C. The Brain: `StateBehavior` (Resource)
 The reusable logic asset (e.g., `BehaviorMove.tres`, `BehaviorImpulse.tres`).
@@ -53,6 +54,12 @@ Weapons/Modes are **Parent States** that impose physics constraints on movement.
         * `MinigunState` (Behavior: Disable Jumping) -> `Move` (Reused Child!)
 
 ---
+
+### F. The Visuals: `StateAnimationLink` (Node)
+A generic bridge that synchronizes the HFSM state with a Godot `AnimationTree`.
+* **Mechanism:** Listens to `state_entered` signals from the hierarchy.
+* **Logic:** When a state is entered, it tells the `AnimationNodeStateMachine` to `travel()` to a node with the same name.
+* **Usage:** Simplifies animation setup by enforcing a naming convention (State Name == Animation Name).
 
 ## 3. Data Flow
 
