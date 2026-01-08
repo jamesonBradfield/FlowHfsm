@@ -1,4 +1,4 @@
-[gd_scene load_steps=38 format=3 uid="uid://cieqecedgebto"]
+[gd_scene load_steps=37 format=3 uid="uid://cieqecedgebto"]
 
 [ext_resource type="Texture2D" uid="uid://beve8jjch6gsb" path="res://addons/PrototypeTextures/Dark/texture_01.png" id="1_7pee2"]
 [ext_resource type="Script" uid="uid://pqwb18liy6pj" path="res://Scripts/physics_manager.gd" id="1_b6d0d"]
@@ -62,9 +62,6 @@ reverse_result = true
 [sub_resource type="Resource" id="Resource_d2hee"]
 script = ExtResource("6_4g5nw")
 reverse_result = true
-
-[sub_resource type="Resource" id="Resource_fu4eq"]
-script = ExtResource("6_4g5nw")
 
 [sub_resource type="CapsuleMesh" id="CapsuleMesh_ys1e8"]
 
@@ -131,7 +128,7 @@ is_starting_state = true
 [node name="Run" type="Node" parent="CharacterBody3D/RootState/Airborne"]
 script = ExtResource("2_j3fy0")
 behavior = ExtResource("7_4g5nw")
-activation_conditions = Array[ExtResource("4_m1ygr")]([SubResource("Resource_fu4eq")])
+activation_conditions = Array[ExtResource("4_m1ygr")]([SubResource("Resource_8i6hi")])
 
 [node name="PlayerController" type="Node" parent="CharacterBody3D" node_paths=PackedStringArray("root_state", "physics_manager")]
 script = ExtResource("11_r74qv")
