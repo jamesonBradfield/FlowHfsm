@@ -71,7 +71,8 @@ func _ready() -> void:
 ## @param blackboard: Shared data dictionary for the entire HFSM.
 func process_state(delta: float, actor: Node, blackboard: Dictionary) -> void:
 	# 1. SELECTOR LOGIC (Priority-Based Child Activation)
-	# Iterate through children in order. The first one that CAN activate becomes the active child.
+	# Iterate through children in order. The LAST one that CAN activate becomes the active child.
+	# Priority: Lower nodes in the scene tree override higher nodes.
 	# If the current active child is locked, we SKIP switching until it unlocks.
 	
 	var best_child: RecursiveState = null
