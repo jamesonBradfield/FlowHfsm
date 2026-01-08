@@ -1,11 +1,11 @@
-# Flux HFSM: Universal Kinematic State Machine
+# Flow HFSM: Universal Kinematic State Machine
 **Status:** In Development (Pre-Alpha)
 **Target:** Patch Notes Jam (Jan 10/12)
 
 ---
 
 ## 1. System Overview
-Flux HFSM is a **Hierarchical Finite State Machine (HFSM)** designed to be the "Standard Library" for character controllers in Godot 4.5+.
+Flow HFSM is a **Hierarchical Finite State Machine (HFSM)** designed to be the "Standard Library" for character controllers in Godot 4.5+.
 
 **Core Philosophy:**
 1.  **Universal Kinematics:** Logic defines *intent* (Move, Jump, Dodge), while a decoupled Motor handles the math (Camera-Relative vs World-Relative). This allows one codebase to support 2D, 3D, FPS, and Top-Down.

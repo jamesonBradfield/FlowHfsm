@@ -23,14 +23,9 @@ resources_spreadsheet_view/freeze_first_column=true
 
 [application]
 
-config/name="GridBasedHoohah"
-run/main_scene="res://playable_scene.tscn"
+config/name="FlowHFSM"
 config/features=PackedStringArray("4.5", "Forward Plus")
 config/icon="res://icon.svg"
-
-[autoload]
-
-PhantomCameraManager="*res://addons/phantom_camera/scripts/managers/phantom_camera_manager.gd"
 
 [editor_plugins]
 

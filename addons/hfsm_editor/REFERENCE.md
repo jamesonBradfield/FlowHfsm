@@ -1,13 +1,13 @@
-# Flux HFSM - Architecture Reference
+# Flow HFSM - Architecture Reference
 
-**Version:** 1.0
+**Version:** 1.0.0
 **Last Updated:** 2025-01-08
 
 ---
 
 ## Overview
 
-Flux HFSM (Hierarchical Finite State Machine) is a recursive, resource-based state machine system designed for Godot 4. It provides a clean, editor-friendly architecture for complex state logic with priority-based automatic transitions.
+Flow HFSM (Hierarchical Finite State Machine) is a recursive, resource-based state machine system designed for Godot 4. It provides a clean, editor-friendly architecture for complex state logic with priority-based automatic transitions.
 
 ---
 
@@ -510,7 +510,7 @@ The `node.memory` Dictionary is cleared on state entry.
 
 ### Inline Editing
 
-Flux HFSM provides a custom Inspector plugin (`hfsm_inspector.gd`) that:
+Flow HFSM provides a custom Inspector plugin (`hfsm_inspector.gd`) that:
 
 - Displays Behavior and Condition properties directly on the Node
 - Eliminates "Sub-Resource Click" fatigue
@@ -599,7 +599,7 @@ func evaluate(actor: Node, blackboard: Dictionary) -> bool  # Public wrapper
 
 ## Version History
 
-### v1.0 (2025-01-08)
+### v1.0.0 (2025-01-08)
 - Initial documentation
 - Fixed misleading comment about priority order (was "first", corrected to "last")
 - Documented Scene Tree priority mechanism
