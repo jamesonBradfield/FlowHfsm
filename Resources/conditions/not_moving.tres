@@ -1,7 +1,0 @@
-[gd_resource type="Resource" script_class="ConditionMovement" load_steps=2 format=3 uid="uid://b8xpmpgakhyf3"]
-
-[ext_resource type="Script" uid="uid://bbe61t4o2pc12" path="res://Scripts/ConditionMovement.gd" id="1_qbpoa"]
-
-[resource]
-script = ExtResource("1_qbpoa")
-reverse_result = true
