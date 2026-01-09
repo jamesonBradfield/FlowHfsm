@@ -55,7 +55,7 @@ signal state_exited(state: RecursiveState)
 ## Establishes the parent-child relationship in the HFSM.
 func _ready() -> void:
 	# 1. Wire up hierarchy
-	var p = get_parent()
+	var p: Node = get_parent()
 	if p is RecursiveState:
 		parent = p
 
@@ -111,7 +111,7 @@ func enter(actor: Node, blackboard: Dictionary) -> void:
 	
 	# Auto-resolve initial child if none is active
 	if not active_child and get_child_count() > 0:
-		var start_node = _get_starting_child()
+		var start_node: RecursiveState = _get_starting_child()
 		if start_node:
 			active_child = start_node
 

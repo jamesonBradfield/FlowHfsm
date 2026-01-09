@@ -24,14 +24,14 @@ func _evaluate(actor: Node, _blackboard: Dictionary) -> bool:
 		# If we block, we might get stuck forever. If we return true, we skip.
 		# Returning true is safer for "blocking" logic to avoid soft-locks.
 	
-	var playback = anim_tree.get(state_machine_path)
+	var playback: Variant = anim_tree.get(state_machine_path)
 	if playback and playback is AnimationNodeStateMachinePlayback:
 		# Check if playing
 		if not playback.is_playing():
 			return true
 			
-		var current_pos = playback.get_current_play_position()
-		var length = playback.get_current_length()
+		var current_pos: float = playback.get_current_play_position()
+		var length: float = playback.get_current_length()
 		
 		return current_pos >= (length - end_margin)
 		

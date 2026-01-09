@@ -1,0 +1,76 @@
+[gd_scene load_steps=16 format=3 uid="uid://br2rgfxvkmdqs"]
+
+[ext_resource type="Script" uid="uid://u8e3x4htq7mp" path="res://addons/hfsm_editor/runtime/RecursiveState.gd" id="1_recur"]
+[ext_resource type="Script" uid="uid://b1wuc2hj2npg0" path="res://addons/hfsm_editor/runtime/StateCondition.gd" id="2_6sn6n"]
+[ext_resource type="Script" uid="uid://c7binf0ubxfue" path="res://Examples/Scripts/Behaviors/IdleBehavior.gd" id="2_idle"]
+[ext_resource type="Script" uid="uid://r3nyg0qvq7lb" path="res://Examples/Scripts/Behaviors/MoveBehavior.gd" id="3_move"]
+[ext_resource type="Script" uid="uid://cw8tnox13is78" path="res://Examples/Scripts/Behaviors/JumpBehavior.gd" id="4_jump"]
+[ext_resource type="Script" uid="uid://ohneg70ug3bg" path="res://Examples/Scripts/Conditions/CheckBlackboardCondition.gd" id="5_cond"]
+
+[sub_resource type="Resource" id="Res_grounded_c"]
+script = ExtResource("5_cond")
+key = "is_grounded"
+
+[sub_resource type="Resource" id="Res_idle_b"]
+script = ExtResource("2_idle")
+
+[sub_resource type="Resource" id="Res_idle_c"]
+script = ExtResource("5_cond")
+key = "is_moving"
+target_value = false
+
+[sub_resource type="Resource" id="Res_run_b"]
+script = ExtResource("3_move")
+
+[sub_resource type="Resource" id="Res_run_c"]
+script = ExtResource("5_cond")
+key = "is_moving"
+
+[sub_resource type="Resource" id="Res_air_c"]
+script = ExtResource("5_cond")
+key = "is_grounded"
+target_value = false
+
+[sub_resource type="Resource" id="Res_jump_b"]
+script = ExtResource("4_jump")
+
+[sub_resource type="Resource" id="Res_jump_c"]
+script = ExtResource("5_cond")
+key = "jump_pressed"
+
+[sub_resource type="Resource" id="Res_fall_c"]
+script = ExtResource("5_cond")
+key = "is_grounded"
+target_value = false
+
+[node name="PlayerRoot" type="Node"]
+script = ExtResource("1_recur")
+
+[node name="Grounded" type="Node" parent="."]
+script = ExtResource("1_recur")
+activation_conditions = Array[ExtResource("2_6sn6n")]([SubResource("Res_grounded_c")])
+is_starting_state = true
+
+[node name="Idle" type="Node" parent="Grounded"]
+script = ExtResource("1_recur")
+behavior = SubResource("Res_idle_b")
+activation_conditions = Array[ExtResource("2_6sn6n")]([SubResource("Res_idle_c")])
+is_starting_state = true
+
+[node name="Run" type="Node" parent="Grounded"]
+script = ExtResource("1_recur")
+behavior = SubResource("Res_run_b")
+activation_conditions = Array[ExtResource("2_6sn6n")]([SubResource("Res_run_c")])
+
+[node name="Air" type="Node" parent="."]
+script = ExtResource("1_recur")
+activation_conditions = Array[ExtResource("2_6sn6n")]([SubResource("Res_air_c")])
+
+[node name="Jump" type="Node" parent="Air"]
+script = ExtResource("1_recur")
+behavior = SubResource("Res_jump_b")
+activation_conditions = Array[ExtResource("2_6sn6n")]([SubResource("Res_jump_c")])
+
+[node name="Fall" type="Node" parent="Air"]
+script = ExtResource("1_recur")
+activation_conditions = Array[ExtResource("2_6sn6n")]([SubResource("Res_fall_c")])

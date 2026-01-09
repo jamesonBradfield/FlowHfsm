@@ -14,8 +14,6 @@ var mock_anim_tree
 
 var root_state: RecursiveState
 
-signal test_finished(results: Dictionary)
-
 ## Run all animation integration tests
 func run_all_tests() -> Dictionary:
 	var results := {}
@@ -48,14 +46,16 @@ func test_parameter_sync() -> Dictionary:
 	var test_passed := true
 	
 	# Setup: Define a mapping "speed" -> "parameters/Run/blend_position"
-	animation_controller.property_mapping = {
-		"speed": "parameters/Run/blend_position"
-	}
+	if animation_controller:
+		animation_controller.property_mapping = {
+			"speed": "parameters/Run/blend_position"
+		}
 	
 	# Mock blackboard source
 	var mock_source = MockBlackboardSource.new()
 	add_child(mock_source)
-	animation_controller.blackboard_source = mock_source
+	if animation_controller:
+		animation_controller.blackboard_source = mock_source
 	
 	# Act: Set value in blackboard
 	var test_val = 0.5
@@ -94,7 +94,8 @@ func test_direct_mapping_travel() -> Dictionary:
 	root_state.add_child(run_state)
 	
 	# Manually connect the new state to the controller since it was added after controller _ready
-	animation_controller._connect_signals_recursive(run_state)
+	if animation_controller.has_method("_connect_signals_recursive"):
+		animation_controller._connect_signals_recursive(run_state)
 	
 	# Re-init harness with new structure
 	test_harness.setup(root_state)
@@ -133,7 +134,8 @@ func test_blackboard_trigger_animation() -> Dictionary:
 	root_state.add_child(jump_state)
 	
 	# Manually connect new state
-	animation_controller._connect_signals_recursive(jump_state)
+	if animation_controller.has_method("_connect_signals_recursive"):
+		animation_controller._connect_signals_recursive(jump_state)
 	
 	# Re-init harness
 	test_harness.setup(root_state)
@@ -163,9 +165,9 @@ func test_blackboard_trigger_animation() -> Dictionary:
 	return _generate_test_result(test_name, test_passed)
 
 ## Helper: Create test condition
-func _create_condition(name: String, return_value: bool) -> StateCondition:
+func _create_condition(cond_name: String, return_value: bool) -> StateCondition:
 	var condition := MockCondition.new()
-	condition.resource_name = name
+	condition.resource_name = cond_name
 	condition.fixed_value = return_value
 	return condition
 
@@ -179,9 +181,9 @@ class MockCondition extends StateCondition:
 		return fixed_value
 
 ## Helper: Generate test result
-func _generate_test_result(name: String, passed: bool) -> Dictionary:
+func _generate_test_result(test_name: String, passed: bool) -> Dictionary:
 	return {
-		"test_name": name,
+		"test_name": test_name,
 		"passed": passed,
 		"timestamp": Time.get_ticks_msec()
 	}
@@ -206,7 +208,7 @@ func _setup_environment() -> void:
 	add_child(mock_anim_tree)
 	
 	# 4. Controller
-	animation_controller = load("res://Scripts/HFSMAnimationController.gd").new()
+	animation_controller = load("res://addons/hfsm_editor/runtime/components/HFSMAnimationController.gd").new()
 	animation_controller.root_state = root_state
 	animation_controller.animation_tree = mock_anim_tree
 	add_child(animation_controller)

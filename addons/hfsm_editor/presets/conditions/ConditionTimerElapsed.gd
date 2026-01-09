@@ -12,9 +12,9 @@ class_name ConditionTimerElapsed extends StateCondition
 ## If false, checks if timer is LESS than threshold.
 @export var check_greater_than: bool = true
 
-## Node reference to access memory from.
-## This is set by the HFSM system when evaluating conditions.
-@export var target_node: RecursiveState
+	# Node reference to access memory from.
+	# This is set by the HFSM system when evaluating conditions.
+	# @export var target_node: RecursiveState -> REMOVED: Cannot export Node in Resource
 
 func _evaluate(actor: Node, blackboard: Dictionary) -> bool:
 	# For conditions that need to access node memory,

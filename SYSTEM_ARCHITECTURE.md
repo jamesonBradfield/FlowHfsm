@@ -40,10 +40,10 @@ The reusable logic asset (e.g., `BehaviorMove.tres`, `BehaviorImpulse.tres`).
     * **Direction Source:** Can use `INPUT` (WASD) or `FIXED` (Hardcoded Vector for Dodges).
     * **Orientation:** Can choose to face movement direction or remain locked.
 
-### D. The Glue: `StateTransition` & `StateCondition` (Resources)
+### D. The Glue: `StateCondition` (Resource)
 * **Condition:** Atomic query scripts (`IsGrounded`, `InputPressed`, `AmmoEmpty`).
-* **Transition:** A container holding an Array of Conditions and an Operation (`AND` / `OR`).
-* **Workflow:** Logic is wired in the Inspector by dragging Condition resources into Transition slots.
+* **Activation Logic:** Handled directly by `RecursiveState` through its `activation_conditions` array and `activation_mode` (AND/OR).
+* **Workflow:** Logic is wired in the Inspector by adding Condition resources to the Activation Conditions array on the State node.
 
 ### E. The Hierarchy Strategy (Weapons as Parents)
 Weapons/Modes are **Parent States** that impose physics constraints on movement.
@@ -55,7 +55,7 @@ Weapons/Modes are **Parent States** that impose physics constraints on movement.
 
 ---
 
-### F. The Visuals: `StateAnimationLink` (Node)
+### F. The Visuals: `HFSMAnimationController` (Node)
 A generic bridge that synchronizes the HFSM state with a Godot `AnimationTree`.
 * **Mechanism:** 
     1.  Listens to `state_entered` signals to trigger `playback.travel(state_name)`.
@@ -89,7 +89,7 @@ A generic bridge that synchronizes the HFSM state with a Godot `AnimationTree`.
 
 ### ✅ Phase 3: The Logic Gates
 * [x] `StateCondition` (Base Resource).
-* [x] `StateTransition` (AND/OR Logic).
+* [x] **Refactor:** Removed `StateTransition` resource in favor of direct Condition arrays on States.
 * [x] Standard Lib: `ConditionInput`, `ConditionIsGrounded`.
 
 ### ✅ Phase 4: Integration & Visuals

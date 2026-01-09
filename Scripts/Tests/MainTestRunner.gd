@@ -272,16 +272,16 @@ func _print_test_details(results: Dictionary) -> void:
 func _print_benchmark_details(results: Dictionary) -> void:
 	for key in results.keys():
 		var result: Dictionary = results[key] as Dictionary
-		var name = result.get("benchmark_name", key)
+		var bench_name = result.get("benchmark_name", key)
 		var acceptable = result.get("acceptable", true)
 		var status = "✓ PASS" if acceptable else "✗ FAIL"
 
 		if result.has("avg_time_us"):
 			print("  %s %-30s Avg: %6.2f μs | Budget: %5.2f%%" %
-				[status, name, result.avg_time_us, result.budget_used_pct])
+				[status, bench_name, result.avg_time_us, result.budget_used_pct])
 		elif result.has("avg_load_us"):
 			print("  %s %-30s Load: %6.2f μs | Access: %6.2f μs" %
-				[status, name, result.avg_load_us, result.avg_access_us])
+				[status, bench_name, result.avg_load_us, result.avg_access_us])
 
 ## Save results to JSON file
 func save_results_to_json(filepath: String) -> void:

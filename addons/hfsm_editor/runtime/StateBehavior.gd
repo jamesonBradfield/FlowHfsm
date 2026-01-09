@@ -16,7 +16,7 @@ class_name StateBehavior extends Resource
 ## @param node: The RecursiveState node using this behavior.
 ## @param actor: The owner of the state machine.
 ## @param blackboard: Shared data dictionary.
-func enter(node: RecursiveState, actor: Node, blackboard: Dictionary):
+func enter(node: RecursiveState, actor: Node, blackboard: Dictionary) -> void:
 	if animation != "":
 		# Assuming AnimationTree playback is in the blackboard or accessible on actor
 		# For the Phase 1 setup, let's assume we just print for now
@@ -28,7 +28,7 @@ func enter(node: RecursiveState, actor: Node, blackboard: Dictionary):
 ## @param node: The RecursiveState node using this behavior.
 ## @param actor: The owner of the state machine.
 ## @param blackboard: Shared data dictionary.
-func exit(node: RecursiveState, actor: Node, blackboard: Dictionary):
+func exit(node: RecursiveState, actor: Node, blackboard: Dictionary) -> void:
 	pass
 
 ## Called every frame while the state is active.
@@ -38,5 +38,5 @@ func exit(node: RecursiveState, actor: Node, blackboard: Dictionary):
 ## @param delta: Time elapsed since the last frame.
 ## @param actor: The owner of the state machine.
 ## @param blackboard: Shared data dictionary.
-func update(node: RecursiveState, delta: float, actor: Node, blackboard: Dictionary):
+func update(node: RecursiveState, delta: float, actor: Node, blackboard: Dictionary) -> void:
 	pass

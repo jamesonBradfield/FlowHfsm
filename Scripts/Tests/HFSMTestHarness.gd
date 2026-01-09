@@ -3,8 +3,6 @@ class_name HFSMTestHarness extends Node
 ## Test harness for HFSM stress testing and benchmarking.
 ## Provides instrumentation for state transitions, timing, and assertions.
 
-signal test_completed(results: Dictionary)
-
 var test_root: RecursiveState
 var state_log: Array[StringName] = []
 var transition_log: Array[Dictionary] = []
@@ -160,8 +158,9 @@ func generate_report() -> Dictionary:
 func _count_unique_states() -> int:
 	var unique := {}
 	for s in state_log:
-		var name: String = s if not s.ends_with("_EXIT") else s.trim_suffix("_EXIT")
-		unique[name] = true
+		var s_str := String(s)
+		var state_name: String = s_str if not s_str.ends_with("_EXIT") else s_str.trim_suffix("_EXIT")
+		unique[state_name] = true
 	return unique.size()
 
 ## Reset all logs and counters
@@ -180,7 +179,7 @@ func print_summary() -> void:
 	print("=".repeat(60))
 	print("Total Frames:     %d" % frame_count)
 	print("States Visited:   %d" % _count_unique_states())
-	print("Total Transitions: %d" % (state_log.size() / 2))  # Each transition has enter + exit
+	print("Total Transitions: %d" % int(state_log.size() / 2.0))  # Each transition has enter + exit
 
 	if profiling_enabled:
 		var metrics := stop_profiling()
@@ -194,8 +193,8 @@ func print_summary() -> void:
 	print("State Log:")
 	for i in range(0, state_log.size(), 2):
 		var entry: String = state_log[i]
-		var exit: String = state_log[i + 1] if i + 1 < state_log.size() else "STILL ACTIVE"
-		print("  [%2d] %s -> %s" % [i / 2, entry, exit])
+		var exit: String = String(state_log[i + 1]) if i + 1 < state_log.size() else "STILL ACTIVE"
+		print("  [%2d] %s -> %s" % [int(i / 2.0), entry, exit])
 
 	print("=".repeat(60) + "\n")
 

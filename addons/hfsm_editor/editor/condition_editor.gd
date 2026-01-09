@@ -4,36 +4,36 @@ extends EditorProperty
 const Factory = preload("res://addons/hfsm_editor/editor/property_factory.gd")
 const ThemeResource = preload("res://addons/hfsm_editor/editor/hfsm_editor_theme.tres")
 
-var container = VBoxContainer.new()
-var updating_from_ui = false
+var container: VBoxContainer = VBoxContainer.new()
+var updating_from_ui: bool = false
 
-func _init():
+func _init() -> void:
 	label = ""
 	container.theme = ThemeResource
 	add_child(container)
 
-func _update_property():
+func _update_property() -> void:
 	if updating_from_ui: return
 	
 	# Clear existing children
 	for child in container.get_children():
 		child.queue_free()
 	
-	var object = get_edited_object()
-	var property = get_edited_property()
-	var conditions = object.get(property)
+	var object: Object = get_edited_object()
+	var property: StringName = get_edited_property()
+	var conditions: Array = object.get(property)
 	
 	if conditions == null:
 		conditions = []
 	
 	# List of conditions
 	for i in range(conditions.size()):
-		var condition = conditions[i]
+		var condition: StateCondition = conditions[i]
 		
 		# 1. Header (Picker + Delete)
-		var header = HBoxContainer.new()
+		var header: HBoxContainer = HBoxContainer.new()
 		
-		var picker = EditorResourcePicker.new()
+		var picker: EditorResourcePicker = EditorResourcePicker.new()
 		picker.base_type = "StateCondition"
 		picker.edited_resource = condition
 		picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -41,7 +41,7 @@ func _update_property():
 		picker.resource_changed.connect(_on_condition_changed.bind(i))
 		header.add_child(picker)
 		
-		var del_btn = Button.new()
+		var del_btn: Button = Button.new()
 		del_btn.icon = get_theme_icon("Remove", "EditorIcons")
 		del_btn.tooltip_text = "Remove Condition"
 		del_btn.flat = true
@@ -52,14 +52,14 @@ func _update_property():
 		
 		# 2. Inline Properties (if resource exists)
 		if condition:
-			var margin = MarginContainer.new()
+			var margin: MarginContainer = MarginContainer.new()
 			# Indent to visually associate properties with the condition
 			margin.add_theme_constant_override("margin_left", 20)
 			
-			var props_list = Factory.create_property_list(condition, func(p_name, val):
+			var props_list: Control = Factory.create_property_list(condition, func(p_name, val):
 				updating_from_ui = true
-				var ur = EditorInterface.get_editor_undo_redo()
-				var old_val = condition.get(p_name)
+				var ur: EditorUndoRedoManager = EditorInterface.get_editor_undo_redo()
+				var old_val: Variant = condition.get(p_name)
 				
 				ur.create_action("Change Condition Property: " + p_name)
 				ur.add_do_method(condition, "set", p_name, val)
@@ -76,36 +76,36 @@ func _update_property():
 			container.add_child(margin)
 			
 		# Small spacer
-		var spacer = Control.new()
+		var spacer: Control = Control.new()
 		spacer.custom_minimum_size.y = 4
 		container.add_child(spacer)
 		
 	# Add Button
-	var add_btn = Button.new()
+	var add_btn: Button = Button.new()
 	add_btn.text = "Add Condition"
 	add_btn.icon = get_theme_icon("Add", "EditorIcons")
 	add_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	add_btn.pressed.connect(_on_add_pressed)
 	container.add_child(add_btn)
 
-func _on_condition_changed(new_res, index):
-	var object = get_edited_object()
-	var property = get_edited_property()
-	var conditions = object.get(property).duplicate()
+func _on_condition_changed(new_res: Resource, index: int) -> void:
+	var object: Object = get_edited_object()
+	var property: StringName = get_edited_property()
+	var conditions: Array = object.get(property).duplicate()
 	conditions[index] = new_res
 	_apply_changes(conditions, "Change Condition Resource")
 
-func _on_remove_condition(index):
-	var object = get_edited_object()
-	var property = get_edited_property()
-	var conditions = object.get(property).duplicate()
+func _on_remove_condition(index: int) -> void:
+	var object: Object = get_edited_object()
+	var property: StringName = get_edited_property()
+	var conditions: Array = object.get(property).duplicate()
 	conditions.remove_at(index)
 	_apply_changes(conditions, "Remove Condition")
 
-func _on_add_pressed():
-	var object = get_edited_object()
-	var property = get_edited_property()
-	var conditions = object.get(property)
+func _on_add_pressed() -> void:
+	var object: Object = get_edited_object()
+	var property: StringName = get_edited_property()
+	var conditions: Array = object.get(property)
 	if conditions:
 		conditions = conditions.duplicate()
 	else:
@@ -113,12 +113,12 @@ func _on_add_pressed():
 	conditions.append(null)
 	_apply_changes(conditions, "Add Condition")
 
-func _apply_changes(new_conditions, action_name):
-	var object = get_edited_object()
-	var property = get_edited_property()
-	var old_conditions = object.get(property)
+func _apply_changes(new_conditions: Array, action_name: String) -> void:
+	var object: Object = get_edited_object()
+	var property: StringName = get_edited_property()
+	var old_conditions: Array = object.get(property)
 	
-	var ur = EditorInterface.get_editor_undo_redo()
+	var ur: EditorUndoRedoManager = EditorInterface.get_editor_undo_redo()
 	ur.create_action(action_name)
 	ur.add_do_property(object, property, new_conditions)
 	ur.add_undo_property(object, property, old_conditions)

@@ -9,8 +9,6 @@ var test_harness: HFSMTestHarness
 var blackboard: Dictionary = {}
 var test_actor: Node3D
 
-signal test_finished(results: Dictionary)
-
 ## Run all atomic transition tests
 func run_all_tests() -> Dictionary:
 	var results := {}
@@ -126,7 +124,7 @@ func test_rapid_transitions() -> Dictionary:
 	var metrics := test_harness.stop_profiling()
 
 	# Assert: System should handle rapid transitions
-	var total_transitions := test_harness.state_log.size() / 2
+	var total_transitions := int(test_harness.state_log.size() / 2.0)
 	var reasonable_transitions := total_transitions <= frames * 2  # Allow some overhead
 	var no_crashes := true
 
@@ -397,9 +395,9 @@ func _create_deep_hierarchy_with_competing_children(depth: int, children_per_lev
 	return root
 
 ## Helper: Create test condition
-func _create_condition(name: String, return_value: bool = false) -> StateCondition:
+func _create_condition(cond_name: String, return_value: bool = false) -> StateCondition:
 	var condition := MockCondition.new()
-	condition.resource_name = name
+	condition.resource_name = cond_name
 	condition.fixed_value = return_value
 	return condition
 
@@ -418,9 +416,9 @@ class MockCondition extends StateCondition:
 
 
 ## Helper: Generate test result
-func _generate_test_result(name: String, passed: bool) -> Dictionary:
+func _generate_test_result(test_name: String, passed: bool) -> Dictionary:
 	return {
-		"test_name": name,
+		"test_name": test_name,
 		"passed": passed,
 		"timestamp": Time.get_ticks_msec()
 	}

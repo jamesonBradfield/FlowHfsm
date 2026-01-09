@@ -340,14 +340,14 @@ func _create_wide_hierarchy(child_count: int) -> RecursiveState:
 	return root
 
 ## Helper: Format benchmark result
-func _format_benchmark_result(name: String, frames: int, metrics: Dictionary) -> Dictionary:
+func _format_benchmark_result(bench_name: String, frames: int, metrics: Dictionary) -> Dictionary:
 	var avg_us: float = metrics.avg_process_time_us
 	var max_us: float = metrics.max_process_time_us
 	var budget_us := 16666.0  # 60 FPS budget in microseconds
 	var budget_used: float = avg_us / budget_us * 100.0
 
 	return {
-		"benchmark_name": name,
+		"benchmark_name": bench_name,
 		"frames_processed": frames,
 		"avg_time_us": avg_us,
 		"max_time_us": max_us,
@@ -372,13 +372,13 @@ func _print_benchmark_summary() -> void:
 		if result.has("acceptable") and result.acceptable:
 			acceptable_count += 1
 
-		var name: String = result.get("benchmark_name", key)
+		var bench_name: String = result.get("benchmark_name", key)
 		var acceptable: bool = result.get("acceptable", true)
 		var status = "✓ PASS" if acceptable else "✗ FAIL"
 
 		if result.has("avg_time_us"):
 			print("%s %-30s Avg: %6.2f μs | Budget: %5.2f%%" %
-				[status, name, result.avg_time_us, result.budget_used_pct])
+				[status, bench_name, result.avg_time_us, result.budget_used_pct])
 
 	print("-".repeat(70))
 	print("Results: %d/%d benchmarks passed (%.1f%%)" %

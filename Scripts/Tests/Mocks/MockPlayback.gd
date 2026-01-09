@@ -6,7 +6,7 @@ class_name MockPlayback
 var current_node: StringName = ""
 var traveling_to: StringName = ""
 
-func travel(to_node: StringName, reset_on_teleport: bool = true) -> void:
+func travel(to_node: StringName, _reset_on_teleport: bool = true) -> void:
 	traveling_to = to_node
 	current_node = to_node
 

@@ -9,8 +9,6 @@ var test_harness: HFSMTestHarness
 var blackboard: Dictionary = {}
 var test_actor: Node3D
 
-signal test_finished(results: Dictionary)
-
 ## Run all hierarchy blocking tests
 func run_all_tests() -> Dictionary:
 	var results := {}
@@ -55,7 +53,7 @@ func test_single_state_lock() -> Dictionary:
 	var root := _create_test_hierarchy()
 	var parent: RecursiveState = root.get_node("Grounded")
 	var attack_state: RecursiveState = parent.get_node("Attack")
-	var idle_state: RecursiveState = parent.get_node("Idle")
+	var _idle_state: RecursiveState = parent.get_node("Idle")
 
 	# Setup
 	test_harness.setup(root)
@@ -369,9 +367,9 @@ func _find_leaf_state(state: RecursiveState) -> RecursiveState:
 	return state
 
 ## Helper: Create test condition
-func _create_condition(name: String, return_value: bool) -> StateCondition:
+func _create_condition(cond_name: String, return_value: bool) -> StateCondition:
 	var condition := MockCondition.new()
-	condition.resource_name = name
+	condition.resource_name = cond_name
 	condition.fixed_value = return_value
 	return condition
 
@@ -390,9 +388,9 @@ class MockCondition extends StateCondition:
 
 
 ## Helper: Generate test result
-func _generate_test_result(name: String, passed: bool) -> Dictionary:
+func _generate_test_result(test_name: String, passed: bool) -> Dictionary:
 	return {
-		"test_name": name,
+		"test_name": test_name,
 		"passed": passed,
 		"timestamp": Time.get_ticks_msec()
 	}

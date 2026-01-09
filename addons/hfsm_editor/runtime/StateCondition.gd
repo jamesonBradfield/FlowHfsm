@@ -26,5 +26,5 @@ func _evaluate(actor: Node, blackboard: Dictionary) -> bool:
 ## @param blackboard: Shared data dictionary.
 ## @return: The final result of the condition.
 func evaluate(actor: Node, blackboard: Dictionary) -> bool:
-	var result = _evaluate(actor, blackboard)
+	var result: bool = _evaluate(actor, blackboard)
 	return not result if reverse_result else result

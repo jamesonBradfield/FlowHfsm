@@ -1,0 +1,31 @@
+[gd_scene load_steps=4 format=3 uid="uid://bgvllpw14ffab"]
+
+[ext_resource type="Script" uid="uid://u8e3x4htq7mp" path="res://addons/hfsm_editor/runtime/RecursiveState.gd" id="1_recur"]
+[ext_resource type="Script" uid="uid://r3nyg0qvq7lb" path="res://Examples/Scripts/Behaviors/MoveBehavior.gd" id="2_move"]
+
+[sub_resource type="Resource" id="Res_move_b"]
+script = ExtResource("2_move")
+
+[node name="Root" type="Node"]
+script = ExtResource("1_recur")
+
+[node name="Movement" type="Node" parent="."]
+script = ExtResource("1_recur")
+is_starting_state = true
+
+[node name="Grounded" type="Node" parent="Movement"]
+script = ExtResource("1_recur")
+is_starting_state = true
+
+[node name="Walk" type="Node" parent="Movement/Grounded"]
+script = ExtResource("1_recur")
+is_starting_state = true
+
+[node name="NormalWalk" type="Node" parent="Movement/Grounded/Walk"]
+script = ExtResource("1_recur")
+behavior = SubResource("Res_move_b")
+is_starting_state = true
+
+[node name="Sprint" type="Node" parent="Movement/Grounded/Walk"]
+script = ExtResource("1_recur")
+behavior = SubResource("Res_move_b")
