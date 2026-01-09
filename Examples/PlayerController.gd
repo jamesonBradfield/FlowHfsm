@@ -1,6 +1,6 @@
 class_name PlayerController extends Node
 
-## Polls input and feeds it into the blackboard.
+## Polls input and exposes it as properties.
 ## Drives the HFSM state machine every frame.
 
 @export_group("References")
@@ -15,8 +15,12 @@ class_name PlayerController extends Node
 ## Action name for jump.
 @export var jump_action: String = "ui_accept"
 
-## The blackboard shared with the HFSM.
-var blackboard: Dictionary = {}
+# -- Public State Properties --
+# Accessed directly by Behaviors and Conditions (replacing Blackboard)
+var input_direction: Vector3 = Vector3.ZERO
+var is_moving: bool = false
+var jump_pressed: bool = false
+var jump_just_pressed: bool = false
 
 ## The CharacterBody3D being controlled.
 var _body: CharacterBody3D
@@ -26,7 +30,7 @@ func _ready() -> void:
 	_body = owner as CharacterBody3D
 	if not _body:
 		_body = get_parent() as CharacterBody3D
-
+	
 	if not _body:
 		push_error("PlayerController: Cannot find CharacterBody3D to control")
 		return
@@ -39,49 +43,39 @@ func _ready() -> void:
 		push_error("PlayerController: Cannot find RootState")
 		return
 
-	# Initialize blackboard
-	_init_blackboard()
-
 func _process(delta: float) -> void:
 	# 1. Poll Input
 	_poll_input()
-
+	
 	# 2. Tick the HFSM
 	if root_state:
-		root_state.process_state(delta, _body, blackboard)
+		# We pass _body as the actor. Behaviors/Conditions must find this Controller 
+		# if they need input data (e.g. actor.get_node("PlayerController"))
+		root_state.process_state(delta, _body)
 
 func _physics_process(delta: float) -> void:
 	# 3. Apply physics (move_and_slide)
 	if _body:
 		_body.move_and_slide()
 
-func _init_blackboard() -> void:
-	# Initialize all blackboard values
-	blackboard["input_direction"] = Vector3.ZERO
-	blackboard["is_moving"] = false
-	blackboard["jump_pressed"] = false
-	blackboard["jump_just_pressed"] = false
-
 func _poll_input() -> void:
 	# Reset input flags
-	blackboard["jump_just_pressed"] = false
-
+	jump_just_pressed = false
+	
 	# Poll movement input
 	var move_vec := Vector2.ZERO
 	move_vec.x = Input.get_axis(move_action_prefix + "left", move_action_prefix + "right")
 	move_vec.y = Input.get_axis(move_action_prefix + "up", move_action_prefix + "down")
-
+	
 	# Convert 2D input to 3D direction (XZ plane)
-	var input_dir := Vector3.ZERO
-	input_dir.x = move_vec.x
-	input_dir.z = move_vec.y
-
-	blackboard["input_direction"] = input_dir
+	input_direction = Vector3.ZERO
+	input_direction.x = move_vec.x
+	input_direction.z = move_vec.y
+	
+	is_moving = input_direction.length_squared() > 0.01
 
 	# Poll jump input
-	var is_jump_pressed := Input.is_action_pressed(jump_action)
-	var is_jump_just_pressed := Input.is_action_just_pressed(jump_action)
+	jump_pressed = Input.is_action_pressed(jump_action)
+	if Input.is_action_just_pressed(jump_action):
+		jump_just_pressed = true
 
-	blackboard["jump_pressed"] = is_jump_pressed
-	if is_jump_just_pressed:
-		blackboard["jump_just_pressed"] = true

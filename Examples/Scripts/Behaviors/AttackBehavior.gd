@@ -1,10 +1,10 @@
 class_name AttackBehavior extends StateBehavior
 
-func enter(node: RecursiveState, _actor: Node, _blackboard: Dictionary) -> void:
+func enter(node: RecursiveState, _actor: Node) -> void:
 	node.memory["timer"] = 0.5
 	node.is_locked = true
 
-func update(node: RecursiveState, delta: float, _actor: Node, _blackboard: Dictionary) -> void:
+func update(node: RecursiveState, delta: float, _actor: Node) -> void:
 	if not node.memory.has("timer"):
 		return
 		

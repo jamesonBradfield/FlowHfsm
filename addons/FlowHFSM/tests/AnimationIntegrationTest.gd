@@ -7,12 +7,24 @@ extends Node
 ## via the HFSMAnimationController.
 
 var test_harness: HFSMTestHarness
-var blackboard: Dictionary = {}
-var test_actor: Node3D
+var test_actor: MockActor
 var animation_controller
 var mock_anim_tree
 
 var root_state: RecursiveState
+
+## Mock Actor with dynamic properties
+class MockActor extends Node3D:
+	var properties: Dictionary = {}
+	
+	func get(property: StringName) -> Variant:
+		if properties.has(property):
+			return properties[property]
+		return null
+		
+	func set(property: StringName, value: Variant) -> bool:
+		properties[property] = value
+		return true
 
 ## Run all animation integration tests
 func run_all_tests() -> Dictionary:
@@ -37,7 +49,7 @@ func run_all_tests() -> Dictionary:
 
 	return results
 
-## Test 3: Verify parameter syncing (Blackboard -> AnimationTree)
+## Test 3: Verify parameter syncing (Source -> AnimationTree)
 func test_parameter_sync() -> Dictionary:
 	print("\n[TEST] Parameter Sync")
 	print("-".repeat(40))
@@ -51,15 +63,15 @@ func test_parameter_sync() -> Dictionary:
 			"speed": "parameters/Run/blend_position"
 		}
 	
-	# Mock blackboard source
-	var mock_source = MockBlackboardSource.new()
+	# Mock source
+	var mock_source = MockActor.new()
 	add_child(mock_source)
 	if animation_controller:
-		animation_controller.blackboard_source = mock_source
+		animation_controller.property_source = mock_source
 	
-	# Act: Set value in blackboard
+	# Act: Set value in source
 	var test_val = 0.5
-	mock_source.blackboard["speed"] = test_val
+	mock_source.set("speed", test_val)
 	
 	# Process frame
 	animation_controller._process(0.016)
@@ -71,14 +83,9 @@ func test_parameter_sync() -> Dictionary:
 		push_error("Expected blend_position %s, got %s" % [test_val, actual_val])
 		test_passed = false
 		
-	print("✓ Blackboard 'speed': %s -> AnimationTree: %s" % [test_val, actual_val])
+	print("✓ Property 'speed': %s -> AnimationTree: %s" % [test_val, actual_val])
 
 	return _generate_test_result(test_name, test_passed)
-
-## Helper class for blackboard source
-class MockBlackboardSource extends Node:
-	var blackboard: Dictionary = {}
-
 
 ## Test 1: Verify entering HFSM state triggers correct Animation travel
 func test_direct_mapping_travel() -> Dictionary:
@@ -101,10 +108,10 @@ func test_direct_mapping_travel() -> Dictionary:
 	test_harness.setup(root_state)
 	
 	# Act: Manually switch HFSM state to Run
-	root_state.change_active_child(run_state, test_actor, blackboard)
+	root_state.change_active_child(run_state, test_actor)
 	
 	# Process frame to ensure signals propagate
-	test_harness.process_frame(0.016, test_actor, blackboard)
+	test_harness.process_frame(0.016, test_actor)
 	
 	# Assert: AnimationTree should have traveled to "Run"
 	var current_anim = mock_anim_tree.mock_playback.get_current_node()
@@ -118,9 +125,9 @@ func test_direct_mapping_travel() -> Dictionary:
 	
 	return _generate_test_result(test_name, test_passed)
 
-## Test 2: Verify blackboard variable triggers HFSM transition -> Animation change
+## Test 2: Verify actor variable triggers HFSM transition -> Animation change
 func test_blackboard_trigger_animation() -> Dictionary:
-	print("\n[TEST] Blackboard Trigger -> Animation Change")
+	print("\n[TEST] Actor Property Trigger -> Animation Change")
 	print("-".repeat(40))
 
 	var test_name := "blackboard_trigger_animation"
@@ -140,11 +147,11 @@ func test_blackboard_trigger_animation() -> Dictionary:
 	# Re-init harness
 	test_harness.setup(root_state)
 	
-	# Act: Set blackboard variable
-	blackboard["is_jumping"] = true
+	# Act: Set actor variable
+	test_actor.set("is_jumping", true)
 	
 	# Process frame to trigger HFSM transition logic
-	test_harness.process_frame(0.016, test_actor, blackboard)
+	test_harness.process_frame(0.016, test_actor)
 	
 	# Assert 1: HFSM entered Jump
 	var hfsm_in_jump = test_harness.assert_state("Jump")
@@ -159,7 +166,7 @@ func test_blackboard_trigger_animation() -> Dictionary:
 		push_error("Expected animation '%s', got '%s'" % [expected_anim, current_anim])
 		test_passed = false
 	
-	print("✓ Blackboard 'is_jumping' -> HFSM Jump: %s" % hfsm_in_jump)
+	print("✓ Actor 'is_jumping' -> HFSM Jump: %s" % hfsm_in_jump)
 	print("✓ HFSM Jump -> Animation Jump: %s" % anim_correct)
 
 	return _generate_test_result(test_name, test_passed)
@@ -175,9 +182,10 @@ func _create_condition(cond_name: String, return_value: bool) -> StateCondition:
 class MockCondition extends StateCondition:
 	var fixed_value: bool = false
 	
-	func _evaluate(_actor: Node, blackboard: Dictionary) -> bool:
-		if blackboard.has(resource_name):
-			return blackboard[resource_name]
+	func _evaluate(actor: Node) -> bool:
+		var val = actor.get(resource_name)
+		if val != null and val is bool:
+			return val
 		return fixed_value
 
 ## Helper: Generate test result
@@ -191,7 +199,7 @@ func _generate_test_result(test_name: String, passed: bool) -> Dictionary:
 ## Setup test environment
 func _setup_environment() -> void:
 	# 1. Actors
-	test_actor = Node3D.new()
+	test_actor = MockActor.new()
 	add_child(test_actor)
 	
 	# 2. HFSM Root
@@ -211,15 +219,12 @@ func _setup_environment() -> void:
 	animation_controller = load("res://addons/FlowHFSM/runtime/components/HFSMAnimationController.gd").new()
 	animation_controller.root_state = root_state
 	animation_controller.animation_tree = mock_anim_tree
+	animation_controller.property_source = test_actor # Bind to our mock actor
 	add_child(animation_controller)
 	
 	# 5. Harness
 	test_harness = HFSMTestHarness.new()
 	add_child(test_harness)
-
-	blackboard = {
-		"inputs": {},
-	}
 
 ## Reset environment
 func _reset_environment() -> void:

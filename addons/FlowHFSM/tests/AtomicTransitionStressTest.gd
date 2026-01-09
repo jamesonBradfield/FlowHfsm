@@ -6,8 +6,32 @@ extends Node
 ## Tests the priority-based activation system and state transition behavior.
 
 var test_harness: HFSMTestHarness
-var blackboard: Dictionary = {}
-var test_actor: Node3D
+var test_actor: MockActor
+
+## Mock Actor with dynamic properties
+class MockActor extends Node3D:
+	var properties: Dictionary = {}
+	
+	func get(property: StringName) -> Variant:
+		if properties.has(property):
+			return properties[property]
+		return null
+		
+	func set(property: StringName, value: Variant) -> bool:
+		properties[property] = value
+		return true
+
+## Mock condition for testing
+class MockCondition extends StateCondition:
+	var fixed_value: bool = false
+	
+	func _evaluate(actor: Node) -> bool:
+		# Check Actor properties first (dynamic)
+		var val = actor.get(resource_name)
+		if val != null and val is bool:
+			return val
+		# Fallback to fixed value
+		return fixed_value
 
 ## Run all atomic transition tests
 func run_all_tests() -> Dictionary:
@@ -73,7 +97,7 @@ func test_priority_order() -> Dictionary:
 	test_harness.setup(root)
 
 	# Act: Process frame - should activate highest priority (last in list)
-	test_harness.process_frame(0.016, test_actor, blackboard)
+	test_harness.process_frame(0.016, test_actor)
 
 	# Assert: State3 should be active (latest in list)
 	var in_state3: bool = test_harness.assert_state("State3_Priority_High")
@@ -118,8 +142,8 @@ func test_rapid_transitions() -> Dictionary:
 	# Act: Simulate rapid input changes
 	var frames := 1000
 	for i in range(frames):
-		blackboard["state_override"] = (i % 5) as int  # Cycle through states
-		test_harness.process_frame(0.016, test_actor, blackboard)
+		test_actor.set("state_override", (i % 5) as int) # Cycle through states
+		test_harness.process_frame(0.016, test_actor)
 
 	var metrics := test_harness.stop_profiling()
 
@@ -171,18 +195,18 @@ func test_concurrent_conditions() -> Dictionary:
 	test_harness.setup(root)
 
 	# Act: Process with all conditions set appropriately
-	blackboard["condition1"] = true
-	blackboard["condition2"] = true
-	blackboard["condition3"] = false
-	blackboard["condition4"] = true
-	test_harness.process_frame(0.016, test_actor, blackboard)
+	test_actor.set("condition1", true)
+	test_actor.set("condition2", true)
+	test_actor.set("condition3", false)
+	test_actor.set("condition4", true)
+	test_harness.process_frame(0.016, test_actor)
 
 	# Assert: OR_State should win (higher priority, at least one condition true)
 	var in_or: bool = test_harness.assert_state("OR_State")
 	test_passed = test_passed and in_or
 
 	# AND_State should also be valid but lower priority
-	var and_is_valid := state_and.can_activate(test_actor, blackboard)
+	var and_is_valid := state_and.can_activate(test_actor)
 	test_passed = test_passed and and_is_valid
 
 	print("✓ OR state activated (higher priority): %s" % in_or)
@@ -203,8 +227,8 @@ func test_atomicity_no_partial_states() -> Dictionary:
 
 	# Act: Trigger many transitions
 	for i in range(100):
-		blackboard["state_override"] = (i % 3) as int
-		test_harness.process_frame(0.016, test_actor, blackboard)
+		test_actor.set("state_override", (i % 3) as int)
+		test_harness.process_frame(0.016, test_actor)
 
 	# Analyze state log for atomicity violations
 	var violations := 0
@@ -239,9 +263,9 @@ func test_transition_stress_burst() -> Dictionary:
 
 	# Act: Maximum rate transitions (every frame switches)
 	var frames := 500
-	for i in range(frames):
-		blackboard["state_override"] = (i % 10) as int
-		test_harness.process_frame(0.016, test_actor, blackboard)
+	for j in range(frames):
+		test_actor.set("state_override", (j % 10) as int)
+		test_harness.process_frame(0.016, test_actor)
 
 	var metrics := test_harness.stop_profiling()
 	# var report := test_harness.generate_report() # unused
@@ -278,8 +302,8 @@ func test_deep_hierarchy_transitions() -> Dictionary:
 	# Act: Navigate through deep hierarchy
 	var frames := 200
 	for i in range(frames):
-		blackboard["state_override"] = (i % 3) as int
-		test_harness.process_frame(0.016, test_actor, blackboard)
+		test_actor.set("state_override", (i % 3) as int)
+		test_harness.process_frame(0.016, test_actor)
 
 	var metrics := test_harness.stop_profiling()
 	# var report := test_harness.generate_report() # unused
@@ -332,26 +356,26 @@ func test_and_vs_or_logic() -> Dictionary:
 	test_harness.setup(root)
 
 	# Test AND: All true -> should activate
-	blackboard["cond1"] = true
-	blackboard["cond2"] = true
-	blackboard["cond3"] = true
-	blackboard["cond4"] = false
-	blackboard["cond5"] = false
-	blackboard["cond6"] = false
-	test_harness.process_frame(0.016, test_actor, blackboard)
+	test_actor.set("cond1", true)
+	test_actor.set("cond2", true)
+	test_actor.set("cond3", true)
+	test_actor.set("cond4", false)
+	test_actor.set("cond5", false)
+	test_actor.set("cond6", false)
+	test_harness.process_frame(0.016, test_actor)
 
 	var in_and: bool = test_harness.assert_state("AND_State")
 	test_passed = test_passed and in_and
 
 	# Test OR: At least one true -> should activate
 	test_harness.reset()
-	blackboard["cond1"] = false
-	blackboard["cond2"] = false
-	blackboard["cond3"] = false
-	blackboard["cond4"] = false
-	blackboard["cond5"] = true
-	blackboard["cond6"] = false
-	test_harness.process_frame(0.016, test_actor, blackboard)
+	test_actor.set("cond1", false)
+	test_actor.set("cond2", false)
+	test_actor.set("cond3", false)
+	test_actor.set("cond4", false)
+	test_actor.set("cond5", true)
+	test_actor.set("cond6", false)
+	test_harness.process_frame(0.016, test_actor)
 
 	var in_or: bool = test_harness.assert_state("OR_State")
 	test_passed = test_passed and in_or
@@ -401,20 +425,6 @@ func _create_condition(cond_name: String, return_value: bool = false) -> StateCo
 	condition.fixed_value = return_value
 	return condition
 
-## Mock condition for testing
-class MockCondition extends StateCondition:
-	var fixed_value: bool = false
-	
-	func _evaluate(_actor: Node, blackboard: Dictionary) -> bool:
-		# Check blackboard first (dynamic)
-		if blackboard.has(resource_name):
-			var val = blackboard[resource_name]
-			if val is bool:
-				return val
-		# Fallback to fixed value
-		return fixed_value
-
-
 ## Helper: Generate test result
 func _generate_test_result(test_name: String, passed: bool) -> Dictionary:
 	return {
@@ -426,16 +436,14 @@ func _generate_test_result(test_name: String, passed: bool) -> Dictionary:
 ## Setup test environment
 func _setup_environment() -> void:
 	test_harness = HFSMTestHarness.new()
-	test_actor = Node3D.new()
+	test_actor = MockActor.new()
 	add_child(test_harness)
 	add_child(test_actor)
-
-	blackboard = {}
 
 ## Reset environment between tests
 func _reset_environment() -> void:
 	test_harness.reset()
-	blackboard = {}
+	test_actor.properties.clear()
 
 ## Cleanup
 func _cleanup() -> void:

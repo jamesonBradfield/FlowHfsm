@@ -68,8 +68,7 @@ func _ready() -> void:
 ##
 ## @param delta: Time elapsed since the last frame.
 ## @param actor: The owner of the state machine (usually a CharacterBody3D/2D).
-## @param blackboard: Shared data dictionary for the entire HFSM.
-func process_state(delta: float, actor: Node, blackboard: Dictionary) -> void:
+func process_state(delta: float, actor: Node) -> void:
 	# 1. SELECTOR LOGIC (Priority-Based Child Activation)
 	# Iterate through children in order. The LAST one that CAN activate becomes the active child.
 	# Priority: Lower nodes in the scene tree override higher nodes.
@@ -79,21 +78,21 @@ func process_state(delta: float, actor: Node, blackboard: Dictionary) -> void:
 	
 	for child in get_children():
 		if child is RecursiveState:
-			if child.can_activate(actor, blackboard):
+			if child.can_activate(actor):
 				best_child = child
 	
 	# Try to switch if we found a better candidate AND we are not locked
 	if best_child != null and best_child != active_child:
 		if not active_child or not active_child.is_hierarchy_locked():
-			change_active_child(best_child, actor, blackboard)
+			change_active_child(best_child, actor)
 	
 	# 2. BEHAVIOR UPDATE (The "Brain")
 	if behavior:
-		behavior.update(self, delta, actor, blackboard)
+		behavior.update(self, delta, actor)
 
 	# 3. RECURSION (Tick the Child)
 	if active_child:
-		active_child.process_state(delta, actor, blackboard)
+		active_child.process_state(delta, actor)
 
 # --- API ---
 
@@ -101,8 +100,7 @@ func process_state(delta: float, actor: Node, blackboard: Dictionary) -> void:
 ## Clears memory, resets locks, enters the behavior, and recursively enters the starting child.
 ##
 ## @param actor: The owner of the state machine.
-## @param blackboard: Shared data dictionary.
-func enter(actor: Node, blackboard: Dictionary) -> void:
+func enter(actor: Node) -> void:
 	# Reset local memory on entry so we don't have stale data (e.g. old timers)
 	memory.clear()
 	is_locked = false 
@@ -116,11 +114,11 @@ func enter(actor: Node, blackboard: Dictionary) -> void:
 			active_child = start_node
 
 	if behavior:
-		behavior.enter(self, actor, blackboard)
+		behavior.enter(self, actor)
 	
 	# If we have a default child, enter it too
 	if active_child:
-		active_child.enter(actor, blackboard)
+		active_child.enter(actor)
 
 ## Helper to find the default starting child state.
 ## Returns the child marked as `is_starting_state`, or the first `RecursiveState` child found.
@@ -140,16 +138,15 @@ func _get_starting_child() -> RecursiveState:
 ## Recursively exits the active child and the current behavior.
 ##
 ## @param actor: The owner of the state machine.
-## @param blackboard: Shared data dictionary.
-func exit(actor: Node, blackboard: Dictionary) -> void:
+func exit(actor: Node) -> void:
 	if active_child:
-		active_child.exit(actor, blackboard)
+		active_child.exit(actor)
 		# Forget the active child if we don't have history enabled
 		if not has_history:
 			active_child = null
 		
 	if behavior:
-		behavior.exit(self, actor, blackboard)
+		behavior.exit(self, actor)
 	
 	state_exited.emit(self)
 
@@ -167,7 +164,7 @@ func is_hierarchy_locked() -> bool:
 
 ## Checks if this state can be active.
 ## Evaluates activation_conditions based on activation_mode.
-func can_activate(actor: Node, blackboard: Dictionary) -> bool:
+func can_activate(actor: Node) -> bool:
 	# No conditions = Always Active (if reached by priority)
 	if activation_conditions.is_empty():
 		return true
@@ -176,14 +173,14 @@ func can_activate(actor: Node, blackboard: Dictionary) -> bool:
 		ActivationMode.AND:
 			# ALL conditions must be true
 			for condition in activation_conditions:
-				if not condition.evaluate(actor, blackboard):
+				if not condition.evaluate(actor):
 					return false
 			return true
 			
 		ActivationMode.OR:
 			# AT LEAST ONE condition must be true
 			for condition in activation_conditions:
-				if condition.evaluate(actor, blackboard):
+				if condition.evaluate(actor):
 					return true
 			return false
 			
@@ -201,8 +198,7 @@ func get_active_hierarchy_path() -> Array[String]:
 ##
 ## @param new_node: The new child state to make active.
 ## @param actor: The owner of the state machine.
-## @param blackboard: Shared data dictionary.
-func change_active_child(new_node: RecursiveState, actor: Node = null, blackboard: Dictionary = {}) -> void:
+func change_active_child(new_node: RecursiveState, actor: Node = null) -> void:
 	if active_child == new_node: return
 	
 	# Fallback to owner if actor is missing (e.g. signal call)
@@ -210,10 +206,10 @@ func change_active_child(new_node: RecursiveState, actor: Node = null, blackboar
 		actor = owner
 	
 	if active_child:
-		active_child.exit(actor, blackboard)
+		active_child.exit(actor)
 	
 	active_child = new_node
 	
 	if active_child:
-		active_child.enter(actor, blackboard)
+		active_child.enter(actor)
 

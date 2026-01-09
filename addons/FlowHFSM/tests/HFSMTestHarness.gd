@@ -29,7 +29,7 @@ func setup(root: RecursiveState) -> void:
 	# Ensure the root is entered to start the machine
 	# This mimics the runtime behavior where a parent enters its children
 	if not test_root.active_child and test_root.get_child_count() > 0:
-		test_root.enter(self, {})
+		test_root.enter(self)
 
 func _connect_signals_recursive(state: RecursiveState) -> void:
 	if not state.state_entered.is_connected(_on_state_entered):
@@ -59,7 +59,7 @@ func stop_profiling() -> Dictionary:
 	}
 
 ## Process a frame with timing instrumentation
-func process_frame(delta: float, actor: Node, blackboard: Dictionary) -> void:
+func process_frame(delta: float, actor: Node) -> void:
 	if not test_root:
 		push_error("Test harness not initialized. Call setup() first.")
 		return
@@ -67,7 +67,7 @@ func process_frame(delta: float, actor: Node, blackboard: Dictionary) -> void:
 	var frame_start := Time.get_ticks_usec()
 
 	# Process the state machine
-	test_root.process_state(delta, actor, blackboard)
+	test_root.process_state(delta, actor)
 
 	var frame_end := Time.get_ticks_usec()
 	var frame_time := frame_end - frame_start

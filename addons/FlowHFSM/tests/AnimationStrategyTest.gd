@@ -171,7 +171,7 @@ func _test_hybrid_approach() -> void:
 	)
 
 	# Trigger both
-	root.enter(Node.new(), {})
+	root.enter(Node.new())
 
 	print("✓ Signal emitted: %s" % capture["signal_emitted"])
 	print("✓ StateLink can connect: Compatible")

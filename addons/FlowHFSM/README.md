@@ -8,7 +8,7 @@ A robust, editor-friendly Hierarchical Finite State Machine for Godot 4. Designe
 *   **Resource-Based Logic:** Behaviors are reusable Resources. Write a `JumpBehavior` once, use it on Player, Enemy, and NPC.
 *   **Inline Editor:** Custom Inspector tools allow you to edit State Behaviors and Conditions directly on the Node, skipping the "Sub-Resource Click" fatigue.
 *   **Priority-Based Transitions:** No messy wire spaghetti. Child states are evaluated in order; the best valid state wins.
-*   **Blackboard Integration:** Decoupled data sharing via a generic Dictionary passed through the hierarchy.
+*   **Actor-Centric:** Logic reads directly from the Actor (Entity), ensuring type safety and clarity.
 
 ---
 
@@ -63,6 +63,7 @@ The "What". A **Stateless Resource** that defines logic.
 *   Reused across multiple entities.
 *   **Must not** store local variables (they would be shared across all instances!).
 *   Access `node.memory` to store instance-specific data.
+*   Access `actor` (passed in `update`) to read input/physics data.
 
 ### 3. The Atom (`StateCondition.gd`)
 The "When". A **Logic Gate** that returns true or false.

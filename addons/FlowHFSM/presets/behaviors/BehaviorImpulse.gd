@@ -11,7 +11,7 @@ class_name BehaviorImpulse extends StateBehavior
 ## Delay before applying the impulse (in seconds).
 @export var delay: float = 0.0
 
-func enter(node: RecursiveState, actor: Node, blackboard: Dictionary) -> void:
+func enter(node: RecursiveState, actor: Node) -> void:
 	# Check if we need to delay the impulse
 	if delay > 0.0:
 		# Store timer in node memory
@@ -21,7 +21,7 @@ func enter(node: RecursiveState, actor: Node, blackboard: Dictionary) -> void:
 	# Apply impulse immediately
 	_apply_impulse(actor)
 
-func update(node: RecursiveState, delta: float, actor: Node, blackboard: Dictionary) -> void:
+func update(node: RecursiveState, delta: float, actor: Node) -> void:
 	# Handle delayed impulse
 	if node.memory.has("impulse_timer"):
 		var timer: float = node.memory["impulse_timer"]

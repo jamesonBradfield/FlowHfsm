@@ -6,8 +6,20 @@ extends Node
 ## Measures CPU usage, memory overhead, and transition times under various loads.
 
 var test_harness: HFSMTestHarness
-var blackboard: Dictionary = {}
-var test_actor: Node3D
+var test_actor: MockActor
+
+## Mock Actor with dynamic properties
+class MockActor extends Node3D:
+	var properties: Dictionary = {}
+	
+	func get(property: StringName) -> Variant:
+		if properties.has(property):
+			return properties[property]
+		return null
+		
+	func set(property: StringName, value: Variant) -> bool:
+		properties[property] = value
+		return true
 
 ## Benchmark results storage
 var benchmark_results: Dictionary = {}
@@ -52,8 +64,8 @@ func run_all_benchmarks() -> Dictionary:
 	benchmark_results["resource_loading"] = benchmark_resource_loading()
 	_reset_environment()
 
-	# Blackboard access
-	benchmark_results["blackboard_access"] = benchmark_blackboard_access()
+	# Property access (replaces blackboard access)
+	benchmark_results["property_access"] = benchmark_property_access()
 	_reset_environment()
 
 	_cleanup()
@@ -76,7 +88,7 @@ func benchmark_baseline_single_state() -> Dictionary:
 
 	var frames := 5000
 	for i in range(frames):
-		test_harness.process_frame(0.016, test_actor, blackboard)
+		test_harness.process_frame(0.016, test_actor)
 
 	var metrics := test_harness.stop_profiling()
 	var result := _format_benchmark_result("Single State", frames, metrics)
@@ -97,7 +109,7 @@ func benchmark_small_hierarchy() -> Dictionary:
 
 	var frames := 5000
 	for i in range(frames):
-		test_harness.process_frame(0.016, test_actor, blackboard)
+		test_harness.process_frame(0.016, test_actor)
 
 	var metrics := test_harness.stop_profiling()
 	var result := _format_benchmark_result("Small Hierarchy (5)", frames, metrics)
@@ -118,7 +130,7 @@ func benchmark_medium_hierarchy() -> Dictionary:
 
 	var frames := 5000
 	for i in range(frames):
-		test_harness.process_frame(0.016, test_actor, blackboard)
+		test_harness.process_frame(0.016, test_actor)
 
 	var metrics := test_harness.stop_profiling()
 	var result := _format_benchmark_result("Medium Hierarchy (20)", frames, metrics)
@@ -139,7 +151,7 @@ func benchmark_large_hierarchy() -> Dictionary:
 
 	var frames := 5000
 	for i in range(frames):
-		test_harness.process_frame(0.016, test_actor, blackboard)
+		test_harness.process_frame(0.016, test_actor)
 
 	var metrics := test_harness.stop_profiling()
 	var result := _format_benchmark_result("Large Hierarchy (100)", frames, metrics)
@@ -160,7 +172,7 @@ func benchmark_deep_hierarchy() -> Dictionary:
 
 	var frames := 5000
 	for i in range(frames):
-		test_harness.process_frame(0.016, test_actor, blackboard)
+		test_harness.process_frame(0.016, test_actor)
 
 	var metrics := test_harness.stop_profiling()
 	var result := _format_benchmark_result("Deep Hierarchy (15)", frames, metrics)
@@ -182,8 +194,8 @@ func benchmark_wide_hierarchy() -> Dictionary:
 	var frames := 5000
 	for i in range(frames):
 		# Simulate different inputs to trigger different children
-		blackboard["input_select"] = i % 20
-		test_harness.process_frame(0.016, test_actor, blackboard)
+		test_actor.set("input_select", i % 20)
+		test_harness.process_frame(0.016, test_actor)
 
 	var metrics := test_harness.stop_profiling()
 	var result := _format_benchmark_result("Wide Hierarchy (20)", frames, metrics)
@@ -233,28 +245,26 @@ func benchmark_resource_loading() -> Dictionary:
 		"acceptable": load_time_ms < 100  # Should load 100 resources in < 100ms
 	}
 
-## Benchmark 8: Blackboard access performance
-func benchmark_blackboard_access() -> Dictionary:
-	print("\n[BENCHMARK] Blackboard Access")
+## Benchmark 8: Property access performance
+func benchmark_property_access() -> Dictionary:
+	print("\n[BENCHMARK] Property Access (Replacing Blackboard)")
 	print("-".repeat(40))
 
-	# Setup blackboard with typical data
-	blackboard = {
-		"input_dir": Vector2.ZERO,
-		"is_grounded": true,
-		"velocity": Vector3.ZERO,
-		"health": 100,
-		"position": Vector3.ZERO
-	}
+	# Setup actor with typical data
+	test_actor.set("input_dir", Vector2.ZERO)
+	test_actor.set("is_grounded", true)
+	test_actor.set("velocity", Vector3.ZERO)
+	test_actor.set("health", 100)
+	test_actor.set("position", Vector3.ZERO)
 
 	var iterations := 100000
 
 	# Benchmark read access
 	var read_start := Time.get_ticks_usec()
 	for i in range(iterations):
-		var _v1 = blackboard.get("input_dir", Vector2.ZERO)
-		var _v2 = blackboard.get("is_grounded", false)
-		var _v3 = blackboard.get("health", 0)
+		var _v1 = test_actor.get("input_dir")
+		var _v2 = test_actor.get("is_grounded")
+		var _v3 = test_actor.get("health")
 	var read_end := Time.get_ticks_usec()
 
 	var avg_read_us: float = float(read_end - read_start) / (iterations * 3.0)
@@ -262,9 +272,9 @@ func benchmark_blackboard_access() -> Dictionary:
 	# Benchmark write access
 	var write_start := Time.get_ticks_usec()
 	for i in range(iterations):
-		blackboard["input_dir"] = Vector2(1.0, 0.0)
-		blackboard["is_grounded"] = true
-		blackboard["health"] = 100
+		test_actor.set("input_dir", Vector2(1.0, 0.0))
+		test_actor.set("is_grounded", true)
+		test_actor.set("health", 100)
 	var write_end := Time.get_ticks_usec()
 
 	var avg_write_us: float = float(write_end - write_start) / (iterations * 3.0)
@@ -273,7 +283,7 @@ func benchmark_blackboard_access() -> Dictionary:
 	print("✓ Write access (%d writes): %.3f μs" % [iterations * 3, avg_write_us])
 
 	return {
-		"benchmark_name": "Blackboard Access",
+		"benchmark_name": "Property Access",
 		"iterations": iterations * 3,
 		"avg_read_us": avg_read_us,
 		"avg_write_us": avg_write_us,
@@ -286,7 +296,7 @@ func _warmup() -> void:
 	test_harness.setup(root)
 
 	for i in range(100):
-		test_harness.process_frame(0.016, test_actor, blackboard)
+		test_harness.process_frame(0.016, test_actor)
 
 	test_harness.cleanup()
 	test_harness = HFSMTestHarness.new()
@@ -332,7 +342,9 @@ func _create_wide_hierarchy(child_count: int) -> RecursiveState:
 
 		# Add condition to select based on input
 		var condition := MockCondition.new()
-		condition.resource_name = "Select_%d" % i
+		condition.resource_name = "input_select" # Check this property
+		condition.fixed_value = i # Expect this value? No, MockCondition checks if prop == bool.
+		# Wait, MockCondition in this file is limited. Let's fix it below.
 		child.activation_conditions = [condition]
 
 		root.add_child(child)
@@ -388,15 +400,14 @@ func _print_benchmark_summary() -> void:
 ## Setup test environment
 func _setup_environment() -> void:
 	test_harness = HFSMTestHarness.new()
-	test_actor = Node3D.new()
+	test_actor = MockActor.new()
 	add_child(test_harness)
 	add_child(test_actor)
-	blackboard = {}
 
 ## Reset environment between benchmarks
 func _reset_environment() -> void:
 	test_harness.reset()
-	blackboard = {}
+	test_actor.properties.clear()
 	# Clear children of test_harness
 	for child in test_harness.get_children():
 		if child is RecursiveState:
@@ -413,5 +424,15 @@ func _cleanup() -> void:
 
 ## Mock condition for testing
 class MockCondition extends StateCondition:
-	func _evaluate(_actor: Node, _blackboard: Dictionary) -> bool:
+	var fixed_value: Variant = false
+	
+	func _evaluate(actor: Node) -> bool:
+		# Logic for wide hierarchy test: check if input_select matches fixed_value
+		var val = actor.get(resource_name)
+		if val != null:
+			# If we are checking "input_select", we compare equality
+			if resource_name == "input_select":
+				return val == fixed_value
+			# Otherwise assume bool
+			return val
 		return false

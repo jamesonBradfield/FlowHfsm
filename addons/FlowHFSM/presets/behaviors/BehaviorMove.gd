@@ -22,7 +22,7 @@ enum DirectionSource { INPUT, FIXED }
 ## Rotation speed for turning towards movement direction (degrees per second).
 @export var rotation_speed: float = 360.0
 
-func update(node: RecursiveState, delta: float, actor: Node, blackboard: Dictionary) -> void:
+func update(node: RecursiveState, delta: float, actor: Node) -> void:
 	# Get the character body
 	var body: CharacterBody3D = actor as CharacterBody3D
 	if not body:
@@ -30,12 +30,16 @@ func update(node: RecursiveState, delta: float, actor: Node, blackboard: Diction
 		return
 
 	# Determine movement direction
-	var move_dir: Vector3
+	var move_dir: Vector3 = Vector3.ZERO
 
 	match direction_source:
 		DirectionSource.INPUT:
-			# Read from blackboard (set by PlayerController)
-			move_dir = blackboard.get("input_direction", Vector3.ZERO)
+			# Try to find input on a Controller node
+			var controller = actor.get_node_or_null("PlayerController")
+			if controller:
+				move_dir = controller.get("input_direction")
+			elif "input_direction" in actor:
+				move_dir = actor.input_direction
 
 		DirectionSource.FIXED:
 			move_dir = fixed_direction
@@ -43,8 +47,7 @@ func update(node: RecursiveState, delta: float, actor: Node, blackboard: Diction
 	# Check if we're moving
 	var is_moving: bool = move_dir.length() > input_threshold
 
-	# Update blackboard with movement state
-	blackboard["is_moving"] = is_moving
+	# Note: is_moving property is managed by PlayerController now, we don't write back.
 
 	if is_moving:
 		# Normalize and apply speed

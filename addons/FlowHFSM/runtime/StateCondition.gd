@@ -13,9 +13,8 @@ class_name StateCondition extends Resource
 ## Internal evaluation function. Override this in subclasses.
 ##
 ## @param actor: The owner of the state machine.
-## @param blackboard: Shared data dictionary.
 ## @return: The raw result of the condition check.
-func _evaluate(actor: Node, blackboard: Dictionary) -> bool:
+func _evaluate(actor: Node) -> bool:
 	return false
 
 # Public Wrapper (Handles the "NOT" logic automatically)
@@ -23,8 +22,7 @@ func _evaluate(actor: Node, blackboard: Dictionary) -> bool:
 ## Evaluates the condition, applying the `reverse_result` modifier if set.
 ##
 ## @param actor: The owner of the state machine.
-## @param blackboard: Shared data dictionary.
 ## @return: The final result of the condition.
-func evaluate(actor: Node, blackboard: Dictionary) -> bool:
-	var result: bool = _evaluate(actor, blackboard)
+func evaluate(actor: Node) -> bool:
+	var result: bool = _evaluate(actor)
 	return not result if reverse_result else result

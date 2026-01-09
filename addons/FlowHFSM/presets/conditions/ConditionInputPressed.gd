@@ -1,13 +1,18 @@
 class_name ConditionInputPressed extends StateCondition
 
 ## Checks if an input action is pressed.
-## Returns true if the input action in blackboard is true.
+## Looks for a 'PlayerController' child node on the actor.
 
 @export_group("Input Settings")
-## Blackboard key for the input action.
-## Example: "jump_pressed", "attack_pressed", "dodge_pressed"
-@export var blackboard_key: String = "jump_pressed"
+## Property name on the PlayerController.
+## Example: "jump_pressed", "jump_just_pressed"
+@export var input_property: String = "jump_pressed"
 
-func _evaluate(actor: Node, blackboard: Dictionary) -> bool:
-	var input_pressed: bool = blackboard.get(blackboard_key, false)
-	return input_pressed
+func _evaluate(actor: Node) -> bool:
+	# Try to find the controller
+	var controller = actor.get_node_or_null("PlayerController")
+	if controller:
+		return controller.get(input_property)
+		
+	# Fallback: Check if actor itself has the property
+	return actor.get(input_property) if actor else false

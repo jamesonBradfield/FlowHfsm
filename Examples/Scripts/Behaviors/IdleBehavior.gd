@@ -1,4 +1,4 @@
 class_name IdleBehavior extends StateBehavior
 
-func update(_node: RecursiveState, _delta: float, _actor: Node, _blackboard: Dictionary) -> void:
+func update(_node: RecursiveState, _delta: float, _actor: Node) -> void:
 	pass

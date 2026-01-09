@@ -2,19 +2,16 @@ class_name HFSMAnimationController extends Node
 
 ## Connects the HFSM logic to a Godot AnimationTree.
 ## Listens to state changes and drives the AnimationNodeStateMachine via .travel().
-## Also syncs Blackboard variables to AnimationTree properties (e.g. BlendSpaces).
+## Also syncs Source variables to AnimationTree properties (e.g. BlendSpaces).
 
 @export_group("References")
 ## The AnimationTree to control.
 @export var animation_tree: AnimationTree
 ## The root of the HFSM.
 @export var root_state: RecursiveState
-## Optional: The node containing the blackboard (usually PlayerController).
-## If not set, tries to find a 'blackboard' property on the owner or parent.
-@export var blackboard_source: Node:
-	set(value):
-		blackboard_source = value
-		_refresh_blackboard_cache()
+## Optional: The node containing the properties to sync (usually PlayerController).
+## If not set, tries to find the owner.
+@export var property_source: Node
 
 @export_group("Configuration")
 ## Path to the playback object in the AnimationTree.
@@ -22,14 +19,12 @@ class_name HFSMAnimationController extends Node
 ## Optional mapping from HFSM State Name to Animation State Name.
 ## If a state is not in this map, it defaults to using the HFSM State Name directly.
 @export var state_to_animation_map: Dictionary = {}
-## Mapping of Blackboard Keys to AnimationTree parameters.
-## Key = Blackboard Key (e.g. "input_dir"), Value = AnimationTree Path (e.g. "parameters/Run/blend_position")
+## Mapping of Source Property Names to AnimationTree parameters.
+## Key = Property Name (e.g. "input_direction"), Value = AnimationTree Path (e.g. "parameters/Run/blend_position")
 @export var property_mapping: Dictionary = {}
 
 ## Cache the playback object
 var _playback: Variant
-## Cached reference to the blackboard dictionary to avoid get() calls every frame
-var _blackboard: Dictionary = {}
 
 func _ready() -> void:
 	if not animation_tree:
@@ -41,17 +36,14 @@ func _ready() -> void:
 		if parent:
 			root_state = parent.get_node_or_null("RootState")
 	
-	if not blackboard_source:
-		# Try to auto-find a source with a blackboard
+	if not property_source:
+		# Try to auto-find a source
 		var parent: Node = get_parent()
-		if parent and "blackboard" in parent:
-			blackboard_source = parent
-		elif owner and "blackboard" in owner:
-			blackboard_source = owner
+		if parent and parent.has_method("_process"): # Heuristic for a controller script
+			property_source = parent
+		elif owner:
+			property_source = owner
 			
-	# Cache the blackboard reference if possible
-	_refresh_blackboard_cache()
-
 	if root_state:
 		# Connect to all states in the hierarchy
 		_connect_signals_recursive(root_state)
@@ -66,11 +58,11 @@ func _process(_delta: float) -> void:
 		if playback_obj and (playback_obj is AnimationNodeStateMachinePlayback or playback_obj.has_method("travel")):
 			_playback = playback_obj
 		
-	# 2. Sync Properties (Blackboard -> AnimationTree)
-	if animation_tree and not _blackboard.is_empty() and not property_mapping.is_empty():
-		for bb_key: Variant in property_mapping:
-			var anim_path: String = property_mapping[bb_key]
-			var value: Variant = _blackboard.get(bb_key)
+	# 2. Sync Properties (Source -> AnimationTree)
+	if animation_tree and property_source and not property_mapping.is_empty():
+		for source_prop: String in property_mapping:
+			var anim_path: String = property_mapping[source_prop]
+			var value: Variant = property_source.get(source_prop)
 			
 			if value != null:
 				animation_tree.set(anim_path, value)
@@ -106,13 +98,3 @@ func _on_state_entered(state: RecursiveState) -> void:
 	# Attempt to travel
 	_playback.travel(target_anim_name)
 
-func _refresh_blackboard_cache() -> void:
-	if blackboard_source:
-		var bb: Variant = blackboard_source.get("blackboard")
-		if bb is Dictionary:
-			_blackboard = bb
-		else:
-			push_warning("HFSMAnimationController: Blackboard source found, but 'blackboard' property is not a Dictionary.")
-			_blackboard = {}
-	else:
-		_blackboard = {}

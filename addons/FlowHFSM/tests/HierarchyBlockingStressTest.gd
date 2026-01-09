@@ -6,8 +6,20 @@ extends Node
 ## Tests the is_locked flag and is_hierarchy_locked() mechanism under various scenarios.
 
 var test_harness: HFSMTestHarness
-var blackboard: Dictionary = {}
-var test_actor: Node3D
+var test_actor: MockActor
+
+## Mock Actor with dynamic properties
+class MockActor extends Node3D:
+	var properties: Dictionary = {}
+	
+	func get(property: StringName) -> Variant:
+		if properties.has(property):
+			return properties[property]
+		return null
+		
+	func set(property: StringName, value: Variant) -> bool:
+		properties[property] = value
+		return true
 
 ## Run all hierarchy blocking tests
 func run_all_tests() -> Dictionary:
@@ -60,8 +72,8 @@ func test_single_state_lock() -> Dictionary:
 	
 	# Act: 
 	# 1. Force state to Attack (manually, as if logic chose it)
-	test_harness.test_root.change_active_child(parent, test_actor, blackboard)
-	parent.change_active_child(attack_state, test_actor, blackboard)
+	test_harness.test_root.change_active_child(parent, test_actor)
+	parent.change_active_child(attack_state, test_actor)
 	
 	# 2. Lock it (simulating animation lock or logic lock AFTER entry)
 	attack_state.is_locked = true
@@ -70,8 +82,8 @@ func test_single_state_lock() -> Dictionary:
 	test_harness.reset()
 	
 	# 3. Try to transition from Attack to Idle (Attack should stay locked)
-	blackboard["inputs"] = {"jump": false}
-	test_harness.process_frame(0.016, test_actor, blackboard)
+	test_actor.set("jump", false)
+	test_harness.process_frame(0.016, test_actor)
 
 	# Assert: Still in Attack (locked)
 	var in_attack: bool = test_harness.assert_state("Attack")
@@ -121,16 +133,16 @@ func test_nested_state_lock() -> Dictionary:
 	test_harness.setup(root)
 
 	# Manually enter the specific nested state to test locking from within
-	root.change_active_child(grounded, test_actor, blackboard)
-	grounded.change_active_child(attack, test_actor, blackboard)
-	attack.change_active_child(heavy_swing, test_actor, blackboard)
+	root.change_active_child(grounded, test_actor)
+	grounded.change_active_child(attack, test_actor)
+	attack.change_active_child(heavy_swing, test_actor)
 	
 	# Now lock the middle of the chain
 	attack.is_locked = true
 
 	# Act: Try to trigger jump from any level
-	blackboard["inputs"] = {"jump": true}
-	test_harness.process_frame(0.016, test_actor, blackboard)
+	test_actor.set("jump", true)
+	test_harness.process_frame(0.016, test_actor)
 
 	# Assert: Still in HeavySwing (deeply nested lock blocks all transitions)
 	var in_heavy: bool = test_harness.assert_state("HeavySwing")
@@ -195,13 +207,11 @@ func test_sibling_lock_override() -> Dictionary:
 	test_harness.setup(root)
 	
 	# Enter Run state
-	parent.change_active_child(run, test_actor, blackboard)
+	parent.change_active_child(run, test_actor)
 
 	# Act: Simulate movement input
-	blackboard["inputs"] = {"move": Vector2(1.0, 0.0)}
-	# Fix: Set the direct blackboard key required by MockCondition("is_moving")
-	blackboard["is_moving"] = true
-	test_harness.process_frame(0.016, test_actor, blackboard)
+	test_actor.set("is_moving", true)
+	test_harness.process_frame(0.016, test_actor)
 
 	# Assert: Run is active (Attack is locked and not active)
 	var in_run: bool = test_harness.assert_state("Run")
@@ -211,7 +221,7 @@ func test_sibling_lock_override() -> Dictionary:
 	attack.is_starting_state = true
 	# In a real scenario, we'd need to trigger the transition.
 	# Since 'Run' has no exit condition in this test setup, we force it:
-	parent.change_active_child(attack, test_actor, blackboard)
+	parent.change_active_child(attack, test_actor)
 	
 	# Lock it immediately after entry (simulating OnEnter lock)
 	attack.is_locked = true
@@ -223,8 +233,8 @@ func test_sibling_lock_override() -> Dictionary:
 	test_passed = test_passed and in_attack
 
 	# Try to transition out while locked
-	blackboard["inputs"]["move"] = Vector2(1.0, 0.0)
-	test_harness.process_frame(0.016, test_actor, blackboard)
+	test_actor.set("move", Vector2(1.0, 0.0))
+	test_harness.process_frame(0.016, test_actor)
 
 	# Assert: Still in Attack (locked)
 	var still_locked: bool = test_harness.assert_state("Attack")
@@ -255,16 +265,16 @@ func test_lock_with_history() -> Dictionary:
 	test_harness.setup(root)
 
 	# Act: Enter attack
-	blackboard["inputs"]["attack"] = true
+	test_actor.set("attack_pressed", true)
 	# Force entry for test reliability
-	parent.change_active_child(attack, test_actor, blackboard)
+	parent.change_active_child(attack, test_actor)
 	attack.is_locked = true
 	
-	test_harness.process_frame(0.016, test_actor, blackboard)
+	test_harness.process_frame(0.016, test_actor)
 
 	# Exit and re-enter parent (simulate state machine reset)
-	parent.exit(test_actor, blackboard)
-	parent.enter(test_actor, blackboard)
+	parent.exit(test_actor)
+	parent.enter(test_actor)
 	
 	# Restore lock manually because history doesn't save is_locked state by default, 
 	# OR we assume the logic re-locks it.
@@ -301,8 +311,8 @@ func test_lock_stress_rapid_transitions() -> Dictionary:
 	var toggles := 100
 	for i in range(toggles):
 		attack.is_locked = not attack.is_locked
-		blackboard["inputs"]["attack"] = (i % 2 == 0)
-		test_harness.process_frame(0.016, test_actor, blackboard)
+		test_actor.set("attack_pressed", (i % 2 == 0))
+		test_harness.process_frame(0.016, test_actor)
 
 	var metrics := test_harness.stop_profiling()
 
@@ -377,12 +387,11 @@ func _create_condition(cond_name: String, return_value: bool) -> StateCondition:
 class MockCondition extends StateCondition:
 	var fixed_value: bool = false
 	
-	func _evaluate(_actor: Node, blackboard: Dictionary) -> bool:
-		# Check blackboard first (dynamic)
-		if blackboard.has(resource_name):
-			var val = blackboard[resource_name]
-			if val is bool:
-				return val
+	func _evaluate(actor: Node) -> bool:
+		# Check actor props first (dynamic)
+		var val = actor.get(resource_name)
+		if val != null and val is bool:
+			return val
 		# Fallback to fixed value
 		return fixed_value
 
@@ -398,22 +407,17 @@ func _generate_test_result(test_name: String, passed: bool) -> Dictionary:
 ## Setup test environment
 func _setup_environment() -> void:
 	test_harness = HFSMTestHarness.new()
-	test_actor = Node3D.new()
+	test_actor = MockActor.new()
 	add_child(test_harness)
 	add_child(test_actor)
 
-	blackboard = {
-		"inputs": {},
-		"is_grounded": true
-	}
+	test_actor.set("is_grounded", true)
 
 ## Reset environment between tests
 func _reset_environment() -> void:
 	test_harness.reset()
-	blackboard = {
-		"inputs": {},
-		"is_grounded": true
-	}
+	test_actor.properties.clear()
+	test_actor.set("is_grounded", true)
 
 ## Cleanup
 func _cleanup() -> void:
