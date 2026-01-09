@@ -117,7 +117,7 @@ func _run_animation_tests() -> void:
 	print("RUNNING ANIMATION INTEGRATION TESTS")
 	print("=".repeat(70))
 
-	var test_suite = load("res://Scripts/Tests/AnimationIntegrationTest.gd").new()
+	var test_suite = load("res://addons/FlowHFSM/tests/AnimationIntegrationTest.gd").new()
 	add_child(test_suite)
 
 	var results: Dictionary = test_suite.run_all_tests()

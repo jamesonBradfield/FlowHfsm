@@ -109,7 +109,7 @@ func _test_statelink_animation() -> void:
 	mock_animation_tree.name = "MockAnimationTree"
 
 	# Create StateAnimationLink
-	var linker = preload("res://addons/hfsm_editor/runtime/components/HFSMAnimationController.gd").new()
+	var linker = preload("res://addons/FlowHFSM/runtime/components/HFSMAnimationController.gd").new()
 	mock_animation_tree.add_child(linker)
 
 	# Mock AnimationNodeStateMachinePlayback
@@ -161,7 +161,7 @@ func _test_hybrid_approach() -> void:
 	var root := RecursiveState.new()
 	root.name = "Root"
 
-	# var linker = preload("res://addons/hfsm_editor/runtime/components/HFSMAnimationController.gd").new() # unused
+	# var linker = preload("res://addons/FlowHFSM/runtime/components/HFSMAnimationController.gd").new() # unused
 
 	# Use a class-level variable or a dictionary to capture the state
 	var capture := {"signal_emitted": false}

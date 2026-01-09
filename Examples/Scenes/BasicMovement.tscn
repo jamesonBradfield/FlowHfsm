@@ -1,7 +1,7 @@
 [gd_scene load_steps=16 format=3 uid="uid://br2rgfxvkmdqs"]
 
-[ext_resource type="Script" uid="uid://u8e3x4htq7mp" path="res://addons/hfsm_editor/runtime/RecursiveState.gd" id="1_recur"]
-[ext_resource type="Script" uid="uid://b1wuc2hj2npg0" path="res://addons/hfsm_editor/runtime/StateCondition.gd" id="2_6sn6n"]
+[ext_resource type="Script" uid="uid://u8e3x4htq7mp" path="res://addons/FlowHFSM/runtime/RecursiveState.gd" id="1_recur"]
+[ext_resource type="Script" uid="uid://b1wuc2hj2npg0" path="res://addons/FlowHFSM/runtime/StateCondition.gd" id="2_6sn6n"]
 [ext_resource type="Script" uid="uid://c7binf0ubxfue" path="res://Examples/Scripts/Behaviors/IdleBehavior.gd" id="2_idle"]
 [ext_resource type="Script" uid="uid://r3nyg0qvq7lb" path="res://Examples/Scripts/Behaviors/MoveBehavior.gd" id="3_move"]
 [ext_resource type="Script" uid="uid://cw8tnox13is78" path="res://Examples/Scripts/Behaviors/JumpBehavior.gd" id="4_jump"]

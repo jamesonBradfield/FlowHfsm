@@ -1,8 +1,8 @@
 @tool
 extends EditorProperty
 
-const Factory = preload("res://addons/hfsm_editor/editor/property_factory.gd")
-const ThemeResource = preload("res://addons/hfsm_editor/editor/hfsm_editor_theme.tres")
+const Factory = preload("res://addons/FlowHFSM/editor/property_factory.gd")
+const ThemeResource = preload("res://addons/FlowHFSM/editor/hfsm_editor_theme.tres")
 	
 var container: VBoxContainer = VBoxContainer.new()
 var current_behavior: Resource

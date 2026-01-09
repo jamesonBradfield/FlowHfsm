@@ -204,11 +204,11 @@ func _setup_environment() -> void:
 	root_state.add_child(idle_state)
 	
 	# 3. Mocks
-	mock_anim_tree = load("res://Scripts/Tests/Mocks/MockAnimationTree.gd").new()
+	mock_anim_tree = load("res://addons/FlowHFSM/tests/Mocks/MockAnimationTree.gd").new()
 	add_child(mock_anim_tree)
 	
 	# 4. Controller
-	animation_controller = load("res://addons/hfsm_editor/runtime/components/HFSMAnimationController.gd").new()
+	animation_controller = load("res://addons/FlowHFSM/runtime/components/HFSMAnimationController.gd").new()
 	animation_controller.root_state = root_state
 	animation_controller.animation_tree = mock_anim_tree
 	add_child(animation_controller)

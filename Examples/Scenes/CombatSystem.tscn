@@ -1,10 +1,10 @@
 [gd_scene load_steps=12 format=3 uid="uid://br4o2g4ainykj"]
 
-[ext_resource type="Script" uid="uid://u8e3x4htq7mp" path="res://addons/hfsm_editor/runtime/RecursiveState.gd" id="1_recur"]
+[ext_resource type="Script" uid="uid://u8e3x4htq7mp" path="res://addons/FlowHFSM/runtime/RecursiveState.gd" id="1_recur"]
 [ext_resource type="Script" uid="uid://c7binf0ubxfue" path="res://Examples/Scripts/Behaviors/IdleBehavior.gd" id="2_idle"]
 [ext_resource type="Script" uid="uid://c8raig6aqc08g" path="res://Examples/Scripts/Behaviors/AttackBehavior.gd" id="3_attack"]
 [ext_resource type="Script" uid="uid://duriai158nxuk" path="res://Examples/Scripts/Behaviors/DodgeBehavior.gd" id="4_dodge"]
-[ext_resource type="Script" uid="uid://b1wuc2hj2npg0" path="res://addons/hfsm_editor/runtime/StateCondition.gd" id="4_s5bh1"]
+[ext_resource type="Script" uid="uid://b1wuc2hj2npg0" path="res://addons/FlowHFSM/runtime/StateCondition.gd" id="4_s5bh1"]
 [ext_resource type="Script" uid="uid://ohneg70ug3bg" path="res://Examples/Scripts/Conditions/CheckBlackboardCondition.gd" id="5_cond"]
 
 [sub_resource type="Resource" id="Res_idle_b"]

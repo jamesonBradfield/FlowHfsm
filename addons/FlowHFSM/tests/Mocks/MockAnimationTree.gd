@@ -7,7 +7,7 @@ class_name MockAnimationTree
 var mock_playback
 
 func _init() -> void:
-	mock_playback = load("res://Scripts/Tests/Mocks/MockPlayback.gd").new()
+	mock_playback = load("res://addons/FlowHFSM/tests/Mocks/MockPlayback.gd").new()
 	active = true
 
 var set_properties: Dictionary = {}
