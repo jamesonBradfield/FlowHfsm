@@ -24,6 +24,27 @@ func _ready() -> void:
 	if not _body:
 		push_error("PhysicsManager: Cannot find CharacterBody3D to manage")
 
+## Adds an immediate force to the velocity.
+func apply_impulse(impulse: Vector3) -> void:
+	if _body:
+		_body.velocity += impulse
+
+## Adds a continuous force over time (force * delta).
+func apply_force(force: Vector3, delta: float) -> void:
+	if _body:
+		_body.velocity += force * delta
+
+## Overwrites X and Z velocity while preserving Y (gravity).
+func set_planar_velocity(velocity: Vector3) -> void:
+	if _body:
+		_body.velocity.x = velocity.x
+		_body.velocity.z = velocity.z
+
+## Overwrites the full velocity vector.
+func set_velocity(velocity: Vector3) -> void:
+	if _body:
+		_body.velocity = velocity
+
 func _physics_process(delta: float) -> void:
 	if not _body:
 		return

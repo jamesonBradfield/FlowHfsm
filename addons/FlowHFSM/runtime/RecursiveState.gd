@@ -45,6 +45,13 @@ var active_child: RecursiveState = null
 ## Cleared when the state is entered.
 var memory: Dictionary = {}
 
+const BlackboardScript = preload("res://addons/FlowHFSM/runtime/Blackboard.gd")
+
+## The Blackboard instance. 
+## If this is the Root State, it creates and owns this.
+## If this is a Child State, this is usually null (passed via arguments).
+var _owned_blackboard
+
 # --- SIGNALS ---
 signal state_entered(state: RecursiveState)
 signal state_exited(state: RecursiveState)
@@ -68,7 +75,20 @@ func _ready() -> void:
 ##
 ## @param delta: Time elapsed since the last frame.
 ## @param actor: The owner of the state machine (usually a CharacterBody3D/2D).
-func process_state(delta: float, actor: Node) -> void:
+## @param blackboard: The shared data container.
+func process_state(delta: float, actor: Node, blackboard = null) -> void:
+	# 0. BLACKBOARD RESOLUTION
+	if not blackboard:
+		if not parent:
+			# I am Root, use/create my own
+			if not _owned_blackboard: _owned_blackboard = BlackboardScript.new()
+			blackboard = _owned_blackboard
+		else:
+			# Error fallback or just warn?
+			# Ideally we shouldn't reach here without a blackboard if parent exists.
+			push_warning("RecursiveState: process_state called without blackboard on child node.")
+			# return? No, maybe allow running without it for partial updates.
+
 	# 1. SELECTOR LOGIC (Priority-Based Child Activation)
 	# Iterate through children in order. The LAST one that CAN activate becomes the active child.
 	# Priority: Lower nodes in the scene tree override higher nodes.
@@ -78,21 +98,21 @@ func process_state(delta: float, actor: Node) -> void:
 	
 	for child in get_children():
 		if child is RecursiveState:
-			if child.can_activate(actor):
+			if child.can_activate(actor, blackboard):
 				best_child = child
 	
 	# Try to switch if we found a better candidate AND we are not locked
 	if best_child != null and best_child != active_child:
 		if not active_child or not active_child.is_hierarchy_locked():
-			change_active_child(best_child, actor)
+			change_active_child(best_child, actor, blackboard)
 	
 	# 2. BEHAVIOR UPDATE (The "Brain")
 	if behavior:
-		behavior.update(self, delta, actor)
+		behavior.update(self, delta, actor, blackboard)
 
 	# 3. RECURSION (Tick the Child)
 	if active_child:
-		active_child.process_state(delta, actor)
+		active_child.process_state(delta, actor, blackboard)
 
 # --- API ---
 
@@ -100,7 +120,13 @@ func process_state(delta: float, actor: Node) -> void:
 ## Clears memory, resets locks, enters the behavior, and recursively enters the starting child.
 ##
 ## @param actor: The owner of the state machine.
-func enter(actor: Node) -> void:
+## @param blackboard: The shared data container.
+func enter(actor: Node, blackboard = null) -> void:
+	# Blackboard fallback for entry (if called manually)
+	if not blackboard and not parent:
+		if not _owned_blackboard: _owned_blackboard = BlackboardScript.new()
+		blackboard = _owned_blackboard
+
 	# Reset local memory on entry so we don't have stale data (e.g. old timers)
 	memory.clear()
 	is_locked = false 
@@ -114,11 +140,11 @@ func enter(actor: Node) -> void:
 			active_child = start_node
 
 	if behavior:
-		behavior.enter(self, actor)
+		behavior.enter(self, actor, blackboard)
 	
 	# If we have a default child, enter it too
 	if active_child:
-		active_child.enter(actor)
+		active_child.enter(actor, blackboard)
 
 ## Helper to find the default starting child state.
 ## Returns the child marked as `is_starting_state`, or the first `RecursiveState` child found.
@@ -138,15 +164,20 @@ func _get_starting_child() -> RecursiveState:
 ## Recursively exits the active child and the current behavior.
 ##
 ## @param actor: The owner of the state machine.
-func exit(actor: Node) -> void:
+## @param blackboard: The shared data container.
+func exit(actor: Node, blackboard = null) -> void:
+	# Blackboard fallback
+	if not blackboard and not parent:
+		blackboard = _owned_blackboard
+
 	if active_child:
-		active_child.exit(actor)
+		active_child.exit(actor, blackboard)
 		# Forget the active child if we don't have history enabled
 		if not has_history:
 			active_child = null
 		
 	if behavior:
-		behavior.exit(self, actor)
+		behavior.exit(self, actor, blackboard)
 	
 	state_exited.emit(self)
 
@@ -164,7 +195,7 @@ func is_hierarchy_locked() -> bool:
 
 ## Checks if this state can be active.
 ## Evaluates activation_conditions based on activation_mode.
-func can_activate(actor: Node) -> bool:
+func can_activate(actor: Node, blackboard = null) -> bool:
 	# No conditions = Always Active (if reached by priority)
 	if activation_conditions.is_empty():
 		return true
@@ -173,14 +204,14 @@ func can_activate(actor: Node) -> bool:
 		ActivationMode.AND:
 			# ALL conditions must be true
 			for condition in activation_conditions:
-				if not condition.evaluate(actor):
+				if not condition.evaluate(actor, blackboard):
 					return false
 			return true
 			
 		ActivationMode.OR:
 			# AT LEAST ONE condition must be true
 			for condition in activation_conditions:
-				if condition.evaluate(actor):
+				if condition.evaluate(actor, blackboard):
 					return true
 			return false
 			
@@ -198,7 +229,8 @@ func get_active_hierarchy_path() -> Array[String]:
 ##
 ## @param new_node: The new child state to make active.
 ## @param actor: The owner of the state machine.
-func change_active_child(new_node: RecursiveState, actor: Node = null) -> void:
+## @param blackboard: The shared data container.
+func change_active_child(new_node: RecursiveState, actor: Node = null, blackboard = null) -> void:
 	if active_child == new_node: return
 	
 	# Fallback to owner if actor is missing (e.g. signal call)
@@ -206,10 +238,9 @@ func change_active_child(new_node: RecursiveState, actor: Node = null) -> void:
 		actor = owner
 	
 	if active_child:
-		active_child.exit(actor)
+		active_child.exit(actor, blackboard)
 	
 	active_child = new_node
 	
 	if active_child:
-		active_child.enter(actor)
-
+		active_child.enter(actor, blackboard)

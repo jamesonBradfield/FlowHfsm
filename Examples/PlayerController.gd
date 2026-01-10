@@ -42,21 +42,21 @@ func _ready() -> void:
 	if not root_state:
 		push_error("PlayerController: Cannot find RootState")
 		return
+		
+	# Initialize Blackboard
+	_blackboard = Blackboard.new()
 
 func _process(delta: float) -> void:
-	# 1. Poll Input
+	# 1. Poll Input & Update Blackboard
 	_poll_input()
 	
 	# 2. Tick the HFSM
 	if root_state:
-		# We pass _body as the actor. Behaviors/Conditions must find this Controller 
-		# if they need input data (e.g. actor.get_node("PlayerController"))
-		root_state.process_state(delta, _body)
+		# Pass the populated blackboard to the state machine
+		root_state.process_state(delta, _body, _blackboard)
 
-func _physics_process(delta: float) -> void:
-	# 3. Apply physics (move_and_slide)
-	if _body:
-		_body.move_and_slide()
+# NOTE: Physics movement (move_and_slide) is handled by PhysicsManager.gd
+# We do not call it here to avoid double-movement.
 
 func _poll_input() -> void:
 	# Reset input flags
@@ -78,4 +78,14 @@ func _poll_input() -> void:
 	jump_pressed = Input.is_action_pressed(jump_action)
 	if Input.is_action_just_pressed(jump_action):
 		jump_just_pressed = true
+		
+	# Sync to Blackboard
+	_blackboard.set_value("input_direction", input_direction)
+	_blackboard.set_value("is_moving", is_moving)
+	_blackboard.set_value("jump_pressed", jump_pressed)
+	_blackboard.set_value("jump_just_pressed", jump_just_pressed)
+
+const Blackboard = preload("res://addons/FlowHFSM/runtime/Blackboard.gd")
+var _blackboard: Blackboard
+
 
