@@ -2,7 +2,7 @@
 extends EditorProperty
 
 const Factory = preload("res://addons/FlowHFSM/editor/property_factory.gd")
-const ThemeResource = preload("res://addons/FlowHFSM/editor/hfsm_editor_theme.tres")
+const ThemeResource = preload("res://addons/FlowHFSM/editor/flow_hfsm_theme.tres")
 
 var container: VBoxContainer = VBoxContainer.new()
 var updating_from_ui: bool = false

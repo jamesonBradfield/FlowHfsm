@@ -6,7 +6,7 @@ class_name ConditionAnimationFinished extends StateCondition
 @export var state_machine_path: String = "parameters/playback"
 @export var end_margin: float = 0.1 # Seconds before end to consider finished
 
-func _evaluate(actor: Node) -> bool:
+func _evaluate(actor: Node, blackboard: Blackboard) -> bool:
 	var anim_tree: AnimationTree = null
 	
 	# Try to find AnimationTree on actor

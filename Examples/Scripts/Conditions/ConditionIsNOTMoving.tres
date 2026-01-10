@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="ConditionIsMoving" load_steps=2 format=3 uid="uid://2n4d1f50a1x3"]
+
+[ext_resource type="Script" uid="uid://fmlko2xqvxg0" path="res://Examples/Scripts/Conditions/ConditionIsMoving.gd" id="1_2s7k5"]
+
+[resource]
+script = ExtResource("1_2s7k5")
+reverse_result = true
+metadata/_custom_type_script = "uid://fmlko2xqvxg0"

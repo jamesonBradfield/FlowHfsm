@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="ConditionIsMoving" load_steps=2 format=3 uid="uid://tkuc2m8kk8n3"]
+
+[ext_resource type="Script" uid="uid://fmlko2xqvxg0" path="res://Examples/Scripts/Conditions/ConditionIsMoving.gd" id="1_0o4qo"]
+
+[resource]
+script = ExtResource("1_0o4qo")
+metadata/_custom_type_script = "uid://fmlko2xqvxg0"

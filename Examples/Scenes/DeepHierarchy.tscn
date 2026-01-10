@@ -1,7 +1,7 @@
-[gd_scene load_steps=4 format=3 uid="uid://bgvllpw14ffab"]
+[gd_scene load_steps=4 format=3]
 
-[ext_resource type="Script" uid="uid://u8e3x4htq7mp" path="res://addons/FlowHFSM/runtime/RecursiveState.gd" id="1_recur"]
-[ext_resource type="Script" uid="uid://r3nyg0qvq7lb" path="res://Examples/Scripts/Behaviors/MoveBehavior.gd" id="2_move"]
+[ext_resource type="Script" path="res://addons/FlowHFSM/runtime/RecursiveState.gd" id="1_recur"]
+[ext_resource type="Script" path="res://Examples/Scripts/Behaviors/MoveBehavior.gd" id="2_move"]
 
 [sub_resource type="Resource" id="Res_move_b"]
 script = ExtResource("2_move")

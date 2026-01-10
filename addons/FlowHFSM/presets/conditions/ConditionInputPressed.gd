@@ -8,7 +8,7 @@ class_name ConditionInputPressed extends StateCondition
 ## Example: "jump_pressed", "jump_just_pressed"
 @export var input_property: String = "jump_pressed"
 
-func _evaluate(actor: Node) -> bool:
+func _evaluate(actor: Node, blackboard: Blackboard) -> bool:
 	# Try to find the controller
 	var controller = actor.get_node_or_null("PlayerController")
 	if controller:

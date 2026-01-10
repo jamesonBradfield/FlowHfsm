@@ -14,7 +14,7 @@ A robust, editor-friendly Hierarchical Finite State Machine for Godot 4. Designe
 
 ## 📦 Installation
 
-1. Copy the `addons/hfsm_editor` folder into your project's `addons/` directory.
+1. Copy the `addons/FlowHFSM` folder into your project's `addons/` directory.
 2. Go to **Project > Project Settings > Plugins**.
 3. Enable **Flow HFSM**.
 

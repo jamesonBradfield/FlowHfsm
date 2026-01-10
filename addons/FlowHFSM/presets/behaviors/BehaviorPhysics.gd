@@ -46,15 +46,15 @@ enum Space {
 @export var space: Space = Space.WORLD
 
 
-func enter(node: RecursiveState, actor: Node, blackboard) -> void:
+func enter(node: RecursiveState, actor: Node, blackboard: Blackboard) -> void:
 	if apply_on_enter:
 		_execute_physics(node, 0.0, actor, blackboard)
 
-func update(node: RecursiveState, delta: float, actor: Node, blackboard) -> void:
+func update(node: RecursiveState, delta: float, actor: Node, blackboard: Blackboard) -> void:
 	if not apply_on_enter:
 		_execute_physics(node, delta, actor, blackboard)
 
-func _execute_physics(_node: RecursiveState, delta: float, actor: Node, blackboard) -> void:
+func _execute_physics(_node: RecursiveState, delta: float, actor: Node, blackboard: Blackboard) -> void:
 	var body = actor as CharacterBody3D
 	if not body:
 		push_warning("BehaviorPhysics: Actor is not a CharacterBody3D")

@@ -22,7 +22,7 @@ enum DirectionSource { INPUT, FIXED }
 ## Rotation speed for turning towards movement direction (degrees per second).
 @export var rotation_speed: float = 360.0
 
-func update(node: RecursiveState, delta: float, actor: Node) -> void:
+func update(node: RecursiveState, delta: float, actor: Node, blackboard: Blackboard) -> void:
 	# Get the character body
 	var body: CharacterBody3D = actor as CharacterBody3D
 	if not body:

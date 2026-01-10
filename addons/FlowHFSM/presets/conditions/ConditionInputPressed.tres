@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="ConditionInputPressed" load_steps=2 format=3 uid="uid://de71pxjffx6mp"]
+
+[ext_resource type="Script" uid="uid://cirmsx806vmnl" path="res://addons/FlowHFSM/presets/conditions/ConditionInputPressed.gd" id="1_jqmfp"]
+
+[resource]
+script = ExtResource("1_jqmfp")
+metadata/_custom_type_script = "uid://cirmsx806vmnl"

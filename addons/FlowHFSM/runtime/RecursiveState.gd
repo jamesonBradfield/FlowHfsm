@@ -10,6 +10,10 @@ class_name RecursiveState extends Node
 ## (lowest in the inspector) becomes the active state.
 
 # --- EXPORTS (The Strategy) ---
+@export_group("Data Definition")
+## Define variables here to auto-create them in the Blackboard.
+@export var declared_variables: Array[StateVariable]
+
 @export_group("Logic")
 ## The "Brain" (Resource). Defines what this state does (e.g., Move, Jump).
 @export var behavior: StateBehavior 
@@ -65,6 +69,31 @@ func _ready() -> void:
 	var p: Node = get_parent()
 	if p is RecursiveState:
 		parent = p
+	else:
+		# I AM ROOT.
+		if not _owned_blackboard: 
+			_owned_blackboard = BlackboardScript.new()
+
+		# THE HARVEST: Scan tree and populate blackboard
+		_initialize_hierarchy_data(self, _owned_blackboard)
+
+## Recursively harvests variables from the tree and registers them.
+func _initialize_hierarchy_data(node: RecursiveState, root_blackboard: Blackboard) -> void:
+	# 1. Register THIS node's variables
+	for var_def in node.declared_variables:
+		if var_def.variable_name.is_empty(): 
+			push_warning("StateVariable in %s has no name!" % node.name)
+			continue
+			
+		if var_def.is_global:
+			# Only set if not already set to avoid overwriting (or remove check to allow overwrites)
+			if not root_blackboard.has_value(var_def.variable_name):
+				root_blackboard.set_value(var_def.variable_name, var_def.initial_value)
+	
+	# 2. Recursively check children
+	for child in node.get_children():
+		if child is RecursiveState:
+			_initialize_hierarchy_data(child, root_blackboard)
 
 # --- THE MAIN LOOP ---
 

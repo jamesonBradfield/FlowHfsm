@@ -15,7 +15,7 @@ Flow HFSM (Hierarchical Finite State Machine) is a recursive, resource-based sta
 
 ### 1. The Container (`RecursiveState`)
 
-**File:** `addons/hfsm_editor/runtime/RecursiveState.gd`
+**File:** `addons/FlowHFSM/runtime/RecursiveState.gd`
 
 The `RecursiveState` class is the core node that holds the state machine together. Each `RecursiveState` can act as both a state and a container for child states, enabling deep nesting.
 
@@ -81,7 +81,7 @@ for child in get_children():
 
 ### 2. The Brain (`StateBehavior`)
 
-**File:** `addons/hfsm_editor/runtime/StateBehavior.gd`
+**File:** `addons/FlowHFSM/runtime/StateBehavior.gd`
 
 The `StateBehavior` is a **stateless resource** that defines "what" a state does.
 
@@ -130,7 +130,7 @@ func exit(node: RecursiveState, actor: Node, blackboard: Dictionary)
 
 ### 3. The Atom (`StateCondition`)
 
-**File:** `addons/hfsm_editor/runtime/StateCondition.gd`
+**File:** `addons/FlowHFSM/runtime/StateCondition.gd`
 
 The `StateCondition` is a **stateless resource** that returns a boolean. It represents the "when" logic for state activation.
 

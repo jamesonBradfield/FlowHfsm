@@ -9,7 +9,7 @@ class_name ConditionIsMoving extends StateCondition
 ## Blackboard key to check for movement direction.
 @export var blackboard_key: String = "input_direction"
 
-func _evaluate(actor: Node) -> bool:
+func _evaluate(actor: Node, blackboard: Blackboard) -> bool:
 	var move_dir: Vector3 = Vector3.ZERO
 	
 	# Try to find controller or property on actor

@@ -11,7 +11,7 @@ class_name BehaviorAttack extends StateBehavior
 ## Attack animation name.
 @export var attack_animation: String = "attack"
 
-func enter(node: RecursiveState, actor: Node) -> void:
+func enter(node: RecursiveState, actor: Node, blackboard: Blackboard) -> void:
 	# Initialize attack timer
 	node.memory["attack_timer"] = 0.0
 
@@ -20,7 +20,7 @@ func enter(node: RecursiveState, actor: Node) -> void:
 
 	print("Attack started! Duration: ", attack_duration, " seconds")
 
-func update(node: RecursiveState, delta: float, actor: Node) -> void:
+func update(node: RecursiveState, delta: float, actor: Node, blackboard: Blackboard) -> void:
 	# Increment timer
 	var timer: float = node.memory.get("attack_timer", 0.0)
 	timer += delta

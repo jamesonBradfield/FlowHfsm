@@ -1,11 +1,10 @@
-[gd_scene load_steps=12 format=3 uid="uid://br4o2g4ainykj"]
+[gd_scene load_steps=11 format=3]
 
-[ext_resource type="Script" uid="uid://u8e3x4htq7mp" path="res://addons/FlowHFSM/runtime/RecursiveState.gd" id="1_recur"]
-[ext_resource type="Script" uid="uid://c7binf0ubxfue" path="res://Examples/Scripts/Behaviors/IdleBehavior.gd" id="2_idle"]
-[ext_resource type="Script" uid="uid://c8raig6aqc08g" path="res://Examples/Scripts/Behaviors/AttackBehavior.gd" id="3_attack"]
-[ext_resource type="Script" uid="uid://duriai158nxuk" path="res://Examples/Scripts/Behaviors/DodgeBehavior.gd" id="4_dodge"]
-[ext_resource type="Script" uid="uid://b1wuc2hj2npg0" path="res://addons/FlowHFSM/runtime/StateCondition.gd" id="4_s5bh1"]
-[ext_resource type="Script" uid="uid://ohneg70ug3bg" path="res://Examples/Scripts/Conditions/CheckBlackboardCondition.gd" id="5_cond"]
+[ext_resource type="Script" path="res://addons/FlowHFSM/runtime/RecursiveState.gd" id="1_recur"]
+[ext_resource type="Script" path="res://Examples/Scripts/Behaviors/IdleBehavior.gd" id="2_idle"]
+[ext_resource type="Script" path="res://Examples/Scripts/Behaviors/AttackBehavior.gd" id="3_attack"]
+[ext_resource type="Script" path="res://Examples/Scripts/Behaviors/DodgeBehavior.gd" id="4_dodge"]
+[ext_resource type="Script" path="res://Examples/Scripts/Conditions/CheckBlackboardCondition.gd" id="5_cond"]
 
 [sub_resource type="Resource" id="Res_idle_b"]
 script = ExtResource("2_idle")
@@ -15,14 +14,12 @@ script = ExtResource("3_attack")
 
 [sub_resource type="Resource" id="Res_attack_c"]
 script = ExtResource("5_cond")
-key = "attack_pressed"
 
 [sub_resource type="Resource" id="Res_dodge_b"]
 script = ExtResource("4_dodge")
 
 [sub_resource type="Resource" id="Res_dodge_c"]
 script = ExtResource("5_cond")
-key = "dodge_pressed"
 
 [node name="CombatRoot" type="Node"]
 script = ExtResource("1_recur")
@@ -35,10 +32,10 @@ is_starting_state = true
 [node name="Attack" type="Node" parent="."]
 script = ExtResource("1_recur")
 behavior = SubResource("Res_attack_b")
-activation_conditions = Array[ExtResource("4_s5bh1")]([SubResource("Res_attack_c")])
+activation_conditions = [SubResource("Res_attack_c")]
 is_locked = true
 
 [node name="Dodge" type="Node" parent="."]
 script = ExtResource("1_recur")
 behavior = SubResource("Res_dodge_b")
-activation_conditions = Array[ExtResource("4_s5bh1")]([SubResource("Res_dodge_c")])
+activation_conditions = [SubResource("Res_dodge_c")]

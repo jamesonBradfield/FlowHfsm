@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="ConditionIsGrounded" load_steps=2 format=3 uid="uid://cleox8tsoojec"]
+
+[ext_resource type="Script" uid="uid://b3loa7mxnjji7" path="res://addons/FlowHFSM/presets/conditions/ConditionIsGrounded.gd" id="1_jb7hf"]
+
+[resource]
+script = ExtResource("1_jb7hf")
+metadata/_custom_type_script = "uid://b3loa7mxnjji7"

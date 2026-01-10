@@ -12,12 +12,12 @@ var test_actor: MockActor
 class MockActor extends Node3D:
 	var properties: Dictionary = {}
 	
-	func get(property: StringName) -> Variant:
+	func _get(property: StringName) -> Variant:
 		if properties.has(property):
 			return properties[property]
 		return null
 		
-	func set(property: StringName, value: Variant) -> bool:
+	func _set(property: StringName, value: Variant) -> bool:
 		properties[property] = value
 		return true
 
@@ -387,7 +387,7 @@ func _create_condition(cond_name: String, return_value: bool) -> StateCondition:
 class MockCondition extends StateCondition:
 	var fixed_value: bool = false
 	
-	func _evaluate(actor: Node) -> bool:
+	func _evaluate(actor: Node, blackboard: Blackboard) -> bool:
 		# Check actor props first (dynamic)
 		var val = actor.get(resource_name)
 		if val != null and val is bool:

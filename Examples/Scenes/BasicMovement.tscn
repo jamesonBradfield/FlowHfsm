@@ -1,76 +1,102 @@
-[gd_scene load_steps=16 format=3 uid="uid://br2rgfxvkmdqs"]
+[gd_scene load_steps=17 format=3 uid="uid://br2rgfxvkmdqs"]
 
 [ext_resource type="Script" uid="uid://u8e3x4htq7mp" path="res://addons/FlowHFSM/runtime/RecursiveState.gd" id="1_recur"]
 [ext_resource type="Script" uid="uid://b1wuc2hj2npg0" path="res://addons/FlowHFSM/runtime/StateCondition.gd" id="2_6sn6n"]
 [ext_resource type="Script" uid="uid://c7binf0ubxfue" path="res://Examples/Scripts/Behaviors/IdleBehavior.gd" id="2_idle"]
-[ext_resource type="Script" uid="uid://r3nyg0qvq7lb" path="res://Examples/Scripts/Behaviors/MoveBehavior.gd" id="3_move"]
-[ext_resource type="Script" uid="uid://cw8tnox13is78" path="res://Examples/Scripts/Behaviors/JumpBehavior.gd" id="4_jump"]
-[ext_resource type="Script" uid="uid://ohneg70ug3bg" path="res://Examples/Scripts/Conditions/CheckBlackboardCondition.gd" id="5_cond"]
+[ext_resource type="Resource" uid="uid://cleox8tsoojec" path="res://addons/FlowHFSM/presets/conditions/ConditionIsGrounded.tres" id="3_60hou"]
+[ext_resource type="Resource" uid="uid://2n4d1f50a1x3" path="res://Examples/Scripts/Conditions/ConditionIsNOTMoving.tres" id="5_60hou"]
+[ext_resource type="Resource" uid="uid://ctt6rk0bj055k" path="res://addons/FlowHFSM/presets/behaviors/BehaviorPhysics.tres" id="6_60hou"]
+[ext_resource type="Resource" uid="uid://tkuc2m8kk8n3" path="res://Examples/Scripts/Conditions/ConditionIsMoving.tres" id="7_o50ak"]
+[ext_resource type="Script" uid="uid://cq5tokhyr4gno" path="res://Examples/PlayerController.gd" id="7_sy1x0"]
+[ext_resource type="Script" uid="uid://bnyrn3fl1el8d" path="res://Examples/PhysicsManager.gd" id="8_acjyh"]
+[ext_resource type="Script" uid="uid://budt1k5nl4y5t" path="res://addons/FlowHFSM/runtime/StateDebugger.gd" id="10_o50ak"]
 
-[sub_resource type="Resource" id="Res_grounded_c"]
-script = ExtResource("5_cond")
-key = "is_grounded"
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_60hou"]
+sky_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
+ground_horizon_color = Color(0.66224277, 0.6717428, 0.6867428, 1)
+
+[sub_resource type="Sky" id="Sky_o50ak"]
+sky_material = SubResource("ProceduralSkyMaterial_60hou")
+
+[sub_resource type="Environment" id="Environment_25lhe"]
+background_mode = 2
+sky = SubResource("Sky_o50ak")
+tonemap_mode = 2
+glow_enabled = true
 
 [sub_resource type="Resource" id="Res_idle_b"]
 script = ExtResource("2_idle")
 
-[sub_resource type="Resource" id="Res_idle_c"]
-script = ExtResource("5_cond")
-key = "is_moving"
-target_value = false
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_60hou"]
 
-[sub_resource type="Resource" id="Res_run_b"]
-script = ExtResource("3_move")
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_o50ak"]
 
-[sub_resource type="Resource" id="Res_run_c"]
-script = ExtResource("5_cond")
-key = "is_moving"
+[node name="Node3D" type="Node3D"]
 
-[sub_resource type="Resource" id="Res_air_c"]
-script = ExtResource("5_cond")
-key = "is_grounded"
-target_value = false
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_25lhe")
 
-[sub_resource type="Resource" id="Res_jump_b"]
-script = ExtResource("4_jump")
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.8660254, -0.43301278, 0.25, 0, 0.49999997, 0.86602545, -0.50000006, 0.75, -0.43301266, 0, 0, 0)
+shadow_enabled = true
 
-[sub_resource type="Resource" id="Res_jump_c"]
-script = ExtResource("5_cond")
-key = "jump_pressed"
+[node name="CSGBox3D" type="CSGBox3D" parent="."]
+use_collision = true
+size = Vector3(25, 0.1, 25)
 
-[sub_resource type="Resource" id="Res_fall_c"]
-script = ExtResource("5_cond")
-key = "is_grounded"
-target_value = false
+[node name="CharacterBody3D" type="CharacterBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 
-[node name="PlayerRoot" type="Node"]
+[node name="PlayerRoot" type="Node" parent="CharacterBody3D"]
 script = ExtResource("1_recur")
 
-[node name="Grounded" type="Node" parent="."]
+[node name="Grounded" type="Node" parent="CharacterBody3D/PlayerRoot"]
 script = ExtResource("1_recur")
-activation_conditions = Array[ExtResource("2_6sn6n")]([SubResource("Res_grounded_c")])
+activation_conditions = Array[ExtResource("2_6sn6n")]([ExtResource("3_60hou")])
 is_starting_state = true
 
-[node name="Idle" type="Node" parent="Grounded"]
+[node name="Idle" type="Node" parent="CharacterBody3D/PlayerRoot/Grounded"]
 script = ExtResource("1_recur")
 behavior = SubResource("Res_idle_b")
-activation_conditions = Array[ExtResource("2_6sn6n")]([SubResource("Res_idle_c")])
+activation_conditions = [ExtResource("5_60hou")]
 is_starting_state = true
 
-[node name="Run" type="Node" parent="Grounded"]
+[node name="Run" type="Node" parent="CharacterBody3D/PlayerRoot/Grounded"]
 script = ExtResource("1_recur")
-behavior = SubResource("Res_run_b")
-activation_conditions = Array[ExtResource("2_6sn6n")]([SubResource("Res_run_c")])
+behavior = ExtResource("6_60hou")
+activation_conditions = [ExtResource("7_o50ak")]
 
-[node name="Air" type="Node" parent="."]
+[node name="Jump" type="Node" parent="CharacterBody3D/PlayerRoot/Grounded"]
 script = ExtResource("1_recur")
-activation_conditions = Array[ExtResource("2_6sn6n")]([SubResource("Res_air_c")])
+behavior = ExtResource("6_60hou")
 
-[node name="Jump" type="Node" parent="Air"]
+[node name="Air" type="Node" parent="CharacterBody3D/PlayerRoot"]
 script = ExtResource("1_recur")
-behavior = SubResource("Res_jump_b")
-activation_conditions = Array[ExtResource("2_6sn6n")]([SubResource("Res_jump_c")])
 
-[node name="Fall" type="Node" parent="Air"]
+[node name="Fall" type="Node" parent="CharacterBody3D/PlayerRoot/Air"]
 script = ExtResource("1_recur")
-activation_conditions = Array[ExtResource("2_6sn6n")]([SubResource("Res_fall_c")])
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="CharacterBody3D"]
+shape = SubResource("CapsuleShape3D_60hou")
+
+[node name="PlayerController" type="Node" parent="CharacterBody3D" node_paths=PackedStringArray("root_state", "physics_manager")]
+script = ExtResource("7_sy1x0")
+root_state = NodePath("../PlayerRoot")
+physics_manager = NodePath("../PhysicsManager")
+metadata/_custom_type_script = "uid://cq5tokhyr4gno"
+
+[node name="PhysicsManager" type="Node" parent="CharacterBody3D"]
+script = ExtResource("8_acjyh")
+metadata/_custom_type_script = "uid://bnyrn3fl1el8d"
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="CharacterBody3D"]
+mesh = SubResource("CapsuleMesh_o50ak")
+
+[node name="StateDebugger" type="Label3D" parent="CharacterBody3D" node_paths=PackedStringArray("root_state", "player_controller")]
+script = ExtResource("10_o50ak")
+root_state = NodePath("../PlayerRoot")
+player_controller = NodePath("../PlayerController")
+metadata/_custom_type_script = "uid://budt1k5nl4y5t"
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 3)

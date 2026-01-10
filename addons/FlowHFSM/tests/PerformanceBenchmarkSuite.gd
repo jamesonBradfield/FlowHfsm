@@ -12,12 +12,12 @@ var test_actor: MockActor
 class MockActor extends Node3D:
 	var properties: Dictionary = {}
 	
-	func get(property: StringName) -> Variant:
+	func _get(property: StringName) -> Variant:
 		if properties.has(property):
 			return properties[property]
 		return null
 		
-	func set(property: StringName, value: Variant) -> bool:
+	func _set(property: StringName, value: Variant) -> bool:
 		properties[property] = value
 		return true
 
@@ -426,7 +426,7 @@ func _cleanup() -> void:
 class MockCondition extends StateCondition:
 	var fixed_value: Variant = false
 	
-	func _evaluate(actor: Node) -> bool:
+	func _evaluate(actor: Node, blackboard: Blackboard) -> bool:
 		# Logic for wide hierarchy test: check if input_select matches fixed_value
 		var val = actor.get(resource_name)
 		if val != null:
