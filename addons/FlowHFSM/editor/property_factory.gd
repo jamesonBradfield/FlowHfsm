@@ -59,10 +59,6 @@ static func create_fold_button(is_folded: bool, callback: Callable) -> Button:
 	update_icon.call()
 	btn.pressed.connect(func():
 		callback.call()
-		# Icon update logic should be handled by the caller or we toggle state here if we tracked it
-		# For stateless factory, we assume caller redraws or updates icon. 
-		# But to be helpful, let's just toggle icon here visually if we can.
-		# However, best to let the parent editor manage state.
 	)
 	return btn
 
@@ -88,6 +84,14 @@ static func create_control_for_property(object: Object, property: Dictionary, ch
 	var hint: int = property.hint
 	var hint_string: String = property.hint_string
 	
+	# If type is NIL (Variant), infer from value
+	if type == TYPE_NIL:
+		if value != null:
+			type = typeof(value)
+		else:
+			# If null, provide a Type Selector + Fallback Editor
+			return _create_variant_editor(object, name, value, changed_callback)
+
 	match type:
 		TYPE_BOOL:
 			var cb: CheckBox = CheckBox.new()
@@ -109,9 +113,6 @@ static func create_control_for_property(object: Object, property: Dictionary, ch
 					var item_val: int = current_idx
 					if item_split.size() > 1:
 						item_val = int(item_split[1])
-					else:
-						# If no value specified, it increments from previous or 0
-						pass
 					
 					opt.add_item(item_name, item_val)
 					if item_val == value:
@@ -257,6 +258,70 @@ static func create_control_for_property(object: Object, property: Dictionary, ch
 	lbl.text = str(value)
 	lbl.modulate = Color(0.6, 0.6, 0.6)
 	return lbl
+
+static func _create_variant_editor(object: Object, name: String, value: Variant, changed_callback: Callable) -> Control:
+	# A simplified Variant editor: [Type Selector] [Value Editor]
+	var container = HBoxContainer.new()
+	container.add_theme_constant_override("separation", 8)
+	
+	# Type Selector
+	var type_opt = OptionButton.new()
+	type_opt.add_item("Null", TYPE_NIL)
+	type_opt.add_item("Bool", TYPE_BOOL)
+	type_opt.add_item("Int", TYPE_INT)
+	type_opt.add_item("Float", TYPE_FLOAT)
+	type_opt.add_item("String", TYPE_STRING)
+	type_opt.add_item("Vector2", TYPE_VECTOR2)
+	type_opt.add_item("Vector3", TYPE_VECTOR3)
+	type_opt.add_item("Color", TYPE_COLOR)
+	
+	# Select current type
+	var current_type = typeof(value)
+	for i in range(type_opt.item_count):
+		if type_opt.get_item_id(i) == current_type:
+			type_opt.select(i)
+			break
+			
+	type_opt.item_selected.connect(func(idx):
+		var new_type = type_opt.get_item_id(idx)
+		if new_type == current_type: return
+		
+		# Create default value for new type
+		var new_val
+		match new_type:
+			TYPE_NIL: new_val = null
+			TYPE_BOOL: new_val = false
+			TYPE_INT: new_val = 0
+			TYPE_FLOAT: new_val = 0.0
+			TYPE_STRING: new_val = ""
+			TYPE_VECTOR2: new_val = Vector2.ZERO
+			TYPE_VECTOR3: new_val = Vector3.ZERO
+			TYPE_COLOR: new_val = Color.WHITE
+			_: new_val = null # Unsupported fallback
+			
+		changed_callback.call(name, new_val)
+	)
+	
+	container.add_child(type_opt)
+	
+	# Value Editor (Recursive call but with explicit type)
+	# We mock a property dict to reuse logic
+	var sub_prop = {
+		"name": name,
+		"type": current_type,
+		"hint": PROPERTY_HINT_NONE,
+		"hint_string": "",
+		"usage": PROPERTY_USAGE_DEFAULT
+	}
+	
+	# Only create editor if not null
+	if current_type != TYPE_NIL:
+		var editor = create_control_for_property(object, sub_prop, changed_callback)
+		if editor:
+			editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			container.add_child(editor)
+			
+	return container
 
 static func create_property_list(resource: Resource, changed_callback: Callable) -> Control:
 	var container: VBoxContainer = VBoxContainer.new()
