@@ -1,34 +1,32 @@
 @tool
 extends EditorProperty
 
-const Factory = preload("res://addons/FlowHFSM/editor/property_factory.gd")
 const ThemeResource = preload("res://addons/FlowHFSM/editor/flow_hfsm_theme.tres")
-	
+
 var container: VBoxContainer = VBoxContainer.new()
 var current_behavior: Resource
 var updating_from_ui: bool = false
-	
+var is_folded: bool = false
+
 func _init() -> void:
-	label = ""
+	label = "" # We draw our own label/header
 	container.theme = ThemeResource
 	add_child(container)
 
 func _update_property() -> void:
 	if updating_from_ui: return
 	
-	# Clear existing children
+	# Clear existing
 	for child in container.get_children():
 		child.queue_free()
 	
-	# SAFE CAST: Ensure we are working with the expected object type
 	var edited_object: Object = get_edited_object()
-	if not edited_object:
-		return
-		
-	# Check if property exists before accessing
+	if not edited_object: return
+	
 	var property_path: StringName = get_edited_property()
 	var behavior: Resource = edited_object.get(property_path)
 	
+	# Connection management
 	if current_behavior != behavior:
 		if current_behavior and current_behavior.changed.is_connected(_on_behavior_changed):
 			current_behavior.changed.disconnect(_on_behavior_changed)
@@ -37,83 +35,108 @@ func _update_property() -> void:
 			if not current_behavior.changed.is_connected(_on_behavior_changed):
 				current_behavior.changed.connect(_on_behavior_changed)
 	
-	# Resource Picker for the main behavior slot
-	var picker: EditorResourcePicker = EditorResourcePicker.new()
+	if not behavior:
+		_draw_empty_state()
+	else:
+		_draw_filled_state(behavior)
+
+func _draw_empty_state() -> void:
+	var panel = PanelContainer.new()
+	panel.add_theme_stylebox_override("panel", HFSMPropertyFactory.create_empty_slot_style())
+	
+	var vbox = VBoxContainer.new()
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	
+	var lbl = Label.new()
+	lbl.text = "No Behavior Assigned"
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.modulate = Color(1, 1, 1, 0.5)
+	vbox.add_child(lbl)
+	
+	var picker = EditorResourcePicker.new()
+	picker.base_type = "StateBehavior"
+	picker.edited_resource = null
+	picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	picker.resource_changed.connect(_on_resource_picked)
+	
+	# Center the picker somewhat
+	var picker_holder = MarginContainer.new()
+	picker_holder.add_theme_constant_override("margin_left", 40)
+	picker_holder.add_theme_constant_override("margin_right", 40)
+	picker_holder.add_theme_constant_override("margin_top", 10)
+	picker_holder.add_child(picker)
+	
+	vbox.add_child(picker_holder)
+	panel.add_child(vbox)
+	container.add_child(panel)
+
+func _draw_filled_state(behavior: Resource) -> void:
+	var card = PanelContainer.new()
+	card.add_theme_stylebox_override("panel", HFSMPropertyFactory.create_card_style(Color(0.18, 0.20, 0.25, 1.0)))
+	
+	var vbox = VBoxContainer.new()
+	
+	# --- Header ---
+	var header = HBoxContainer.new()
+	
+	# Fold Button
+	var fold_btn = HFSMPropertyFactory.create_fold_button(is_folded, func():
+		is_folded = not is_folded
+		_update_property() # Re-draw to toggle visibility
+	)
+	header.add_child(fold_btn)
+	
+	# Resource Picker (Acts as Title + Actions)
+	var picker = EditorResourcePicker.new()
 	picker.base_type = "StateBehavior"
 	picker.edited_resource = behavior
 	picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	picker.resource_changed.connect(func(res):
-		var ur: EditorUndoRedoManager = EditorInterface.get_editor_undo_redo()
-		var object: Object = get_edited_object()
-		var property: StringName = get_edited_property()
-		var old_res: Variant = object.get(property)
-		
-		ur.create_action("Change Behavior Resource")
-		ur.add_do_property(object, property, res)
-		ur.add_undo_property(object, property, old_res)
-		
-		if object.has_method("notify_property_list_changed"):
-			ur.add_do_method(object, "notify_property_list_changed")
-			ur.add_undo_method(object, "notify_property_list_changed")
-			
-		ur.commit_action()
-	)
-	container.add_child(picker)
+	picker.resource_changed.connect(_on_resource_picked)
+	header.add_child(picker)
 	
-	# If we have a behavior, show its properties inline directly
-	if behavior:
-		var props_box: VBoxContainer = VBoxContainer.new()
+	vbox.add_child(header)
+	
+	# --- Body ---
+	if not is_folded:
+		var margin = MarginContainer.new()
+		margin.add_theme_constant_override("margin_left", 14)
+		margin.add_theme_constant_override("margin_top", 10)
+		margin.add_theme_constant_override("margin_bottom", 4)
 		
-		# Indent slightly
-		var margin_container: MarginContainer = MarginContainer.new()
-		
-		var props_list: Control = Factory.create_property_list(behavior, func(prop_name, new_val):
-			updating_from_ui = true
-			var ur: EditorUndoRedoManager = EditorInterface.get_editor_undo_redo()
-			var old_val: Variant = behavior.get(prop_name)
-			
-			ur.create_action("Change Behavior Property: " + prop_name)
-			ur.add_do_method(behavior, "set", prop_name, new_val)
-			ur.add_undo_method(behavior, "set", prop_name, old_val)
-			
-			if behavior.has_method("emit_changed"):
-				ur.add_do_method(behavior, "emit_changed")
-				ur.add_undo_method(behavior, "emit_changed")
-				
-			ur.commit_action()
-			updating_from_ui = false
-		)
-		margin_container.add_child(props_list)
-		
-		props_box.add_child(margin_container)
-		container.add_child(props_box)
+		var props_list = HFSMPropertyFactory.create_property_list(behavior, _on_property_changed.bind(behavior))
+		margin.add_child(props_list)
+		vbox.add_child(margin)
+	
+	card.add_child(vbox)
+	container.add_child(card)
+
+func _on_resource_picked(res: Resource) -> void:
+	var ur: EditorUndoRedoManager = EditorInterface.get_editor_undo_redo()
+	var object: Object = get_edited_object()
+	var property: StringName = get_edited_property()
+	var old_res: Variant = object.get(property)
+	
+	ur.create_action("Change Behavior Resource")
+	ur.add_do_property(object, property, res)
+	ur.add_undo_property(object, property, old_res)
+	if object.has_method("notify_property_list_changed"):
+		ur.add_do_method(object, "notify_property_list_changed")
+		ur.add_undo_method(object, "notify_property_list_changed")
+	ur.commit_action()
+
+func _on_property_changed(p_name: String, new_val: Variant, behavior: Resource) -> void:
+	updating_from_ui = true
+	var ur: EditorUndoRedoManager = EditorInterface.get_editor_undo_redo()
+	var old_val: Variant = behavior.get(p_name)
+	
+	ur.create_action("Change Behavior Property: " + p_name)
+	ur.add_do_method(behavior, "set", p_name, new_val)
+	ur.add_undo_method(behavior, "set", p_name, old_val)
+	if behavior.has_method("emit_changed"):
+		ur.add_do_method(behavior, "emit_changed")
+		ur.add_undo_method(behavior, "emit_changed")
+	ur.commit_action()
+	updating_from_ui = false
 
 func _on_behavior_changed() -> void:
 	_update_property()
-
-func _find_owner_node(resource: Resource) -> Node:
-	# This is a bit of a hack to guess where an embedded resource comes from.
-	# We search the current scene to see if any other node references this EXACT resource instance.
-	var root: Node = get_tree().edited_scene_root
-	if not root: return null
-	
-	var owners: Array = []
-	_search_resource_usage(root, resource, owners)
-	
-	if owners.size() > 0:
-		return owners[0] # Return the first one found
-	return null
-
-func _search_resource_usage(node: Node, target_res: Resource, result: Array) -> void:
-	# Check script properties
-	var props: Array[Dictionary] = node.get_property_list()
-	for p: Dictionary in props:
-		if p.type == TYPE_OBJECT and (p.usage & PROPERTY_USAGE_STORAGE):
-			var val: Variant = node.get(p.name)
-			if val == target_res:
-				result.append(node)
-				return
-				
-	# Recurse
-	for child: Node in node.get_children():
-		_search_resource_usage(child, target_res, result)

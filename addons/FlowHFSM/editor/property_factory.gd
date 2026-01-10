@@ -2,70 +2,78 @@
 class_name HFSMPropertyFactory
 extends RefCounted
 
-static func create_panel_style(border_color: Color) -> StyleBoxFlat:
+const COLOR_BACKGROUND = Color(0.15, 0.17, 0.23, 0.5)
+const COLOR_BORDER = Color(0.25, 0.27, 0.33, 0.8)
+const COLOR_HEADER = Color(0.20, 0.22, 0.28, 0.8)
+
+# --- Styling ---
+
+static func create_card_style(bg_color: Color = COLOR_BACKGROUND) -> StyleBoxFlat:
 	var style: StyleBoxFlat = StyleBoxFlat.new()
-	style.bg_color = Color(0.12, 0.12, 0.12, 0.6)
-	style.corner_radius_top_left = 4
-	style.corner_radius_top_right = 4
-	style.corner_radius_bottom_left = 4
-	style.corner_radius_bottom_right = 4
-	style.border_width_left = 4
-	style.border_color = border_color
-	style.content_margin_left = 8
-	style.content_margin_right = 8
+	style.bg_color = bg_color
+	style.corner_radius_top_left = 6
+	style.corner_radius_top_right = 6
+	style.corner_radius_bottom_left = 6
+	style.corner_radius_bottom_right = 6
+	style.border_width_left = 1
+	style.border_width_right = 1
+	style.border_width_top = 1
+	style.border_width_bottom = 1
+	style.border_color = COLOR_BORDER
+	style.content_margin_left = 10
+	style.content_margin_right = 10
 	style.content_margin_top = 8
-	style.content_margin_bottom = 8
+	style.content_margin_bottom = 10
 	return style
 
-static func create_resource_toolbar(resource: Resource, parent_control: Control, callback: Callable) -> Control:
-	var container: HBoxContainer = HBoxContainer.new()
-	container.add_theme_constant_override("separation", 5)
+static func create_empty_slot_style() -> StyleBoxFlat:
+	var style: StyleBoxFlat = StyleBoxFlat.new()
+	style.bg_color = Color(0.1, 0.1, 0.1, 0.2)
+	style.corner_radius_top_left = 6
+	style.corner_radius_top_right = 6
+	style.corner_radius_bottom_left = 6
+	style.corner_radius_bottom_right = 6
+	style.border_width_left = 2
+	style.border_width_right = 2
+	style.border_width_top = 2
+	style.border_width_bottom = 2
+	style.border_color = Color(0.4, 0.4, 0.4, 0.3)
+	style.content_margin_left = 16
+	style.content_margin_right = 16
+	style.content_margin_top = 24
+	style.content_margin_bottom = 24
+	return style
+
+# --- Components ---
+
+static func create_fold_button(is_folded: bool, callback: Callable) -> Button:
+	var btn = Button.new()
+	btn.flat = true
+	# Use standard editor icons
+	var update_icon = func():
+		var icon_name = "GuiTreeArrowRight" if is_folded else "GuiTreeArrowDown"
+		# Fallback if theme isn't ready yet
+		if Engine.is_editor_hint():
+			btn.icon = EditorInterface.get_base_control().get_theme_icon(icon_name, "EditorIcons")
 	
-	var is_shared: bool = not resource.resource_path.is_empty() and not resource.resource_path.contains("::")
-	
-	var label: Label = Label.new()
-	label.text = "SHARED" if is_shared else "LOCAL"
-	label.add_theme_font_size_override("font_size", 10)
-	label.add_theme_color_override("font_color", Color(1, 0.8, 0.2) if is_shared else Color(0.6, 0.8, 1.0))
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	container.add_child(label)
-	
-	if is_shared:
-		var btn_unique: Button = Button.new()
-		btn_unique.tooltip_text = "Make Unique (Duplicate)"
-		btn_unique.icon = parent_control.get_theme_icon("Duplicate", "EditorIcons")
-		btn_unique.flat = true
-		btn_unique.pressed.connect(func():
-			var new_res: Resource = resource.duplicate()
-			callback.call(new_res)
-		)
-		container.add_child(btn_unique)
-	else:
-		var btn_save: Button = Button.new()
-		btn_save.tooltip_text = "Save to File"
-		btn_save.icon = parent_control.get_theme_icon("Save", "EditorIcons")
-		btn_save.flat = true
-		btn_save.pressed.connect(func():
-			var file_dialog: EditorFileDialog = EditorFileDialog.new()
-			parent_control.add_child(file_dialog)
-			file_dialog.file_mode = EditorFileDialog.FILE_MODE_SAVE_FILE
-			file_dialog.clear_filters()
-			file_dialog.add_filter("*.tres", "Resource")
-			
-			file_dialog.file_selected.connect(func(path):
-				ResourceSaver.save(resource, path)
-				resource.take_over_path(path)
-				callback.call(resource)
-				file_dialog.queue_free()
-			, CONNECT_ONE_SHOT)
-			
-			file_dialog.canceled.connect(func(): file_dialog.queue_free(), CONNECT_ONE_SHOT)
-			
-			file_dialog.popup_centered_ratio(0.5)
-		)
-		container.add_child(btn_save)
-		
-	return container
+	update_icon.call()
+	btn.pressed.connect(func():
+		callback.call()
+		# Icon update logic should be handled by the caller or we toggle state here if we tracked it
+		# For stateless factory, we assume caller redraws or updates icon. 
+		# But to be helpful, let's just toggle icon here visually if we can.
+		# However, best to let the parent editor manage state.
+	)
+	return btn
+
+static func create_header_background() -> StyleBoxFlat:
+	var style = StyleBoxFlat.new()
+	style.bg_color = COLOR_HEADER
+	style.corner_radius_top_left = 6
+	style.corner_radius_top_right = 6
+	return style
+
+# --- Property Editors ---
 
 static func _apply_tooltip(control: Control, property: Dictionary) -> void:
 	if property.get("hint_string", "") != "":
@@ -77,30 +85,39 @@ static func create_control_for_property(object: Object, property: Dictionary, ch
 	var type: int = property.type
 	var name: String = property.name
 	var value: Variant = object.get(name)
+	var hint: int = property.hint
+	var hint_string: String = property.hint_string
 	
 	match type:
 		TYPE_BOOL:
 			var cb: CheckBox = CheckBox.new()
-			cb.button_pressed = value
+			cb.button_pressed = bool(value)
 			cb.tooltip_text = property.name.capitalize()
 			_apply_tooltip(cb, property)
 			cb.toggled.connect(func(v): changed_callback.call(name, v))
 			return cb
 			
 		TYPE_INT:
-			if property.hint == PROPERTY_HINT_ENUM:
+			if hint == PROPERTY_HINT_ENUM:
 				var opt: OptionButton = OptionButton.new()
-				var items: PackedStringArray = property.hint_string.split(",")
-				for i in range(items.size()):
-					var item_split: PackedStringArray = items[i].split(":")
+				var items: PackedStringArray = hint_string.split(",")
+				var current_idx = 0
+				
+				for item_str in items:
+					var item_split: PackedStringArray = item_str.split(":")
 					var item_name: String = item_split[0]
-					var item_val: int = i
+					var item_val: int = current_idx
 					if item_split.size() > 1:
 						item_val = int(item_split[1])
+					else:
+						# If no value specified, it increments from previous or 0
+						pass
 					
 					opt.add_item(item_name, item_val)
 					if item_val == value:
 						opt.select(opt.item_count - 1)
+					
+					current_idx = item_val + 1
 				
 				_apply_tooltip(opt, property)
 				opt.item_selected.connect(func(idx): 
@@ -112,10 +129,26 @@ static func create_control_for_property(object: Object, property: Dictionary, ch
 				var sb: SpinBox = SpinBox.new()
 				sb.min_value = -2147483648
 				sb.max_value = 2147483647
-				sb.value = float(value)
 				sb.step = 1
 				sb.allow_greater = true
 				sb.allow_lesser = true
+				
+				# Parse Hint String for Range (min,max,step,or_greater,or_lesser)
+				if hint == PROPERTY_HINT_RANGE:
+					var parts = hint_string.split(",")
+					if parts.size() >= 2:
+						sb.min_value = float(parts[0])
+						sb.max_value = float(parts[1])
+						sb.allow_lesser = false
+						sb.allow_greater = false
+					if parts.size() >= 3:
+						sb.step = float(parts[2])
+					if "or_greater" in hint_string:
+						sb.allow_greater = true
+					if "or_lesser" in hint_string:
+						sb.allow_lesser = true
+				
+				sb.value = float(value)
 				_apply_tooltip(sb, property)
 				sb.value_changed.connect(func(v): changed_callback.call(name, int(v)))
 				return sb
@@ -125,44 +158,70 @@ static func create_control_for_property(object: Object, property: Dictionary, ch
 			sb.min_value = -99999.0
 			sb.max_value = 99999.0
 			sb.step = 0.001
-			sb.value = value
 			sb.allow_greater = true
 			sb.allow_lesser = true
+			
+			if hint == PROPERTY_HINT_RANGE:
+				var parts = hint_string.split(",")
+				if parts.size() >= 2:
+					sb.min_value = float(parts[0])
+					sb.max_value = float(parts[1])
+					sb.allow_lesser = false
+					sb.allow_greater = false
+				if parts.size() >= 3:
+					sb.step = float(parts[2])
+				if "or_greater" in hint_string:
+					sb.allow_greater = true
+				if "or_lesser" in hint_string:
+					sb.allow_lesser = true
+			
+			sb.value = value
 			sb.custom_minimum_size.x = 80
-			sb.tooltip_text = property.name.capitalize()
 			_apply_tooltip(sb, property)
 			sb.value_changed.connect(func(v): changed_callback.call(name, v))
 			return sb
 			
-		TYPE_STRING:
-			var le: LineEdit = LineEdit.new()
-			if value == null:
-				le.text = ""
+		TYPE_STRING, TYPE_STRING_NAME:
+			if hint == PROPERTY_HINT_MULTILINE_TEXT:
+				var te: TextEdit = TextEdit.new()
+				te.text = str(value) if value != null else ""
+				te.custom_minimum_size.y = 80
+				te.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+				_apply_tooltip(te, property)
+				te.text_changed.connect(func(): changed_callback.call(name, te.text))
+				return te
 			else:
-				le.text = str(value)
-			le.expand_to_text_length = true
-			le.custom_minimum_size.x = 110
-			le.tooltip_text = property.name.capitalize()
-			_apply_tooltip(le, property)
-			le.text_changed.connect(func(v): changed_callback.call(name, v))
-			return le
+				var le: LineEdit = LineEdit.new()
+				le.text = str(value) if value != null else ""
+				le.expand_to_text_length = true
+				le.custom_minimum_size.x = 120
+				_apply_tooltip(le, property)
+				le.text_changed.connect(func(v): changed_callback.call(name, v))
+				return le
+		
+		TYPE_COLOR:
+			var cp: ColorPickerButton = ColorPickerButton.new()
+			cp.color = value
+			cp.custom_minimum_size.x = 40
+			_apply_tooltip(cp, property)
+			cp.color_changed.connect(func(v): changed_callback.call(name, v))
+			return cp
 			
 		TYPE_VECTOR2:
+			# Custom Vector2 editor (compact)
 			var hbox: HBoxContainer = HBoxContainer.new()
 			hbox.add_theme_constant_override("separation", 4)
 			_apply_tooltip(hbox, property)
 			
-			var create_field: Callable = func(val, label_text, color):
+			var create_field = func(val, label_text, color):
 				var container: HBoxContainer = HBoxContainer.new()
-				container.add_theme_constant_override("separation", 0)
+				container.add_theme_constant_override("separation", 2)
 				
 				var l: Label = Label.new()
 				l.text = label_text
 				l.modulate = color
 				l.add_theme_font_size_override("font_size", 10)
 				l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-				# Add a small margin or style if possible, but basic Label works for simple "x"
-				l.custom_minimum_size.x = 12
 				container.add_child(l)
 				
 				var s: SpinBox = SpinBox.new()
@@ -173,17 +232,17 @@ static func create_control_for_property(object: Object, property: Dictionary, ch
 				s.allow_greater = true
 				s.allow_lesser = true
 				s.custom_minimum_size.x = 60
+				s.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				container.add_child(s)
 				return [container, s]
 			
-			# Red for X (similar to Godot's convention), Green for Y
-			var x_pack: Array = create_field.call(value.x, "X", Color(0.8, 0.2, 0.2))
-			var y_pack: Array = create_field.call(value.y, "Y", Color(0.2, 0.8, 0.2))
+			var x_pack = create_field.call(value.x, "x", Color(0.8, 0.4, 0.4))
+			var y_pack = create_field.call(value.y, "y", Color(0.4, 0.8, 0.4))
 			
-			var x_spin: SpinBox = x_pack[1]
-			var y_spin: SpinBox = y_pack[1]
+			var x_spin = x_pack[1]
+			var y_spin = y_pack[1]
 			
-			var update_vec: Callable = func(_v):
+			var update_vec = func(_v):
 				changed_callback.call(name, Vector2(x_spin.value, y_spin.value))
 			
 			x_spin.value_changed.connect(update_vec)
@@ -193,14 +252,15 @@ static func create_control_for_property(object: Object, property: Dictionary, ch
 			hbox.add_child(y_pack[0])
 			return hbox
 
-	# Fallback for unhandled types (just show label)
+	# Fallback
 	var lbl: Label = Label.new()
 	lbl.text = str(value)
-	lbl.modulate = Color(0.7, 0.7, 0.7)
+	lbl.modulate = Color(0.6, 0.6, 0.6)
 	return lbl
 
 static func create_property_list(resource: Resource, changed_callback: Callable) -> Control:
 	var container: VBoxContainer = VBoxContainer.new()
+	container.add_theme_constant_override("separation", 6)
 	
 	for prop: Dictionary in resource.get_property_list():
 		if prop.usage & PROPERTY_USAGE_EDITOR:
@@ -214,9 +274,11 @@ static func create_property_list(resource: Resource, changed_callback: Callable)
 			var p_label: Label = Label.new()
 			p_label.text = p_name.capitalize()
 			p_label.tooltip_text = p_name
-			p_label.modulate = Color(0.8, 0.8, 0.8)
-			p_label.custom_minimum_size.x = 110
-			p_label.add_theme_font_size_override("font_size", 12)
+			p_label.modulate = Color(0.85, 0.85, 0.85)
+			p_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			p_label.size_flags_stretch_ratio = 0.4
+			# Use proper theme font if available, else default
+			# p_label.add_theme_font_size_override("font_size", 14) 
 			row.add_child(p_label)
 			
 			var editor: Control = create_control_for_property(resource, prop, func(name, val):
@@ -224,12 +286,8 @@ static func create_property_list(resource: Resource, changed_callback: Callable)
 			)
 			if editor:
 				editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				editor.size_flags_stretch_ratio = 0.6
 				row.add_child(editor)
-			else:
-				# Fallback if creation failed (shouldn't happen with default catch-all)
-				var err_lbl = Label.new()
-				err_lbl.text = "Error"
-				row.add_child(err_lbl)
 			
 			container.add_child(row)
 			
