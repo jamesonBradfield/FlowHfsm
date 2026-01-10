@@ -1,0 +1,76 @@
+[gd_scene load_steps=17 format=3 uid="uid://c63u3mbar8hqw"]
+
+[ext_resource type="Script" uid="uid://bnyrn3fl1el8d" path="res://Examples/PhysicsManager.gd" id="1_physics"]
+[ext_resource type="Script" uid="uid://cq5tokhyr4gno" path="res://Examples/PlayerController.gd" id="2_controller"]
+[ext_resource type="Script" uid="uid://u8e3x4htq7mp" path="res://addons/FlowHFSM/runtime/RecursiveState.gd" id="3_state"]
+[ext_resource type="Script" uid="uid://cstno10fp4vym" path="res://addons/FlowHFSM/runtime/StateVariable.gd" id="4_var"]
+[ext_resource type="Script" uid="uid://cpm6e87qos0u6" path="res://addons/FlowHFSM/presets/behaviors/BehaviorMove.gd" id="5_move"]
+[ext_resource type="Script" uid="uid://b1wuc2hj2npg0" path="res://addons/FlowHFSM/runtime/StateCondition.gd" id="6_exxhh"]
+[ext_resource type="Script" uid="uid://cu22ayjyfpgm3" path="res://addons/FlowHFSM/presets/behaviors/BehaviorImpulse.gd" id="6_impulse"]
+[ext_resource type="Script" uid="uid://cirmsx806vmnl" path="res://addons/FlowHFSM/presets/conditions/ConditionInputPressed.gd" id="7_cond"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_1"]
+
+[sub_resource type="Resource" id="Var_Move"]
+script = ExtResource("4_var")
+variable_name = "move_speed"
+initial_value = 8.0
+
+[sub_resource type="Resource" id="Beh_Move"]
+script = ExtResource("5_move")
+speed = 8.0
+
+[sub_resource type="Resource" id="Cond_Move"]
+script = ExtResource("7_cond")
+input_property = "is_moving"
+
+[sub_resource type="Resource" id="Var_Jump"]
+script = ExtResource("4_var")
+variable_name = "jump_impulse"
+initial_value = 12.0
+
+[sub_resource type="Resource" id="Beh_Jump"]
+script = ExtResource("6_impulse")
+impulse = Vector3(0, 12, 0)
+
+[sub_resource type="Resource" id="Cond_Jump"]
+script = ExtResource("7_cond")
+input_property = "jump_just_pressed"
+
+[node name="Player" type="CharacterBody3D"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("CapsuleShape3D_1")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("CapsuleMesh_1")
+
+[node name="PhysicsManager" type="Node" parent="."]
+script = ExtResource("1_physics")
+gravity = 9.8
+
+[node name="PlayerController" type="Node" parent="." node_paths=PackedStringArray("root_state", "physics_manager")]
+script = ExtResource("2_controller")
+root_state = NodePath("../RootState")
+physics_manager = NodePath("../PhysicsManager")
+
+[node name="RootState" type="Node" parent="."]
+script = ExtResource("3_state")
+
+[node name="Idle" type="Node" parent="RootState"]
+script = ExtResource("3_state")
+is_starting_state = true
+
+[node name="Move" type="Node" parent="RootState"]
+script = ExtResource("3_state")
+declared_variables = Array[ExtResource("4_var")]([SubResource("Var_Move")])
+behavior = SubResource("Beh_Move")
+activation_conditions = Array[ExtResource("6_exxhh")]([SubResource("Cond_Move")])
+
+[node name="Jump" type="Node" parent="RootState"]
+script = ExtResource("3_state")
+declared_variables = Array[ExtResource("4_var")]([SubResource("Var_Jump")])
+behavior = SubResource("Beh_Jump")
+activation_conditions = Array[ExtResource("6_exxhh")]([SubResource("Cond_Jump")])

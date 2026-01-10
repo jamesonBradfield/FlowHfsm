@@ -22,7 +22,7 @@ enum DirectionSource { INPUT, FIXED }
 ## Rotation speed for turning towards movement direction (degrees per second).
 @export var rotation_speed: float = 360.0
 
-func update(node: RecursiveState, delta: float, actor: Node, blackboard: Blackboard) -> void:
+func update(node: Node, delta: float, actor: Node, blackboard: Blackboard) -> void:
 	# Get the character body
 	var body: CharacterBody3D = actor as CharacterBody3D
 	if not body:
@@ -31,15 +31,24 @@ func update(node: RecursiveState, delta: float, actor: Node, blackboard: Blackbo
 
 	# Determine movement direction
 	var move_dir: Vector3 = Vector3.ZERO
+	
+	# Resolve speed from Blackboard if available (Harvest Pattern)
+	var current_speed: float = speed
+	if blackboard and blackboard.has_value("move_speed"):
+		current_speed = blackboard.get_value("move_speed")
 
 	match direction_source:
 		DirectionSource.INPUT:
-			# Try to find input on a Controller node
-			var controller = actor.get_node_or_null("PlayerController")
-			if controller:
-				move_dir = controller.get("input_direction")
-			elif "input_direction" in actor:
-				move_dir = actor.input_direction
+			# Priority: Blackboard > Controller > Actor Property
+			if blackboard and blackboard.has_value("input_direction"):
+				move_dir = blackboard.get_value("input_direction")
+			else:
+				# Fallback to Controller
+				var controller = actor.get_node_or_null("PlayerController")
+				if controller:
+					move_dir = controller.get("input_direction")
+				elif "input_direction" in actor:
+					move_dir = actor.input_direction
 
 		DirectionSource.FIXED:
 			move_dir = fixed_direction
@@ -52,7 +61,7 @@ func update(node: RecursiveState, delta: float, actor: Node, blackboard: Blackbo
 	if is_moving:
 		# Normalize and apply speed
 		move_dir = move_dir.normalized()
-		var velocity: Vector3 = move_dir * speed
+		var velocity: Vector3 = move_dir * current_speed
 
 		# Apply velocity
 		body.velocity.x = velocity.x

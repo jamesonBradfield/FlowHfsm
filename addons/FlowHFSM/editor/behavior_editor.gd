@@ -20,7 +20,14 @@ func _update_property() -> void:
 	for child in container.get_children():
 		child.queue_free()
 	
-	var behavior: Resource = get_edited_object()[get_edited_property()]
+	# SAFE CAST: Ensure we are working with the expected object type
+	var edited_object: Object = get_edited_object()
+	if not edited_object:
+		return
+		
+	# Check if property exists before accessing
+	var property_path: StringName = get_edited_property()
+	var behavior: Resource = edited_object.get(property_path)
 	
 	if current_behavior != behavior:
 		if current_behavior and current_behavior.changed.is_connected(_on_behavior_changed):

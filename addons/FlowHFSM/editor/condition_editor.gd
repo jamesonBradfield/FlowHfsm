@@ -20,10 +20,16 @@ func _update_property() -> void:
 		child.queue_free()
 	
 	var object: Object = get_edited_object()
-	var property: StringName = get_edited_property()
-	var conditions: Array = object.get(property)
+	if not object: return
 	
+	var property: StringName = get_edited_property()
+	var conditions = object.get(property)
+	
+	# Explicitly handle nil or invalid types
 	if conditions == null:
+		conditions = []
+	elif not (conditions is Array):
+		# If it's not an array (e.g. some other type), force it to empty array or handle error
 		conditions = []
 	
 	# List of conditions

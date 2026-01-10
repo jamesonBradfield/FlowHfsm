@@ -136,7 +136,10 @@ static func create_control_for_property(object: Object, property: Dictionary, ch
 			
 		TYPE_STRING:
 			var le: LineEdit = LineEdit.new()
-			le.text = value
+			if value == null:
+				le.text = ""
+			else:
+				le.text = str(value)
 			le.expand_to_text_length = true
 			le.custom_minimum_size.x = 110
 			le.tooltip_text = property.name.capitalize()
@@ -219,8 +222,14 @@ static func create_property_list(resource: Resource, changed_callback: Callable)
 			var editor: Control = create_control_for_property(resource, prop, func(name, val):
 				changed_callback.call(name, val)
 			)
-			editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			row.add_child(editor)
+			if editor:
+				editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				row.add_child(editor)
+			else:
+				# Fallback if creation failed (shouldn't happen with default catch-all)
+				var err_lbl = Label.new()
+				err_lbl.text = "Error"
+				row.add_child(err_lbl)
 			
 			container.add_child(row)
 			

@@ -75,6 +75,8 @@ func _poll_input() -> void:
 	is_moving = input_direction.length_squared() > 0.01
 
 	# Poll jump input
+
+	# Poll jump input
 	jump_pressed = Input.is_action_pressed(jump_action)
 	if Input.is_action_just_pressed(jump_action):
 		jump_just_pressed = true

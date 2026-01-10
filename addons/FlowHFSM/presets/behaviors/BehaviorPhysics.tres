@@ -5,4 +5,5 @@
 [resource]
 script = ExtResource("1_j4oaf")
 mode = 1
+direction_blackboard_key = "input_di"
 metadata/_custom_type_script = "uid://c0a2ftxxng6bc"
