@@ -1,9 +1,9 @@
 [gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://addons/FlowHFSM/runtime/RecursiveState.gd" id="1_recur"]
-[ext_resource type="Script" path="res://Examples/Scripts/Behaviors/IdleBehavior.gd" id="2_idle"]
-[ext_resource type="Script" path="res://Examples/Scripts/Behaviors/AttackBehavior.gd" id="3_attack"]
-[ext_resource type="Script" path="res://Examples/Scripts/Behaviors/DodgeBehavior.gd" id="4_dodge"]
+[ext_resource type="Script" path="res://Examples/Scripts/Behaviors/_Deprecated/IdleBehavior.gd" id="2_idle"]
+[ext_resource type="Script" path="res://Examples/Scripts/Behaviors/_Deprecated/AttackBehavior.gd" id="3_attack"]
+[ext_resource type="Script" path="res://Examples/Scripts/Behaviors/_Deprecated/DodgeBehavior.gd" id="4_dodge"]
 [ext_resource type="Script" path="res://Examples/Scripts/Conditions/CheckBlackboardCondition.gd" id="5_cond"]
 
 [sub_resource type="Resource" id="Res_idle_b"]
@@ -26,16 +26,16 @@ script = ExtResource("1_recur")
 
 [node name="Idle" type="Node" parent="."]
 script = ExtResource("1_recur")
-behavior = SubResource("Res_idle_b")
+behaviors = [SubResource("Res_idle_b")]
 is_starting_state = true
 
 [node name="Attack" type="Node" parent="."]
 script = ExtResource("1_recur")
-behavior = SubResource("Res_attack_b")
+behaviors = [SubResource("Res_attack_b")]
 activation_conditions = [SubResource("Res_attack_c")]
 is_locked = true
 
 [node name="Dodge" type="Node" parent="."]
 script = ExtResource("1_recur")
-behavior = SubResource("Res_dodge_b")
+behaviors = [SubResource("Res_dodge_b")]
 activation_conditions = [SubResource("Res_dodge_c")]

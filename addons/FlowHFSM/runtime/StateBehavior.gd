@@ -4,10 +4,6 @@ class_name StateBehavior extends Resource
 ## Defines "What to do". Reusable across many nodes.
 ## stateless! Do not store variables here. Use node.memory.
 
-@export_group("Visuals")
-## The name of the animation to play when this state is entered.
-@export var animation: String = ""
-
 # Virtual Functions - Override these!
 
 ## Called when the state is entered.
@@ -17,10 +13,7 @@ class_name StateBehavior extends Resource
 ## @param actor: The owner of the state machine.
 ## @param blackboard: The shared data container.
 func enter(node: Node, actor: Node, blackboard: Blackboard) -> void:
-	if animation != "":
-		# Assuming AnimationTree playback is in the blackboard or accessible on actor
-		# For the Phase 1 setup, let's assume we just print for now
-		print("Playing Anim: ", animation)
+	pass
 
 ## Called when the state is exited.
 ## Can be used to clean up memory or stop effects.

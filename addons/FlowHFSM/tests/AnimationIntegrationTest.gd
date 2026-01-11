@@ -44,6 +44,9 @@ func run_all_tests() -> Dictionary:
 
 	results["test_parameter_sync"] = test_parameter_sync()
 	_reset_environment()
+
+	results["test_blackboard_parameter_sync"] = test_blackboard_parameter_sync()
+	_reset_environment()
 	
 	_cleanup()
 
@@ -84,6 +87,65 @@ func test_parameter_sync() -> Dictionary:
 		test_passed = false
 		
 	print("✓ Property 'speed': %s -> AnimationTree: %s" % [test_val, actual_val])
+
+	return _generate_test_result(test_name, test_passed)
+
+## Test 4: Verify parameter syncing from Blackboard (StateVariable)
+func test_blackboard_parameter_sync() -> Dictionary:
+	print("\n[TEST] Blackboard Parameter Sync")
+	print("-".repeat(40))
+
+	var test_name := "blackboard_parameter_sync"
+	var test_passed := true
+	
+	# Setup: Enable blackboard sync
+	if animation_controller:
+		animation_controller.sync_from_blackboard = true
+		animation_controller.property_mapping = {
+			"move_speed": "parameters/Run/blend_position"
+		}
+		# Ensure property_source is null to force blackboard usage (though logic allows fallback)
+		animation_controller.property_source = null
+	
+	# Act: Set value in Blackboard (via RootState)
+	# RootState should have initialized its blackboard in _ready()
+	var bb = root_state.get_blackboard()
+	if not bb:
+		# Maybe manually init if _ready didn't fire in test harness same way
+		# But _setup_environment creates new RecursiveState().
+		# RecursiveState._ready() creates blackboard if root.
+		# But if we didn't add it to SceneTree properly? add_child(root_state) isn't called in _setup_environment for root_state directly?
+		# Wait, _setup_environment does: root_state = RecursiveState.new()...
+		# But it doesn't add root_state to the test node via add_child()?
+		# Let's check _setup_environment.
+		pass
+		
+	# In _setup_environment: "root_state = RecursiveState.new() ... var idle... root.add_child(idle)"
+	# It DOES NOT add root_state to the scene tree! So _ready() never ran!
+	# We should fix _setup_environment to add root_state to this node.
+	
+	if root_state.get_parent() == null:
+		add_child(root_state)
+		
+	bb = root_state.get_blackboard()
+	if not bb:
+		push_error("RootState has no blackboard!")
+		test_passed = false
+	else:
+		var test_val = 0.8
+		bb.set_value("move_speed", test_val)
+		
+		# Process frame
+		animation_controller._process(0.016)
+		
+		# Assert
+		var actual_val = mock_anim_tree.get("parameters/Run/blend_position")
+		
+		if actual_val != test_val:
+			push_error("Expected blend_position %s, got %s" % [test_val, actual_val])
+			test_passed = false
+			
+		print("✓ Blackboard 'move_speed': %s -> AnimationTree: %s" % [test_val, actual_val])
 
 	return _generate_test_result(test_name, test_passed)
 
@@ -205,6 +267,7 @@ func _setup_environment() -> void:
 	# 2. HFSM Root
 	root_state = RecursiveState.new()
 	root_state.name = "Root"
+	add_child(root_state)
 	
 	var idle_state = RecursiveState.new()
 	idle_state.name = "Idle"

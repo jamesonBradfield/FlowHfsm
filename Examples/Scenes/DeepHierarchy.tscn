@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://addons/FlowHFSM/runtime/RecursiveState.gd" id="1_recur"]
-[ext_resource type="Script" path="res://Examples/Scripts/Behaviors/MoveBehavior.gd" id="2_move"]
+[ext_resource type="Script" path="res://Examples/Scripts/Behaviors/_Deprecated/MoveBehavior.gd" id="2_move"]
 
 [sub_resource type="Resource" id="Res_move_b"]
 script = ExtResource("2_move")
@@ -23,9 +23,9 @@ is_starting_state = true
 
 [node name="NormalWalk" type="Node" parent="Movement/Grounded/Walk"]
 script = ExtResource("1_recur")
-behavior = SubResource("Res_move_b")
+behaviors = [SubResource("Res_move_b")]
 is_starting_state = true
 
 [node name="Sprint" type="Node" parent="Movement/Grounded/Walk"]
 script = ExtResource("1_recur")
-behavior = SubResource("Res_move_b")
+behaviors = [SubResource("Res_move_b")]

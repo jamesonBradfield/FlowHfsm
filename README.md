@@ -362,3 +362,10 @@ See project repository for license details.
 ---
 
 **Remember:** The Scene Tree order is your primary tool for managing state priority. **Lower = Higher Priority!**
+
+## 🛠️ Editor Tools
+
+Flow HFSM includes a custom Inspector plugin (`hfsm_inspector.gd`) to improve quality of life.
+
+*   **Inline Editing:** Instead of clicking into a Resource to edit its properties, the Inspector displays Behavior and Condition properties *inline*.
+*   **Context:** See everything at a glance without navigating back and forth between sub-resources.

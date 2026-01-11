@@ -23,6 +23,9 @@ class_name HFSMAnimationController extends Node
 ## Key = Property Name (e.g. "input_direction"), Value = AnimationTree Path (e.g. "parameters/Run/blend_position")
 @export var property_mapping: Dictionary = {}
 
+## If true, attempts to read properties from the Root State's Blackboard if not found in property_source.
+@export var sync_from_blackboard: bool = false
+
 ## Cache the playback object
 var _playback: Variant
 
@@ -59,10 +62,22 @@ func _process(_delta: float) -> void:
 			_playback = playback_obj
 		
 	# 2. Sync Properties (Source -> AnimationTree)
-	if animation_tree and property_source and not property_mapping.is_empty():
+	if animation_tree and not property_mapping.is_empty():
+		var bb = null
+		if sync_from_blackboard and root_state:
+			bb = root_state.get_blackboard()
+
 		for source_prop: String in property_mapping:
 			var anim_path: String = property_mapping[source_prop]
-			var value: Variant = property_source.get(source_prop)
+			var value: Variant = null
+			
+			# Priority 1: Property Source
+			if property_source:
+				value = property_source.get(source_prop)
+			
+			# Priority 2: Blackboard (Fallback or Primary if source missing)
+			if value == null and bb and bb.has_value(source_prop):
+				value = bb.get_value(source_prop)
 			
 			if value != null:
 				animation_tree.set(anim_path, value)

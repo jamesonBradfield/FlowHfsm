@@ -1,13 +1,13 @@
 [gd_scene load_steps=17 format=3 uid="uid://c63u3mbar8hqw"]
 
-[ext_resource type="Script" uid="uid://bnyrn3fl1el8d" path="res://Examples/PhysicsManager.gd" id="1_physics"]
-[ext_resource type="Script" uid="uid://cq5tokhyr4gno" path="res://Examples/PlayerController.gd" id="2_controller"]
+[ext_resource type="Script" uid="uid://b5vioiolsqi45" path="res://Examples/Scripts/PhysicsManager.gd" id="1_physics"]
+[ext_resource type="Script" uid="uid://c7sdpbhyga2x4" path="res://Examples/Scripts/PlayerController.gd" id="2_controller"]
 [ext_resource type="Script" uid="uid://u8e3x4htq7mp" path="res://addons/FlowHFSM/runtime/RecursiveState.gd" id="3_state"]
 [ext_resource type="Script" uid="uid://cstno10fp4vym" path="res://addons/FlowHFSM/runtime/StateVariable.gd" id="4_var"]
-[ext_resource type="Script" uid="uid://cpm6e87qos0u6" path="res://addons/FlowHFSM/presets/behaviors/BehaviorMove.gd" id="5_move"]
+[ext_resource type="Script" uid="uid://b1eifxd1qj82d" path="res://addons/FlowHFSM/runtime/StateBehavior.gd" id="5_exxhh"]
 [ext_resource type="Script" uid="uid://b1wuc2hj2npg0" path="res://addons/FlowHFSM/runtime/StateCondition.gd" id="6_exxhh"]
-[ext_resource type="Script" uid="uid://cu22ayjyfpgm3" path="res://addons/FlowHFSM/presets/behaviors/BehaviorImpulse.gd" id="6_impulse"]
 [ext_resource type="Script" uid="uid://cirmsx806vmnl" path="res://addons/FlowHFSM/presets/conditions/ConditionInputPressed.gd" id="7_cond"]
+[ext_resource type="Script" uid="uid://c0a2ftxxng6bc" path="res://addons/FlowHFSM/presets/behaviors/BehaviorPhysics.gd" id="8_beh_phys"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 
@@ -19,8 +19,12 @@ variable_name = "move_speed"
 initial_value = 8.0
 
 [sub_resource type="Resource" id="Beh_Move"]
-script = ExtResource("5_move")
-speed = 8.0
+script = ExtResource("8_beh_phys")
+mode = 2
+planar_only = true
+apply_on_enter = false
+magnitude_mode = 2
+direction_mode = 2
 
 [sub_resource type="Resource" id="Cond_Move"]
 script = ExtResource("7_cond")
@@ -32,8 +36,8 @@ variable_name = "jump_impulse"
 initial_value = 12.0
 
 [sub_resource type="Resource" id="Beh_Jump"]
-script = ExtResource("6_impulse")
-impulse = Vector3(0, 12, 0)
+script = ExtResource("8_beh_phys")
+magnitude_mode = 2
 
 [sub_resource type="Resource" id="Cond_Jump"]
 script = ExtResource("7_cond")
@@ -66,11 +70,11 @@ is_starting_state = true
 [node name="Move" type="Node" parent="RootState"]
 script = ExtResource("3_state")
 declared_variables = Array[ExtResource("4_var")]([SubResource("Var_Move")])
-behavior = SubResource("Beh_Move")
+behaviors = Array[ExtResource("5_exxhh")]([SubResource("Beh_Move")])
 activation_conditions = Array[ExtResource("6_exxhh")]([SubResource("Cond_Move")])
 
 [node name="Jump" type="Node" parent="RootState"]
 script = ExtResource("3_state")
 declared_variables = Array[ExtResource("4_var")]([SubResource("Var_Jump")])
-behavior = SubResource("Beh_Jump")
+behaviors = Array[ExtResource("5_exxhh")]([SubResource("Beh_Jump")])
 activation_conditions = Array[ExtResource("6_exxhh")]([SubResource("Cond_Jump")])

@@ -89,5 +89,3 @@ func _poll_input() -> void:
 
 const Blackboard = preload("res://addons/FlowHFSM/runtime/Blackboard.gd")
 var _blackboard: Blackboard
-
-

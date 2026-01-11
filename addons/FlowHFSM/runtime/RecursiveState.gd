@@ -10,13 +10,11 @@ class_name RecursiveState extends Node
 ## (lowest in the inspector) becomes the active state.
 
 # --- EXPORTS (The Strategy) ---
-@export_group("Data Definition")
 ## Define variables here to auto-create them in the Blackboard.
 @export var declared_variables: Array[StateVariable]
 
-@export_group("Logic")
 ## The "Brain" (Resource). Defines what this state does (e.g., Move, Jump).
-@export var behavior: StateBehavior 
+@export var behaviors: Array[StateBehavior]
 
 enum ActivationMode { AND, OR }
 
@@ -28,7 +26,6 @@ enum ActivationMode { AND, OR }
 ## OR: At least one condition must be true.
 @export_enum("AND", "OR") var activation_mode: int = ActivationMode.AND
 
-@export_group("Settings")
 ## If true, this state will be the active child when the parent is entered.
 @export var is_starting_state: bool = false
 ## If true, this state will remember its active child when exited, resuming it on re-entry.
@@ -136,8 +133,9 @@ func process_state(delta: float, actor: Node, blackboard = null) -> void:
 			change_active_child(best_child, actor, blackboard)
 	
 	# 2. BEHAVIOR UPDATE (The "Brain")
-	if behavior:
-		behavior.update(self, delta, actor, blackboard)
+	for b in behaviors:
+		if b:
+			b.update(self, delta, actor, blackboard)
 
 	# 3. RECURSION (Tick the Child)
 	if active_child:
@@ -168,8 +166,9 @@ func enter(actor: Node, blackboard = null) -> void:
 		if start_node:
 			active_child = start_node
 
-	if behavior:
-		behavior.enter(self, actor, blackboard)
+	for b in behaviors:
+		if b:
+			b.enter(self, actor, blackboard)
 	
 	# If we have a default child, enter it too
 	if active_child:
@@ -205,8 +204,9 @@ func exit(actor: Node, blackboard = null) -> void:
 		if not has_history:
 			active_child = null
 		
-	if behavior:
-		behavior.exit(self, actor, blackboard)
+	for b in behaviors:
+		if b:
+			b.exit(self, actor, blackboard)
 	
 	state_exited.emit(self)
 
@@ -273,3 +273,11 @@ func change_active_child(new_node: RecursiveState, actor: Node = null, blackboar
 	
 	if active_child:
 		active_child.enter(actor, blackboard)
+
+## Returns the blackboard used by this state.
+## If Root, returns the owned blackboard.
+## If Child, recursively asks parent.
+func get_blackboard() -> BlackboardScript:
+	if parent:
+		return parent.get_blackboard()
+	return _owned_blackboard
