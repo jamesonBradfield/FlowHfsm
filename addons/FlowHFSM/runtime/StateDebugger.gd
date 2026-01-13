@@ -19,7 +19,16 @@ func _process(_delta: float) -> void:
 	
 	var bb_data = "N/A"
 	if player_controller:
-		bb_data = str(player_controller.blackboard)
+		var bb = null
+		if player_controller.has_method("get_blackboard"):
+			bb = player_controller.get_blackboard()
+		elif "blackboard" in player_controller:
+			bb = player_controller.blackboard
+		elif "_blackboard" in player_controller: # Fallback for older versions
+			bb = player_controller._blackboard
+			
+		if bb:
+			bb_data = str(bb.get_data())
 	
 	# Update the 3D Label text
 	text = "State: %s\nMemory: %s\nBlackboard: %s" % [active_path, leaf_data, bb_data]
@@ -29,14 +38,19 @@ func _process(_delta: float) -> void:
 func _get_active_path(node: RecursiveState) -> String:
 	var state_name = node.name
 	
-	# If we have a behavior, maybe append its name too for clarity
-	if node.behavior:
-		# Extract behavior name, fallback to "Behavior" if resource_path is empty (e.g. embedded sub-resource)
-		var b_name = "Embedded"
-		if node.behavior.resource_path != "":
-			b_name = node.behavior.resource_path.get_file().get_basename()
+	# If we have behaviors, maybe append their names too for clarity
+	if not node.behaviors.is_empty():
+		var b_names = []
+		for b in node.behaviors:
+			if not b: continue
+			# Extract behavior name, fallback to "Embedded" if resource_path is empty
+			var b_name = "Embedded"
+			if b.resource_path != "":
+				b_name = b.resource_path.get_file().get_basename()
+			b_names.append(b_name)
 		
-		state_name += "(%s)" % b_name
+		if not b_names.is_empty():
+			state_name += "(%s)" % ", ".join(b_names)
 		
 	if node.active_child:
 		return state_name + " > " + _get_active_path(node.active_child)

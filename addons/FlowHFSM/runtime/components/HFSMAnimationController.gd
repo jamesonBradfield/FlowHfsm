@@ -93,8 +93,12 @@ func _connect_signals_recursive(state: RecursiveState) -> void:
 
 ## Triggered when ANY state in the HFSM is entered
 func _on_state_entered(state: RecursiveState) -> void:
-	if not animation_tree or not animation_tree.active:
+	if not animation_tree:
 		return
+		
+	# Auto-activate if needed
+	if not animation_tree.active:
+		animation_tree.active = true
 		
 	if not _playback:
 		var playback_obj: Variant = animation_tree.get(state_machine_path)

@@ -44,7 +44,12 @@ func _ready() -> void:
 		return
 		
 	# Initialize Blackboard
-	_blackboard = Blackboard.new()
+	# We use the RootState's blackboard to ensure we share data (Variables, etc.)
+	if root_state.has_method("get_blackboard"):
+		_blackboard = root_state.get_blackboard()
+	else:
+		push_warning("PlayerController: RootState missing get_blackboard(). Creating local fallback.")
+		_blackboard = Blackboard.new()
 
 func _process(delta: float) -> void:
 	# 1. Poll Input & Update Blackboard
@@ -87,5 +92,4 @@ func _poll_input() -> void:
 	_blackboard.set_value("jump_pressed", jump_pressed)
 	_blackboard.set_value("jump_just_pressed", jump_just_pressed)
 
-const Blackboard = preload("res://addons/FlowHFSM/runtime/Blackboard.gd")
 var _blackboard: Blackboard

@@ -78,6 +78,8 @@ func _ready() -> void:
 func _initialize_hierarchy_data(node: RecursiveState, root_blackboard: Blackboard) -> void:
 	# 1. Register THIS node's variables
 	for var_def in node.declared_variables:
+		if not var_def: continue # Skip empty slots
+		
 		if var_def.variable_name.is_empty(): 
 			push_warning("StateVariable in %s has no name!" % node.name)
 			continue
@@ -86,6 +88,10 @@ func _initialize_hierarchy_data(node: RecursiveState, root_blackboard: Blackboar
 			# Only set if not already set to avoid overwriting (or remove check to allow overwrites)
 			if not root_blackboard.has_value(var_def.variable_name):
 				root_blackboard.set_value(var_def.variable_name, var_def.initial_value)
+				print_verbose("FlowHFSM: Registered global variable '%s' from state '%s'" % [var_def.variable_name, node.name])
+			else:
+				# Check if we should warn about duplicates or just ignore
+				pass
 	
 	# 2. Recursively check children
 	for child in node.get_children():
@@ -275,9 +281,16 @@ func change_active_child(new_node: RecursiveState, actor: Node = null, blackboar
 		active_child.enter(actor, blackboard)
 
 ## Returns the blackboard used by this state.
-## If Root, returns the owned blackboard.
+## If Root, returns the owned blackboard (creating it if necessary).
 ## If Child, recursively asks parent.
 func get_blackboard() -> BlackboardScript:
 	if parent:
 		return parent.get_blackboard()
+	
+	# I am Root
+	if not _owned_blackboard:
+		_owned_blackboard = BlackboardScript.new()
+		# We must ensure variables are initialized if we lazily created it
+		_initialize_hierarchy_data(self, _owned_blackboard)
+		
 	return _owned_blackboard
