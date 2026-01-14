@@ -402,7 +402,7 @@ func _go_to_step2(mode: CreationMode) -> void:
 	if lbl_src: lbl_src.visible = show_src
 	if hbox_src: hbox_src.visible = show_src
 	
-	# DYNAMIC UI LABELS (Explicit Intent)
+	# UX DOCTRINE: Dynamic Labels
 	var lbl_classname = find_child("LblClassName", true, false)
 	if lbl_classname:
 		match mode:
@@ -414,7 +414,7 @@ func _go_to_step2(mode: CreationMode) -> void:
 				lbl_classname.text = "New Copy Name:"
 			CreationMode.NODE:
 				lbl_classname.text = "State Node Name:"
-				
+	
 	if lbl_src:
 		match mode:
 			CreationMode.EXTEND:
@@ -673,7 +673,9 @@ func _create_node() -> void:
 	
 	# Optional: Also create behavior?
 	var opt = find_child("OptTemplate", true, false)
-	if opt and opt.get_item_text(opt.selected) == "With New Behavior":
+	var with_behavior = (opt and opt.get_item_text(opt.selected) == "With New Behavior")
+	
+	if with_behavior:
 		# 1. Generate Behavior
 		var b_name = "Behavior" + state_name
 		var folder = folder_edit.text
@@ -683,7 +685,6 @@ func _create_node() -> void:
 		var code = "class_name " + b_name + " extends StateBehavior\n\nfunc enter(node: Node, actor: Node, blackboard: Blackboard) -> void:\n\tpass\n\nfunc update(node: Node, delta: float, actor: Node, blackboard: Blackboard) -> void:\n\tpass\n\nfunc exit(node: Node, actor: Node, blackboard: Blackboard) -> void:\n\tpass\n"
 		
 		var script_path = folder + b_name + ".gd"
-		var res_path = folder + b_name + ".tres"
 		
 		var f = FileAccess.open(script_path, FileAccess.WRITE)
 		if f:
@@ -693,20 +694,12 @@ func _create_node() -> void:
 			# We must scan before creating resource from script
 			var fs = EditorInterface.get_resource_filesystem()
 			fs.scan()
-			
-			# Wait loop (blocking slightly but necessary for "One Click" feel)
-			# NOTE: In an undo action, we can't easily async wait.
-			# Strategy: We do the file ops, then add a "do_method" that loads and assigns.
-			# BUT `load()` will fail if scan isn't done.
-			
-			# ALTERNATIVE: Separate the behavior creation from the UndoRedo block?
-			# We can commit the node creation, THEN do the behavior logic.
 		else:
 			printerr("Failed to write behavior script.")
 			
 	undo.commit_action()
 	
-	if opt and opt.get_item_text(opt.selected) == "With New Behavior":
+	if with_behavior:
 		_finalize_behavior_creation_async("Behavior" + state_name, folder_edit.text, new_node)
 
 func _finalize_behavior_creation_async(b_name: String, folder: String, target_node: Node) -> void:
@@ -735,4 +728,5 @@ func _finalize_behavior_creation_async(b_name: String, folder: String, target_no
 		undo.add_do_property(target_node, "behaviors", [res])
 		undo.add_undo_property(target_node, "behaviors", [])
 		undo.commit_action()
+
 

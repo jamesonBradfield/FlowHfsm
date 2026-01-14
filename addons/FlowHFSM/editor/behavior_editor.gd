@@ -2,22 +2,22 @@
 extends EditorProperty
 
 const ThemeResource = preload("res://addons/FlowHFSM/editor/flow_hfsm_theme.tres")
-const AssetCreationDialog = preload("res://addons/FlowHFSM/editor/asset_creation_dialog.gd")
+# const AssetCreationDialog = preload("res://addons/FlowHFSM/editor/asset_creation_dialog.gd")
 
 var container: VBoxContainer = VBoxContainer.new()
 var updating_from_ui: bool = false
 var folded_states: Dictionary = {} # Resource ID -> bool
-var creation_dialog: ConfirmationDialog
+# var creation_dialog: ConfirmationDialog
 
 func _init() -> void:
 	label = "" # We draw our own label/header
 	container.theme = ThemeResource
 	add_child(container)
 	
-	creation_dialog = AssetCreationDialog.new()
-	creation_dialog.configure("StateBehavior")
-	creation_dialog.resource_created.connect(_on_wizard_resource_created)
-	add_child(creation_dialog)
+	# creation_dialog = AssetCreationDialog.new()
+	# creation_dialog.configure("StateBehavior")
+	# creation_dialog.resource_created.connect(_on_wizard_resource_created)
+	# add_child(creation_dialog)
 
 func _update_property() -> void:
 	if updating_from_ui: return
@@ -60,17 +60,17 @@ func _draw_empty_state() -> void:
 	add_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	add_btn.pressed.connect(_on_add_pressed)
 	
-	var wizard_btn = Button.new()
-	wizard_btn.text = "Wizard"
-	wizard_btn.icon = get_theme_icon("Tools", "EditorIcons")
-	wizard_btn.tooltip_text = "Create new Behavior Script & Resource"
-	wizard_btn.pressed.connect(func(): creation_dialog.popup_centered())
+	# var wizard_btn = Button.new()
+	# wizard_btn.text = "Wizard"
+	# wizard_btn.icon = get_theme_icon("Tools", "EditorIcons")
+	# wizard_btn.tooltip_text = "Create new Behavior Script & Resource"
+	# wizard_btn.pressed.connect(func(): creation_dialog.popup_centered())
 	
 	var btn_hbox = HBoxContainer.new()
 	btn_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	btn_hbox.add_theme_constant_override("separation", 10)
 	btn_hbox.add_child(add_btn)
-	btn_hbox.add_child(wizard_btn)
+	# btn_hbox.add_child(wizard_btn)
 	
 	var margin = MarginContainer.new()
 	margin.add_theme_constant_override("margin_top", 10)
@@ -153,12 +153,12 @@ func _draw_list(behaviors: Array) -> void:
 	add_btn.pressed.connect(_on_add_pressed)
 	add_btn_row.add_child(add_btn)
 	
-	var wizard_btn = Button.new()
-	wizard_btn.text = "Wizard"
-	wizard_btn.icon = get_theme_icon("Tools", "EditorIcons")
-	wizard_btn.tooltip_text = "Create new Behavior Script & Resource"
-	wizard_btn.pressed.connect(func(): creation_dialog.popup_centered())
-	add_btn_row.add_child(wizard_btn)
+	# var wizard_btn = Button.new()
+	# wizard_btn.text = "Wizard"
+	# wizard_btn.icon = get_theme_icon("Tools", "EditorIcons")
+	# wizard_btn.tooltip_text = "Create new Behavior Script & Resource"
+	# wizard_btn.pressed.connect(func(): creation_dialog.popup_centered())
+	# add_btn_row.add_child(wizard_btn)
 	
 	container.add_child(add_btn_row)
 
