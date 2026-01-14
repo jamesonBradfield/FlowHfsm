@@ -65,12 +65,12 @@ func _get_configuration_warnings() -> PackedStringArray:
 	# Check for null behaviors
 	for i in range(behaviors.size()):
 		if behaviors[i] == null:
-			warnings.append("Behavior at index %d is empty (null)." % i)
+			warnings.append("Behavior Slot #%d is empty. Please assign a StateBehavior or remove the slot." % i)
 			
 	# Check for null conditions
 	for i in range(activation_conditions.size()):
 		if activation_conditions[i] == null:
-			warnings.append("Activation Condition at index %d is empty (null)." % i)
+			warnings.append("Condition Slot is empty.")
 			
 	# Check for multiple starting states
 	var starting_states_count: int = 0

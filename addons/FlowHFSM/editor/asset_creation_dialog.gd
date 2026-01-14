@@ -37,6 +37,27 @@ var script_dialog: EditorFileDialog
 static var _last_used_behavior_folder: String = ""
 static var _last_used_condition_folder: String = ""
 
+# --- HELPER: Filesystem Sync Loop ---
+func _wait_for_file_system(path: String) -> bool:
+	var retries = 0
+	# Wait until file physically exists
+	while not FileAccess.file_exists(path) and retries < 20:
+		await get_tree().create_timer(0.1).timeout
+		if not is_instance_valid(self): return false
+		retries += 1
+		
+	# Force a scan now that the file physically exists
+	EditorInterface.get_resource_filesystem().scan()
+	
+	# Wait for scan to finish (file type must be recognized)
+	retries = 0
+	while EditorInterface.get_resource_filesystem().get_file_type(path).is_empty() and retries < 20:
+		await get_tree().create_timer(0.1).timeout
+		if not is_instance_valid(self): return false
+		retries += 1
+		
+	return true
+
 func _init() -> void:
 	title = "Asset Creation Wizard"
 	min_size = Vector2(700, 600)
@@ -142,8 +163,10 @@ func _init() -> void:
 	config_grid.add_child(src_hbox)
 	
 	# Class Name
-	config_grid.add_child(Label.new().duplicate()) # Spacer or Label
-	config_grid.get_child(config_grid.get_child_count()-1).text = "Class Name:"
+	var lbl_classname = Label.new()
+	lbl_classname.text = "Class Name:"
+	lbl_classname.name = "LblClassName"
+	config_grid.add_child(lbl_classname)
 	
 	class_name_edit = LineEdit.new()
 	class_name_edit.placeholder_text = "MyNewAsset"
@@ -379,6 +402,28 @@ func _go_to_step2(mode: CreationMode) -> void:
 	if lbl_src: lbl_src.visible = show_src
 	if hbox_src: hbox_src.visible = show_src
 	
+	# DYNAMIC UI LABELS (Explicit Intent)
+	var lbl_classname = find_child("LblClassName", true, false)
+	if lbl_classname:
+		match mode:
+			CreationMode.TEMPLATE:
+				lbl_classname.text = "New Script Name:"
+			CreationMode.EXTEND:
+				lbl_classname.text = "New Child Class Name:"
+			CreationMode.DUPLICATE:
+				lbl_classname.text = "New Copy Name:"
+			CreationMode.NODE:
+				lbl_classname.text = "State Node Name:"
+				
+	if lbl_src:
+		match mode:
+			CreationMode.EXTEND:
+				lbl_src.text = "Parent Script to Extend:"
+			CreationMode.DUPLICATE:
+				lbl_src.text = "Script to Copy:"
+			_:
+				lbl_src.text = "Source Script:"
+	
 	_update_preview()
 	
 	# Auto-Naming and Focus (UX Improvement)
@@ -396,6 +441,12 @@ func _on_back_pressed() -> void:
 	_go_to_step1()
 
 func _update_preview() -> void:
+	# GUARD CLAUSE: Generic Container Warning
+	if base_type == "RecursiveState" and current_mode != CreationMode.NODE:
+		preview_edit.text = "# STOP!\n# RecursiveState is a SEALED CONTAINER.\n# You cannot inherit from it directly.\n\n# LOGIC must live in a StateBehavior Resource.\n# Please go back and create a StateBehavior instead."
+		get_ok_button().disabled = true
+		return
+
 	if current_mode == CreationMode.NODE:
 		var state_name = class_name_edit.text.strip_edges()
 		if state_name.is_empty():
@@ -539,25 +590,10 @@ func _on_confirmed() -> void:
 	f.store_string(preview_edit.text)
 	f.close()
 	
-	var fs = EditorInterface.get_resource_filesystem()
-	fs.scan()
-	
-	# Wait for file
-	var found = false
-	for i in range(20):
-		if not is_instance_valid(self): return # Safety check if dialog was freed
-		
-		# Robust check: Must exist and have a valid type
-		if FileAccess.file_exists(script_path) and not fs.get_file_type(script_path).is_empty():
-			found = true
-			break
-		await get_tree().create_timer(0.1).timeout
-	
-	if not is_instance_valid(self): return # Safety check after loop
-	if not found: 
-		printerr("Warning: Script file not detected after scan or filesystem is slow.")
-		# Do not return here, try to load anyway as a fallback, 
-		# but warn user that it might fail if Godot is lagging.
+	# SYNC LOOP (Bulletproof)
+	if not await _wait_for_file_system(script_path):
+		printerr("Error: File system sync timed out for " + script_path)
+		return
 	
 	var script = load(script_path)
 	if not script:
@@ -574,7 +610,9 @@ func _on_confirmed() -> void:
 		printerr("Failed to save resource")
 		return
 		
-	fs.scan()
+	# Rescan for the resource file
+	EditorInterface.get_resource_filesystem().scan()
+	
 	EditorInterface.edit_resource(script)
 	
 	if is_instance_valid(self):
@@ -676,23 +714,18 @@ func _finalize_behavior_creation_async(b_name: String, folder: String, target_no
 	var script_path = folder + b_name + ".gd"
 	var res_path = folder + b_name + ".tres"
 	
-	var fs = EditorInterface.get_resource_filesystem()
-	
-	# Wait for scan with explicit file check
-	for i in range(20):
-		if not is_instance_valid(self): return
-		if FileAccess.file_exists(script_path) and not fs.get_file_type(script_path).is_empty():
-			break
-		await get_tree().create_timer(0.1).timeout
-		
-	if not is_instance_valid(self): return
+	# SYNC LOOP (Bulletproof)
+	if not await _wait_for_file_system(script_path):
+		printerr("Error: File system sync timed out for behavior script.")
+		return
 		
 	var script = load(script_path)
 	if not script: return
 	
 	var res = script.new()
 	ResourceSaver.save(res, res_path)
-	fs.scan()
+	
+	EditorInterface.get_resource_filesystem().scan()
 	EditorInterface.edit_resource(script)
 	
 	# Assign to node
