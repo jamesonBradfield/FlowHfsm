@@ -1,4 +1,4 @@
-[gd_scene load_steps=85 format=4 uid="uid://c63u3mbar8hqw"]
+[gd_scene load_steps=82 format=4 uid="uid://c63u3mbar8hqw"]
 
 [ext_resource type="Script" uid="uid://b5vioiolsqi45" path="res://Examples/Scripts/PhysicsManager.gd" id="1_physics"]
 [ext_resource type="Script" uid="uid://c7sdpbhyga2x4" path="res://Examples/Scripts/PlayerController.gd" id="2_controller"]
@@ -17597,8 +17597,6 @@ animation = &"Walk"
 
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_okway"]
 
-[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_7e7vv"]
-
 [sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_4nijq"]
 
 [sub_resource type="AnimationNodeStateMachine" id="AnimationNodeStateMachine_nqlqd"]
@@ -17644,6 +17642,10 @@ script = ExtResource("3_state")
 declared_variables = Array[ExtResource("4_var")]([SubResource("Var_Jump")])
 behaviors = Array[ExtResource("5_exxhh")]([SubResource("Beh_Jump")])
 activation_conditions = Array[ExtResource("6_exxhh")]([SubResource("Cond_Jump")])
+
+[node name="RecursiveState" type="Node" parent="RootState"]
+script = ExtResource("3_state")
+metadata/_custom_type_script = "uid://u8e3x4htq7mp"
 
 [node name="HFSMAnimationController" type="Node" parent="." node_paths=PackedStringArray("animation_tree", "root_state", "property_source")]
 script = ExtResource("9_7k2w3")

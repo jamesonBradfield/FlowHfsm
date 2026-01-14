@@ -33,6 +33,10 @@ var back_btn: Button
 var file_dialog: EditorFileDialog
 var script_dialog: EditorFileDialog
 
+# STATIC PERSISTENCE (Session Memory)
+static var _last_used_behavior_folder: String = ""
+static var _last_used_condition_folder: String = ""
+
 func _init() -> void:
 	title = "Asset Creation Wizard"
 	min_size = Vector2(700, 600)
@@ -166,6 +170,17 @@ func _init() -> void:
 	
 	config_grid.add_child(folder_hbox)
 	
+	# Batch Mode (Keep Open)
+	config_grid.add_child(Control.new()) # Spacer
+	
+	var batch_hbox = HBoxContainer.new()
+	var batch_check = CheckBox.new()
+	batch_check.text = "Batch Mode (Keep Open)"
+	batch_check.name = "CheckBatchMode"
+	batch_check.tooltip_text = "If checked, the wizard will stay open after creation and auto-increment the name."
+	batch_hbox.add_child(batch_check)
+	config_grid.add_child(batch_hbox)
+	
 	# Preview
 	var lbl_prev = Label.new()
 	lbl_prev.text = "Preview:"
@@ -205,6 +220,24 @@ func _init() -> void:
 	add_child(script_dialog)
 	
 	confirmed.connect(_on_confirmed)
+	
+	# Do not hide immediately on confirm, we handle it manually
+	get_ok_button().pressed.connect(func(): pass) 
+	# Actually, ConfirmationDialog auto-hides. We need to override this behavior.
+	# The easiest way is to NOT use the built-in confirmed signal for hiding logic, 
+	# but `confirmed` signal is emitted right before hiding. 
+	# To prevent hiding, we might need to intercept the visibility change?
+	# Or simpler: Re-show it if batch mode is on.
+	
+	visibility_changed.connect(_on_visibility_changed)
+
+func _on_visibility_changed() -> void:
+	if not visible:
+		# If we just hid, but batch mode is on AND we just clicked OK...
+		# Checking this state is tricky.
+		# Better approach: Don't rely on ConfirmationDialog's default OK behavior if possible?
+		# Or just call popup() again at the end of _on_confirmed if batch mode is true.
+		pass
 
 func _create_selection_card(parent: Control, title: String, desc: String, mode: CreationMode, icon_name: String) -> void:
 	var btn = Button.new()
@@ -305,11 +338,16 @@ func configure(type: String) -> void:
 	# Try to find default folders
 	var fs = DirAccess.open("res://")
 	var default_folder = "res://"
+	
 	if type == "StateBehavior":
-		if fs.dir_exists("addons/FlowHFSM/presets/behaviors"):
+		if not _last_used_behavior_folder.is_empty():
+			default_folder = _last_used_behavior_folder
+		elif fs.dir_exists("addons/FlowHFSM/presets/behaviors"):
 			default_folder = "res://addons/FlowHFSM/presets/behaviors/"
 	elif type == "StateCondition":
-		if fs.dir_exists("addons/FlowHFSM/presets/conditions"):
+		if not _last_used_condition_folder.is_empty():
+			default_folder = _last_used_condition_folder
+		elif fs.dir_exists("addons/FlowHFSM/presets/conditions"):
 			default_folder = "res://addons/FlowHFSM/presets/conditions/"
 			
 	folder_edit.text = default_folder
@@ -342,6 +380,17 @@ func _go_to_step2(mode: CreationMode) -> void:
 	if hbox_src: hbox_src.visible = show_src
 	
 	_update_preview()
+	
+	# Auto-Naming and Focus (UX Improvement)
+	if mode != CreationMode.NODE:
+		if class_name_edit.text.is_empty() and parent_node_for_creation:
+			# Context-aware naming? Not always possible if we just clicked the generic tool button.
+			# But if we can infer from something, do it here.
+			pass
+			
+		# Focus the input field so user can start typing immediately
+		class_name_edit.grab_focus()
+		class_name_edit.select_all()
 
 func _on_back_pressed() -> void:
 	_go_to_step1()
@@ -497,13 +546,18 @@ func _on_confirmed() -> void:
 	var found = false
 	for i in range(20):
 		if not is_instance_valid(self): return # Safety check if dialog was freed
-		if not fs.get_file_type(script_path).is_empty():
+		
+		# Robust check: Must exist and have a valid type
+		if FileAccess.file_exists(script_path) and not fs.get_file_type(script_path).is_empty():
 			found = true
 			break
 		await get_tree().create_timer(0.1).timeout
 	
 	if not is_instance_valid(self): return # Safety check after loop
-	if not found: printerr("Warning: Script file not detected after scan.")
+	if not found: 
+		printerr("Warning: Script file not detected after scan or filesystem is slow.")
+		# Do not return here, try to load anyway as a fallback, 
+		# but warn user that it might fail if Godot is lagging.
 	
 	var script = load(script_path)
 	if not script:
@@ -525,6 +579,44 @@ func _on_confirmed() -> void:
 	
 	if is_instance_valid(self):
 		resource_created.emit(load(res_path))
+		
+		# Session Persistence
+		if base_type == "StateBehavior":
+			_last_used_behavior_folder = folder
+		elif base_type == "StateCondition":
+			_last_used_condition_folder = folder
+			
+		# Batch Mode Logic
+		var batch_check = find_child("CheckBatchMode", true, false)
+		if batch_check and batch_check.button_pressed:
+			# Reset for next
+			_auto_increment_name()
+			# Don't close
+			get_ok_button().disabled = false # Re-enable for next
+			
+			# FORCE SHOW because ConfirmationDialog auto-hides on 'confirmed' signal
+			show() 
+		else:
+			hide()
+
+func _auto_increment_name() -> void:
+	var old_name = class_name_edit.text
+	var regex = RegEx.new()
+	regex.compile("(\\d+)$")
+	var res = regex.search(old_name)
+	
+	if res:
+		var num_str = res.get_string(1)
+		var num = num_str.to_int() + 1
+		# Replace the last number with incremented one
+		var prefix = old_name.substr(0, old_name.length() - num_str.length())
+		class_name_edit.text = prefix + str(num)
+	else:
+		class_name_edit.text = old_name + "2"
+		
+	class_name_edit.grab_focus()
+	class_name_edit.select_all()
+	_update_preview()
 
 func _create_node() -> void:
 	var state_name = class_name_edit.text.strip_edges()
@@ -584,13 +676,16 @@ func _finalize_behavior_creation_async(b_name: String, folder: String, target_no
 	var script_path = folder + b_name + ".gd"
 	var res_path = folder + b_name + ".tres"
 	
-	# Wait for scan
 	var fs = EditorInterface.get_resource_filesystem()
+	
+	# Wait for scan with explicit file check
 	for i in range(20):
 		if not is_instance_valid(self): return
-		if not fs.get_file_type(script_path).is_empty():
+		if FileAccess.file_exists(script_path) and not fs.get_file_type(script_path).is_empty():
 			break
 		await get_tree().create_timer(0.1).timeout
+		
+	if not is_instance_valid(self): return
 		
 	var script = load(script_path)
 	if not script: return
@@ -601,10 +696,10 @@ func _finalize_behavior_creation_async(b_name: String, folder: String, target_no
 	EditorInterface.edit_resource(script)
 	
 	# Assign to node
-	# We need to use UndoRedo for property assignment to ensure it saves/undoes correctly
-	var undo = EditorInterface.get_editor_undo_redo()
-	undo.create_action("Assign New Behavior")
-	undo.add_do_property(target_node, "behaviors", [res])
-	undo.add_undo_property(target_node, "behaviors", [])
-	undo.commit_action()
+	if is_instance_valid(target_node):
+		var undo = EditorInterface.get_editor_undo_redo()
+		undo.create_action("Assign New Behavior")
+		undo.add_do_property(target_node, "behaviors", [res])
+		undo.add_undo_property(target_node, "behaviors", [])
+		undo.commit_action()
 

@@ -1,3 +1,4 @@
+@tool
 class_name RecursiveState extends Node
 
 ## THE CONTAINER
@@ -51,11 +52,36 @@ const BlackboardScript = preload("res://addons/FlowHFSM/runtime/Blackboard.gd")
 ## The Blackboard instance. 
 ## If this is the Root State, it creates and owns this.
 ## If this is a Child State, this is usually null (passed via arguments).
-var _owned_blackboard
+var _owned_blackboard: Blackboard
 
 # --- SIGNALS ---
 signal state_entered(state: RecursiveState)
 signal state_exited(state: RecursiveState)
+
+# --- CONFIGURATION WARNINGS ---
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings: PackedStringArray = []
+	
+	# Check for null behaviors
+	for i in range(behaviors.size()):
+		if behaviors[i] == null:
+			warnings.append("Behavior at index %d is empty (null)." % i)
+			
+	# Check for null conditions
+	for i in range(activation_conditions.size()):
+		if activation_conditions[i] == null:
+			warnings.append("Activation Condition at index %d is empty (null)." % i)
+			
+	# Check for multiple starting states
+	var starting_states_count: int = 0
+	for child in get_children():
+		if child is RecursiveState and child.is_starting_state:
+			starting_states_count += 1
+			
+	if starting_states_count > 1:
+		warnings.append("Multiple children are marked as 'Is Starting State'. Only the first one will be used.")
+		
+	return warnings
 
 # --- LIFECYCLE ---
 
@@ -108,7 +134,7 @@ func _initialize_hierarchy_data(node: RecursiveState, root_blackboard: Blackboar
 ## @param delta: Time elapsed since the last frame.
 ## @param actor: The owner of the state machine (usually a CharacterBody3D/2D).
 ## @param blackboard: The shared data container.
-func process_state(delta: float, actor: Node, blackboard = null) -> void:
+func process_state(delta: float, actor: Node, blackboard: Blackboard = null) -> void:
 	# 0. BLACKBOARD RESOLUTION
 	if not blackboard:
 		if not parent:
@@ -154,7 +180,7 @@ func process_state(delta: float, actor: Node, blackboard = null) -> void:
 ##
 ## @param actor: The owner of the state machine.
 ## @param blackboard: The shared data container.
-func enter(actor: Node, blackboard = null) -> void:
+func enter(actor: Node, blackboard: Blackboard = null) -> void:
 	# Blackboard fallback for entry (if called manually)
 	if not blackboard and not parent:
 		if not _owned_blackboard: _owned_blackboard = BlackboardScript.new()
@@ -199,7 +225,7 @@ func _get_starting_child() -> RecursiveState:
 ##
 ## @param actor: The owner of the state machine.
 ## @param blackboard: The shared data container.
-func exit(actor: Node, blackboard = null) -> void:
+func exit(actor: Node, blackboard: Blackboard = null) -> void:
 	# Blackboard fallback
 	if not blackboard and not parent:
 		blackboard = _owned_blackboard
@@ -230,7 +256,7 @@ func is_hierarchy_locked() -> bool:
 
 ## Checks if this state can be active.
 ## Evaluates activation_conditions based on activation_mode.
-func can_activate(actor: Node, blackboard = null) -> bool:
+func can_activate(actor: Node, blackboard: Blackboard = null) -> bool:
 	# No conditions = Always Active (if reached by priority)
 	if activation_conditions.is_empty():
 		return true
@@ -265,7 +291,7 @@ func get_active_hierarchy_path() -> Array[String]:
 ## @param new_node: The new child state to make active.
 ## @param actor: The owner of the state machine.
 ## @param blackboard: The shared data container.
-func change_active_child(new_node: RecursiveState, actor: Node = null, blackboard = null) -> void:
+func change_active_child(new_node: RecursiveState, actor: Node = null, blackboard: Blackboard = null) -> void:
 	if active_child == new_node: return
 	
 	# Fallback to owner if actor is missing (e.g. signal call)
@@ -283,7 +309,7 @@ func change_active_child(new_node: RecursiveState, actor: Node = null, blackboar
 ## Returns the blackboard used by this state.
 ## If Root, returns the owned blackboard (creating it if necessary).
 ## If Child, recursively asks parent.
-func get_blackboard() -> BlackboardScript:
+func get_blackboard() -> Blackboard:
 	if parent:
 		return parent.get_blackboard()
 	
