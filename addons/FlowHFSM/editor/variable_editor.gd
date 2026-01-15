@@ -166,17 +166,22 @@ func _on_remove_variable(index: int) -> void:
 func _on_add_pressed() -> void:
 	var object: Object = get_edited_object()
 	var property: StringName = get_edited_property()
-	var variables: Array = object.get(property)
-	if variables:
-		variables = variables.duplicate()
-	else:
-		variables = []
+	var raw_val = object.get(property)
 	
-	var new_var = StateVariable.new()
+	# Use untyped array to avoid typing issues during manipulation
+	var new_variables = []
+	if raw_val and raw_val is Array:
+		new_variables.assign(raw_val)
+	
+	# Safe instantiation
+	var script = load("res://addons/FlowHFSM/runtime/StateVariable.gd")
+	var new_var = script.new()
 	new_var.variable_name = "new_var"
-	variables.append(new_var)
+	new_variables.append(new_var)
 	
-	_apply_changes(variables, "Add Variable")
+	_apply_changes(new_variables, "Add Variable")
+
+
 
 func _apply_changes(new_variables: Array, action_name: String) -> void:
 	var object: Object = get_edited_object()

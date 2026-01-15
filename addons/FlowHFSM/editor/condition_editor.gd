@@ -205,16 +205,19 @@ func _on_remove_condition(index: int) -> void:
 func _on_add_pressed() -> void:
 	var object: Object = get_edited_object()
 	var property: StringName = get_edited_property()
-	var conditions: Array = object.get(property)
-	if conditions:
-		conditions = conditions.duplicate()
-	else:
-		conditions = []
+	var raw_val = object.get(property)
 	
-	# Start with null so user can pick
-	conditions.append(null)
+	# Use untyped array to avoid typing issues during manipulation
+	var new_conditions = []
+	if raw_val and raw_val is Array:
+		new_conditions.assign(raw_val)
 	
-	_apply_changes(conditions, "Add Condition")
+	# Append null
+	new_conditions.append(null)
+	
+	_apply_changes(new_conditions, "Add Condition")
+
+
 
 func _apply_changes(new_conditions: Array, action_name: String) -> void:
 	var object: Object = get_edited_object()

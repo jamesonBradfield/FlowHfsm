@@ -205,16 +205,19 @@ func _on_remove_behavior(index: int) -> void:
 func _on_add_pressed() -> void:
 	var object: Object = get_edited_object()
 	var property: StringName = get_edited_property()
-	var behaviors: Array = object.get(property)
-	if behaviors:
-		behaviors = behaviors.duplicate()
-	else:
-		behaviors = []
+	var raw_val = object.get(property)
 	
-	# Append null to let user pick
-	behaviors.append(null)
+	# Use untyped array to avoid typing issues during manipulation
+	var new_behaviors = []
+	if raw_val and raw_val is Array:
+		new_behaviors.assign(raw_val)
 	
-	_apply_changes(behaviors, "Add Behavior")
+	# Append null
+	new_behaviors.append(null)
+	
+	_apply_changes(new_behaviors, "Add Behavior")
+
+
 
 func _apply_changes(new_behaviors: Array, action_name: String) -> void:
 	var object: Object = get_edited_object()

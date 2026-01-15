@@ -17643,9 +17643,8 @@ declared_variables = Array[ExtResource("4_var")]([SubResource("Var_Jump")])
 behaviors = Array[ExtResource("5_exxhh")]([SubResource("Beh_Jump")])
 activation_conditions = Array[ExtResource("6_exxhh")]([SubResource("Cond_Jump")])
 
-[node name="RecursiveState" type="Node" parent="RootState"]
+[node name="Grounded" type="Node" parent="RootState"]
 script = ExtResource("3_state")
-metadata/_custom_type_script = "uid://u8e3x4htq7mp"
 
 [node name="HFSMAnimationController" type="Node" parent="." node_paths=PackedStringArray("animation_tree", "root_state", "property_source")]
 script = ExtResource("9_7k2w3")

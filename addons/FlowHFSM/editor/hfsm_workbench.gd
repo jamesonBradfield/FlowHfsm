@@ -145,14 +145,26 @@ func _check_selection() -> void:
 		_last_selected_node = null
 		_on_selection_changed()
 
+func _is_state(node: Node) -> bool:
+	if not node: return false
+	# Try strict type check (works if class is registered)
+	if node is RecursiveState: return true
+	# Fallback: Script resource path check (works for base class)
+	var scr = node.get_script()
+	if scr and scr.resource_path.ends_with("RecursiveState.gd"): return true
+	# Fallback: Check for inheritance in script source/meta? 
+	# Too slow. Stick to these two.
+	return false
+
 func _on_selection_changed() -> void:
 	active_node = _last_selected_node
 	
 	# Determine Mode
-	if active_node and active_node.is_class("Node") and (active_node.get_script() and active_node.get_script().resource_path.ends_with("RecursiveState.gd")):
+	if _is_state(active_node):
 		_switch_to_context_mode(active_node)
 	else:
 		_switch_to_dashboard_mode()
+
 
 func _switch_to_dashboard_mode() -> void:
 	current_mode = WorkbenchMode.DASHBOARD
@@ -175,51 +187,135 @@ func _switch_to_context_mode(node: Node) -> void:
 func _build_dashboard_ui() -> void:
 	dashboard_container = ScrollContainer.new()
 	dashboard_container.size_flags_vertical = SIZE_EXPAND_FILL
+	dashboard_container.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	content_container.add_child(dashboard_container)
 	
-	var center = CenterContainer.new()
-	center.size_flags_horizontal = SIZE_EXPAND_FILL
-	center.size_flags_vertical = SIZE_EXPAND_FILL
-	dashboard_container.add_child(center)
+	var main_vbox = VBoxContainer.new()
+	main_vbox.size_flags_horizontal = SIZE_EXPAND_FILL
+	main_vbox.size_flags_vertical = SIZE_EXPAND_FILL
+	main_vbox.add_theme_constant_override("separation", 30)
+	dashboard_container.add_child(main_vbox)
+	
+	# Spacer Top
+	var spacer_top = Control.new()
+	spacer_top.custom_minimum_size.y = 20
+	main_vbox.add_child(spacer_top)
+	
+	# 1. Hero Section
+	var hero_vbox = VBoxContainer.new()
+	hero_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	main_vbox.add_child(hero_vbox)
+	
+	var lbl_welcome = Label.new()
+	lbl_welcome.text = "Welcome to FlowHFSM"
+	lbl_welcome.add_theme_font_size_override("font_size", 24)
+	lbl_welcome.add_theme_color_override("font_color", Color(0.8, 0.9, 1.0))
+	lbl_welcome.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hero_vbox.add_child(lbl_welcome)
+	
+	var lbl_sub = Label.new()
+	lbl_sub.text = "Select an action to get started with your state machine."
+	lbl_sub.modulate = Color(0.7, 0.7, 0.7)
+	lbl_sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hero_vbox.add_child(lbl_sub)
+	
+	# 2. Action Cards
+	var cards_center = CenterContainer.new()
+	cards_center.size_flags_horizontal = SIZE_EXPAND_FILL
+	main_vbox.add_child(cards_center)
 	
 	dashboard_cards = HBoxContainer.new()
-	dashboard_cards.add_theme_constant_override("separation", 20)
-	center.add_child(dashboard_cards)
+	dashboard_cards.add_theme_constant_override("separation", 24)
+	cards_center.add_child(dashboard_cards)
 	
-	_create_card(dashboard_cards, "New Behavior", "Create stateless logic.", "New", func(): _setup_config(CreationMode.TEMPLATE, "StateBehavior"))
-	_create_card(dashboard_cards, "New Condition", "Create logic gate.", "New", func(): _setup_config(CreationMode.TEMPLATE, "StateCondition"))
-	_create_card(dashboard_cards, "Duplicate", "Clone existing script.", "Duplicate", func(): _setup_config(CreationMode.DUPLICATE, "StateBehavior"))
-	_create_card(dashboard_cards, "Extend", "Inherit from existing.", "ScriptExtend", func(): _setup_config(CreationMode.EXTEND, "StateBehavior"))
+	_create_card(dashboard_cards, "New Behavior", "Create stateless logic resource.", "New", func(): _setup_config(CreationMode.TEMPLATE, "StateBehavior"), Color(0.4, 0.6, 0.8))
+	_create_card(dashboard_cards, "New Condition", "Create boolean logic gate.", "New", func(): _setup_config(CreationMode.TEMPLATE, "StateCondition"), Color(0.4, 0.8, 0.6))
+	_create_card(dashboard_cards, "Duplicate", "Clone an existing script.", "Duplicate", func(): _setup_config(CreationMode.DUPLICATE, "StateBehavior"), Color(0.8, 0.6, 0.4))
+	_create_card(dashboard_cards, "Extend", "Inherit from existing script.", "ScriptExtend", func(): _setup_config(CreationMode.EXTEND, "StateBehavior"), Color(0.7, 0.5, 0.8))
 
-func _create_card(parent: Control, title: String, desc: String, icon_name: String, callback: Callable) -> void:
+	# 3. Footer / Links
+	var footer_vbox = VBoxContainer.new()
+	footer_vbox.size_flags_vertical = SIZE_EXPAND_FILL
+	footer_vbox.alignment = BoxContainer.ALIGNMENT_END # Push to bottom
+	main_vbox.add_child(footer_vbox)
+	
+	var links_hbox = HBoxContainer.new()
+	links_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	links_hbox.add_theme_constant_override("separation", 20)
+	footer_vbox.add_child(links_hbox)
+	
+	_create_link_button(links_hbox, "Documentation", "Help", "https://github.com/") # Placeholder URL
+	_create_link_button(links_hbox, "Report Issue", "Error", "https://github.com/") # Placeholder URL
+	
+	# Spacer Bottom
+	var spacer_bot = Control.new()
+	spacer_bot.custom_minimum_size.y = 20
+	footer_vbox.add_child(spacer_bot)
+
+func _create_card(parent: Control, title: String, desc: String, icon_name: String, callback: Callable, accent_color: Color = Color(1,1,1)) -> void:
 	var btn = Button.new()
-	btn.custom_minimum_size = Vector2(160, 140)
+	btn.custom_minimum_size = Vector2(200, 160)
 	btn.pressed.connect(callback)
+	# Styling
+	# We can't easily override StyleBoxFlat here without creating new ones, 
+	# but we can try to use a theme variation or just let it be a button.
+	# Let's add a colorful strip at the top inside the button?
+	
+	var margin = MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margin.add_theme_constant_override("margin_top", 10)
+	margin.add_theme_constant_override("margin_bottom", 10)
+	margin.add_theme_constant_override("margin_left", 10)
+	margin.add_theme_constant_override("margin_right", 10)
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	btn.add_child(margin)
 	
 	var vbox = VBoxContainer.new()
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_KEEP_SIZE, 10)
-	btn.add_child(vbox)
+	vbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_child(vbox)
+	
+	# Icon Area
+	var icon_center = CenterContainer.new()
+	vbox.add_child(icon_center)
 	
 	var icon = TextureRect.new()
 	icon.texture = get_theme_icon(icon_name, "EditorIcons")
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.custom_minimum_size = Vector2(48, 48)
-	vbox.add_child(icon)
+	icon.custom_minimum_size = Vector2(56, 56)
+	icon.modulate = accent_color
+	icon_center.add_child(icon)
+	
+	# Spacer
+	var spacer = Control.new()
+	spacer.custom_minimum_size.y = 10
+	vbox.add_child(spacer)
 	
 	var lbl = Label.new()
 	lbl.text = title
+	lbl.add_theme_font_size_override("font_size", 16)
+	lbl.add_theme_constant_override("outline_size", 0) # Bold-ish?
+	# Make it look bold via font variation if possible, or just color
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(lbl)
 	
 	var lbl_d = Label.new()
 	lbl_d.text = desc
 	lbl_d.modulate = Color(0.7, 0.7, 0.7)
-	lbl_d.add_theme_font_size_override("font_size", 10)
+	lbl_d.add_theme_font_size_override("font_size", 11)
 	lbl_d.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl_d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(lbl_d)
 	
+	parent.add_child(btn)
+
+func _create_link_button(parent: Control, text: String, icon_name: String, url: String) -> void:
+	var btn = Button.new()
+	btn.text = text
+	btn.icon = get_theme_icon(icon_name, "EditorIcons")
+	btn.flat = true
+	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	btn.pressed.connect(func(): OS.shell_open(url))
 	parent.add_child(btn)
 
 # --- CONTEXT UI ---
@@ -255,28 +351,48 @@ func _build_context_ui() -> void:
 	btn_add_child.pressed.connect(func(): _setup_config(CreationMode.NODE, "RecursiveState"))
 	inner_vbox.add_child(btn_add_child)
 	
-	# 2. Variables Section
-	inner_vbox.add_child(_create_section_header("State Variables", "Memory definitions for this state."))
-	context_variables_container = VBoxContainer.new()
-	inner_vbox.add_child(context_variables_container)
+	# 2. Logic Overview (Children)
+	inner_vbox.add_child(_create_section_header("Logic Flow (Children)", "Execution order and conditions of child states."))
 	
-	var btn_add_var = Button.new()
-	btn_add_var.text = "Add Variable"
-	btn_add_var.icon = get_theme_icon("Add", "EditorIcons")
-	btn_add_var.pressed.connect(_on_add_variable_pressed)
-	inner_vbox.add_child(btn_add_var)
+	# Header Row
+	var header_row = HBoxContainer.new()
+	header_row.add_theme_constant_override("separation", 10)
+	inner_vbox.add_child(header_row)
 	
-	# 3. Behaviors Section
-	inner_vbox.add_child(HSeparator.new())
-	inner_vbox.add_child(_create_section_header("Behaviors", "Logic resources attached to this state."))
-	context_behaviors_container = VBoxContainer.new()
-	inner_vbox.add_child(context_behaviors_container)
+	var lbl_prio = Label.new()
+	lbl_prio.text = "Pri"
+	lbl_prio.custom_minimum_size.x = 30
+	lbl_prio.modulate = Color(0.5, 0.5, 0.5)
+	lbl_prio.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	header_row.add_child(lbl_prio)
 	
-	var btn_add_beh = Button.new()
-	btn_add_beh.text = "Add Behavior"
-	btn_add_beh.icon = get_theme_icon("Add", "EditorIcons")
-	btn_add_beh.pressed.connect(_on_add_behavior_pressed)
-	inner_vbox.add_child(btn_add_beh)
+	var lbl_name = Label.new()
+	lbl_name.text = "State Name"
+	lbl_name.size_flags_horizontal = SIZE_EXPAND_FILL
+	lbl_name.size_flags_stretch_ratio = 0.3
+	lbl_name.modulate = Color(0.5, 0.5, 0.5)
+	header_row.add_child(lbl_name)
+	
+	var lbl_beh = Label.new()
+	lbl_beh.text = "Behavior"
+	lbl_beh.size_flags_horizontal = SIZE_EXPAND_FILL
+	lbl_beh.size_flags_stretch_ratio = 0.3
+	lbl_beh.modulate = Color(0.5, 0.5, 0.5)
+	header_row.add_child(lbl_beh)
+	
+	var lbl_cond = Label.new()
+	lbl_cond.text = "Conditions"
+	lbl_cond.size_flags_horizontal = SIZE_EXPAND_FILL
+	lbl_cond.size_flags_stretch_ratio = 0.4
+	lbl_cond.modulate = Color(0.5, 0.5, 0.5)
+	header_row.add_child(lbl_cond)
+	
+	context_variables_container = VBoxContainer.new() # Reusing var name for list container to minimize diffs? No, let's rename properly.
+	# Actually, I'll rename it in the class definition or just use a new variable.
+	# Let's use a new variable in the full file replace or careful edit.
+	# Since I am using `edit`, I should be careful.
+	# I will replace the whole block of _build_context_ui to be safe.
+
 
 func _create_section_header(text: String, tooltip: String) -> Control:
 	var vbox = VBoxContainer.new()
@@ -292,183 +408,128 @@ func _refresh_context_ui() -> void:
 	
 	# Clear lists
 	for c in context_variables_container.get_children(): c.queue_free()
-	for c in context_behaviors_container.get_children(): c.queue_free()
-	
-	# Draw Variables
-	var vars = active_node.get("declared_variables")
-	if vars == null: vars = []
-	for i in range(vars.size()):
-		_draw_variable_row(vars[i], i)
-		
-	# Draw Behaviors
-	var behs = active_node.get("behaviors")
-	if behs == null: behs = []
-	for i in range(behs.size()):
-		_draw_behavior_row(behs[i], i)
+	# context_behaviors_container is removed
 
-func _draw_variable_row(variable: Resource, index: int) -> void:
+	
+	# Draw Children
+	var children = []
+	for c in active_node.get_children():
+		if _is_state(c):
+			children.append(c)
+	
+	if children.is_empty():
+
+		var lbl = Label.new()
+		lbl.text = "No child states. This is a Leaf State."
+		lbl.modulate = Color(0.5, 0.5, 0.5)
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		context_variables_container.add_child(lbl)
+		return
+
+	# Inverse order for Priority display? 
+	# No, Godot tree order: Top = Index 0.
+	# HFSM Logic: "Iterate children. Last valid wins."
+	# So Index 0 is LOW priority. Index N is HIGH priority.
+	# Let's display in Scene Tree order (0 to N) but label them.
+	
+	for i in range(children.size()):
+		var child = children[i]
+		_draw_child_row(child, i, children.size())
+
+func _draw_child_row(node: Node, index: int, total: int) -> void:
 	var card = PanelContainer.new()
-	card.add_theme_stylebox_override("panel", HFSMPropertyFactory.create_card_style())
+	# Alternating colors?
+	var bg = Color(0.15, 0.17, 0.23, 0.5)
+	if index % 2 == 1: bg = Color(0.18, 0.20, 0.25, 0.5)
+	
+	card.add_theme_stylebox_override("panel", HFSMPropertyFactory.create_card_style(bg))
 	context_variables_container.add_child(card)
 	
-	var vbox = VBoxContainer.new()
-	card.add_child(vbox)
+	var hbox = HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 10)
+	card.add_child(hbox)
 	
-	# Header
-	var header = HBoxContainer.new()
-	vbox.add_child(header)
+	# 1. Priority / Index
+	var lbl_idx = Label.new()
+	lbl_idx.text = str(index)
+	lbl_idx.custom_minimum_size.x = 30
+	lbl_idx.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl_idx.modulate = Color(0.6, 0.6, 0.6)
+	if index == total - 1: # Highest Priority
+		lbl_idx.modulate = Color(0.4, 0.8, 0.5)
+		lbl_idx.text += " (Hi)"
+	hbox.add_child(lbl_idx)
 	
-	var is_folded = false
-	if variable: is_folded = folded_states.get(variable.get_instance_id(), false)
+	# 2. Name
+	var btn_name = Button.new()
+	btn_name.text = node.name
+	btn_name.flat = true
+	btn_name.icon = get_theme_icon("Node", "EditorIcons")
+	btn_name.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	btn_name.size_flags_horizontal = SIZE_EXPAND_FILL
+	btn_name.size_flags_stretch_ratio = 0.3
+	btn_name.pressed.connect(func(): EditorInterface.edit_node(node))
+	hbox.add_child(btn_name)
 	
-	var fold_btn = HFSMPropertyFactory.create_fold_button(is_folded, func():
-		if variable:
-			folded_states[variable.get_instance_id()] = not is_folded
-			_refresh_context_ui()
-	)
-	fold_btn.disabled = (variable == null)
-	header.add_child(fold_btn)
+	# 3. Behavior
+	var beh_vbox = VBoxContainer.new()
+	beh_vbox.size_flags_horizontal = SIZE_EXPAND_FILL
+	beh_vbox.size_flags_stretch_ratio = 0.3
+	beh_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	hbox.add_child(beh_vbox)
 	
-	var picker = EditorResourcePicker.new()
-	picker.base_type = "StateVariable"
-	picker.edited_resource = variable
-	picker.size_flags_horizontal = SIZE_EXPAND_FILL
-	picker.resource_changed.connect(func(res): _on_variable_changed(res, index))
-	header.add_child(picker)
+	var behs = node.get("behaviors")
+	if behs and behs.size() > 0:
+		for b in behs:
+			if b:
+				var lbl_b = Label.new()
+				lbl_b.text = b.resource_path.get_file().get_basename()
+				lbl_b.clip_text = true
+				lbl_b.add_theme_font_size_override("font_size", 12)
+				lbl_b.tooltip_text = b.resource_path
+				beh_vbox.add_child(lbl_b)
+	else:
+		var lbl_b = Label.new()
+		lbl_b.text = "-"
+		lbl_b.modulate = Color(0.3, 0.3, 0.3)
+		beh_vbox.add_child(lbl_b)
+		
+	# 4. Conditions
+	var cond_flow = HFlowContainer.new()
+	cond_flow.size_flags_horizontal = SIZE_EXPAND_FILL
+	cond_flow.size_flags_stretch_ratio = 0.4
+	hbox.add_child(cond_flow)
 	
-	var del_btn = Button.new()
-	del_btn.icon = get_theme_icon("Remove", "EditorIcons")
-	del_btn.flat = true
-	del_btn.pressed.connect(func(): _on_remove_variable(index))
-	header.add_child(del_btn)
-	
-	# Body
-	if variable and not is_folded:
-		var margin = MarginContainer.new()
-		margin.add_theme_constant_override("margin_left", 14)
-		var props = HFSMPropertyFactory.create_property_list(variable, func(p, v): _on_variable_prop_changed(variable, p, v))
-		margin.add_child(props)
-		vbox.add_child(margin)
+	var conds = node.get("activation_conditions")
+	if conds and conds.size() > 0:
+		for c in conds:
+			if c:
+				var panel = PanelContainer.new()
+				var style = StyleBoxFlat.new()
+				style.bg_color = Color(0.2, 0.4, 0.6, 0.4)
+				style.corner_radius_top_left = 4
+				style.corner_radius_top_right = 4
+				style.corner_radius_bottom_left = 4
+				style.corner_radius_bottom_right = 4
+				style.content_margin_left = 6
+				style.content_margin_right = 6
+				panel.add_theme_stylebox_override("panel", style)
+				
+				var lbl_c = Label.new()
+				lbl_c.text = c.resource_path.get_file().get_basename()
+				lbl_c.add_theme_font_size_override("font_size", 10)
+				panel.add_child(lbl_c)
+				cond_flow.add_child(panel)
+	else:
+		var lbl_c = Label.new()
+		lbl_c.text = "Always"
+		lbl_c.modulate = Color(0.4, 0.4, 0.4)
+		lbl_c.add_theme_font_size_override("font_size", 11)
+		cond_flow.add_child(lbl_c)
 
-func _draw_behavior_row(behavior: Resource, index: int) -> void:
-	var card = PanelContainer.new()
-	card.add_theme_stylebox_override("panel", HFSMPropertyFactory.create_card_style(Color(0.18, 0.20, 0.25, 1.0)))
-	context_behaviors_container.add_child(card)
-	
-	var vbox = VBoxContainer.new()
-	card.add_child(vbox)
-	
-	# Header
-	var header = HBoxContainer.new()
-	vbox.add_child(header)
-	
-	var is_folded = false
-	if behavior: is_folded = folded_states.get(behavior.get_instance_id(), false)
-	
-	var fold_btn = HFSMPropertyFactory.create_fold_button(is_folded, func():
-		if behavior:
-			folded_states[behavior.get_instance_id()] = not is_folded
-			_refresh_context_ui()
-	)
-	fold_btn.disabled = (behavior == null)
-	header.add_child(fold_btn)
-	
-	var picker = EditorResourcePicker.new()
-	picker.base_type = "StateBehavior"
-	picker.edited_resource = behavior
-	picker.size_flags_horizontal = SIZE_EXPAND_FILL
-	picker.resource_changed.connect(func(res): _on_behavior_changed(res, index))
-	header.add_child(picker)
-	
-	var del_btn = Button.new()
-	del_btn.icon = get_theme_icon("Remove", "EditorIcons")
-	del_btn.flat = true
-	del_btn.pressed.connect(func(): _on_remove_behavior(index))
-	header.add_child(del_btn)
-	
-	# Body
-	if behavior and not is_folded:
-		var margin = MarginContainer.new()
-		margin.add_theme_constant_override("margin_left", 14)
-		var props = HFSMPropertyFactory.create_property_list(behavior, func(p, v): _on_behavior_prop_changed(behavior, p, v))
-		margin.add_child(props)
-		vbox.add_child(margin)
 
-# --- CONTEXT ACTIONS ---
+# Removed obsolete context actions
 
-func _on_add_variable_pressed() -> void:
-	if not active_node: return
-	var ur = EditorInterface.get_editor_undo_redo()
-	var list = active_node.get("declared_variables")
-	if list == null: list = []
-	else: list = list.duplicate()
-	
-	var new_var = load("res://addons/FlowHFSM/runtime/StateVariable.gd").new()
-	new_var.variable_name = "new_var"
-	list.append(new_var)
-	
-	ur.create_action("Add Variable")
-	ur.add_do_property(active_node, "declared_variables", list)
-	ur.add_undo_property(active_node, "declared_variables", active_node.get("declared_variables"))
-	ur.add_do_method(self, "_refresh_context_ui")
-	ur.add_undo_method(self, "_refresh_context_ui")
-	ur.commit_action()
-
-func _on_remove_variable(index: int) -> void:
-	var ur = EditorInterface.get_editor_undo_redo()
-	var list = active_node.get("declared_variables").duplicate()
-	list.remove_at(index)
-	ur.create_action("Remove Variable")
-	ur.add_do_property(active_node, "declared_variables", list)
-	ur.add_undo_property(active_node, "declared_variables", active_node.get("declared_variables"))
-	ur.add_do_method(self, "_refresh_context_ui")
-	ur.add_undo_method(self, "_refresh_context_ui")
-	ur.commit_action()
-
-func _on_variable_changed(res: Resource, index: int) -> void:
-	var list = active_node.get("declared_variables").duplicate()
-	list[index] = res
-	active_node.declared_variables = list
-	_refresh_context_ui()
-
-func _on_variable_prop_changed(res: Resource, p: String, v: Variant) -> void:
-	res.set(p, v)
-
-func _on_add_behavior_pressed() -> void:
-	if not active_node: return
-	var ur = EditorInterface.get_editor_undo_redo()
-	var list = active_node.get("behaviors")
-	if list == null: list = []
-	else: list = list.duplicate()
-	
-	list.append(null)
-	
-	ur.create_action("Add Behavior Slot")
-	ur.add_do_property(active_node, "behaviors", list)
-	ur.add_undo_property(active_node, "behaviors", active_node.get("behaviors"))
-	ur.add_do_method(self, "_refresh_context_ui")
-	ur.add_undo_method(self, "_refresh_context_ui")
-	ur.commit_action()
-
-func _on_remove_behavior(index: int) -> void:
-	var ur = EditorInterface.get_editor_undo_redo()
-	var list = active_node.get("behaviors").duplicate()
-	list.remove_at(index)
-	ur.create_action("Remove Behavior")
-	ur.add_do_property(active_node, "behaviors", list)
-	ur.add_undo_property(active_node, "behaviors", active_node.get("behaviors"))
-	ur.add_do_method(self, "_refresh_context_ui")
-	ur.add_undo_method(self, "_refresh_context_ui")
-	ur.commit_action()
-
-func _on_behavior_changed(res: Resource, index: int) -> void:
-	var list = active_node.get("behaviors").duplicate()
-	list[index] = res
-	active_node.behaviors = list
-	_refresh_context_ui()
-
-func _on_behavior_prop_changed(res: Resource, p: String, v: Variant) -> void:
-	res.set(p, v)
 
 # --- CONFIG UI ---
 
