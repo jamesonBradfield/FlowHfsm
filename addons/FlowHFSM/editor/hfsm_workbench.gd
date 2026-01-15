@@ -40,6 +40,9 @@ var error_label: Label
 var file_dialog: EditorFileDialog
 var script_dialog: EditorFileDialog
 
+# smash_dialog definition
+var smash_dialog: EditorFileDialog
+
 # STATIC PERSISTENCE
 static var _last_used_behavior_folder: String = ""
 static var _last_used_condition_folder: String = ""
@@ -123,8 +126,16 @@ func _ready() -> void:
 	)
 	add_child(script_dialog)
 	
+	smash_dialog = EditorFileDialog.new()
+	smash_dialog.file_mode = EditorFileDialog.FILE_MODE_SAVE_FILE
+	smash_dialog.access = EditorFileDialog.ACCESS_RESOURCES
+	smash_dialog.filters = ["*.gd ; GDScript"]
+	smash_dialog.file_selected.connect(_on_smash_file_selected)
+	add_child(smash_dialog)
+	
 	# Initial State
 	_on_selection_changed()
+
 	
 	set_process(true)
 
@@ -344,12 +355,24 @@ func _build_context_ui() -> void:
 	inner_vbox.add_theme_constant_override("separation", 20)
 	margin.add_child(inner_vbox)
 	
-	# 1. Child State Creation
+	# 1. Top Bar (Tools)
+	var tools_hbox = HBoxContainer.new()
+	tools_hbox.add_theme_constant_override("separation", 10)
+	inner_vbox.add_child(tools_hbox)
+	
 	var btn_add_child = Button.new()
 	btn_add_child.text = "+ Add Child State"
 	btn_add_child.custom_minimum_size = Vector2(0, 40)
+	btn_add_child.size_flags_horizontal = SIZE_EXPAND_FILL
 	btn_add_child.pressed.connect(func(): _setup_config(CreationMode.NODE, "RecursiveState"))
-	inner_vbox.add_child(btn_add_child)
+	tools_hbox.add_child(btn_add_child)
+	
+	var btn_smash = Button.new()
+	btn_smash.text = "Smash (Optimize)"
+	btn_smash.icon = get_theme_icon("Script", "EditorIcons")
+	btn_smash.tooltip_text = "Compile child logic into a single optimized GDScript."
+	btn_smash.pressed.connect(_on_smash_pressed)
+	tools_hbox.add_child(btn_smash)
 	
 	# 2. Logic Overview (Children)
 	inner_vbox.add_child(_create_section_header("Logic Flow (Children)", "Execution order and conditions of child states."))
@@ -530,6 +553,37 @@ func _draw_child_row(node: Node, index: int, total: int) -> void:
 
 # Removed obsolete context actions
 
+
+func _on_smash_pressed() -> void:
+	if not active_node: return
+	smash_dialog.current_file = "Smashed_%s.gd" % active_node.name
+	smash_dialog.popup_centered_ratio(0.6)
+
+func _on_smash_file_selected(path: String) -> void:
+	if not active_node: return
+	# Safe load of LogicSmasher in case class_name isn't ready
+	var smasher_script = load("res://addons/FlowHFSM/editor/logic_smasher.gd")
+	if not smasher_script:
+		push_error("FlowHFSM: LogicSmasher script not found!")
+		return
+		
+	var code = smasher_script.smash(active_node)
+	
+	var f = FileAccess.open(path, FileAccess.WRITE)
+	if f:
+		f.store_string(code)
+		f.close()
+		EditorInterface.get_resource_filesystem().scan()
+		
+		# Wait for scan?
+		await get_tree().create_timer(0.2).timeout
+		
+		var res = load(path)
+		if res:
+			EditorInterface.edit_resource(res)
+			print("FlowHFSM: Smashed state logic to ", path)
+		else:
+			push_error("FlowHFSM: Failed to load generated script.")
 
 # --- CONFIG UI ---
 
