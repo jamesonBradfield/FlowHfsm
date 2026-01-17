@@ -484,7 +484,7 @@ static func _create_animation_driver_editor(res: Resource, callback: Callable, d
 static func _open_node_selector(root_node: Node, callback: Callable) -> void:
 	var dialog = EditorNodeSelector.new()
 	EditorInterface.get_base_control().add_child(dialog)
-	dialog.popup_centered_ratio(0.4)
+	# dialog.popup_centered_ratio(0.4) # REMOVED: Deprecated in Godot 4. Handled in show_window.
 	dialog.node_selected.connect(func(node_path):
 		callback.call(node_path)
 		dialog.queue_free()
