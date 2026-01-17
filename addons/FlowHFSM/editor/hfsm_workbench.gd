@@ -5,16 +5,18 @@ extends VBoxContainer
 ## Replaces the old "Hierarchy View" with a focused Logic Editor.
 
 # PRELOADS (The fix is here: We point to LogicEditorView, not HierarchyView)
-const PaletteView = preload("res://addons/FlowHFSM/editor/palette_view.gd")
-const LogicEditorView = preload("res://addons/FlowHFSM/editor/logic_editor_view.gd")
+# const PaletteView = preload("res://addons/FlowHFSM/editor/palette_view.gd")
+# const LogicEditorView = preload("res://addons/FlowHFSM/editor/logic_editor_view.gd")
 
 var tabs: TabContainer
-var palette: PaletteView
-var logic_editor: LogicEditorView
+var palette: Control
+var logic_editor: Control
 
 var active_node: Node = null
 
 func _ready() -> void:
+	var PaletteView = load("res://addons/FlowHFSM/editor/palette_view.gd")
+	var LogicEditorView = load("res://addons/FlowHFSM/editor/logic_editor_view.gd")
 	# 1. Clean Header
 	var header = PanelContainer.new()
 	add_child(header)
