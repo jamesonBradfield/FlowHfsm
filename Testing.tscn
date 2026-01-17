@@ -1,0 +1,44 @@
+[gd_scene load_steps=5 format=3 uid="uid://bjemki8ewbxv3"]
+
+[ext_resource type="Script" uid="uid://c7sdpbhyga2x4" path="res://Examples/Scripts/PlayerController.gd" id="1_28q7j"]
+[ext_resource type="Script" uid="uid://b5vioiolsqi45" path="res://Examples/Scripts/PhysicsManager.gd" id="2_1x61k"]
+[ext_resource type="Script" uid="uid://u8e3x4htq7mp" path="res://addons/FlowHFSM/runtime/RecursiveState.gd" id="3_lj67a"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_48gpj"]
+
+[node name="Testing" type="Node3D"]
+
+[node name="CharacterBody3D" type="CharacterBody3D" parent="."]
+
+[node name="PlayerController" type="Node" parent="CharacterBody3D" node_paths=PackedStringArray("root_state", "physics_manager")]
+script = ExtResource("1_28q7j")
+root_state = NodePath("../RootState")
+physics_manager = NodePath("../PhysicsManager")
+metadata/_custom_type_script = "uid://c7sdpbhyga2x4"
+
+[node name="PhysicsManager" type="Node" parent="CharacterBody3D"]
+script = ExtResource("2_1x61k")
+metadata/_custom_type_script = "uid://b5vioiolsqi45"
+
+[node name="RootState" type="Node" parent="CharacterBody3D"]
+script = ExtResource("3_lj67a")
+metadata/_custom_type_script = "uid://u8e3x4htq7mp"
+
+[node name="Idle" type="Node" parent="CharacterBody3D/RootState"]
+script = ExtResource("3_lj67a")
+metadata/_custom_type_script = "uid://u8e3x4htq7mp"
+
+[node name="Walk" type="Node" parent="CharacterBody3D/RootState"]
+script = ExtResource("3_lj67a")
+metadata/_custom_type_script = "uid://u8e3x4htq7mp"
+
+[node name="Run" type="Node" parent="CharacterBody3D/RootState"]
+script = ExtResource("3_lj67a")
+metadata/_custom_type_script = "uid://u8e3x4htq7mp"
+
+[node name="Jump" type="Node" parent="CharacterBody3D/RootState"]
+script = ExtResource("3_lj67a")
+metadata/_custom_type_script = "uid://u8e3x4htq7mp"
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="CharacterBody3D"]
+shape = SubResource("CapsuleShape3D_48gpj")
