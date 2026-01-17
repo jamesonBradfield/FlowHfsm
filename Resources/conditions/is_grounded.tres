@@ -1,6 +1,0 @@
-[gd_resource type="Resource" script_class="ConditionIsGrounded" load_steps=2 format=3 uid="uid://d3svpt2r3vi0l"]
-
-[ext_resource type="Script" uid="uid://ig41cgq1agpf" path="res://Scripts/ConditionIsGrounded.gd" id="1_03y5v"]
-
-[resource]
-script = ExtResource("1_03y5v")

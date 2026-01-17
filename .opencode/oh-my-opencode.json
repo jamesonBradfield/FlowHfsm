@@ -1,0 +1,34 @@
+{
+  "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-opencode/master/assets/oh-my-opencode.schema.json",
+  "agents": {
+    "librarian": {
+      "model": "google/gemini-1.5-pro",
+      "system_prompt": "You are the Librarian. Your scope is strictly limited to Godot 4.x documentation. When searching, you MUST append 'Godot 4' or 'Godot 4.3' to every query. You MUST prioritize the domain 'docs.godotengine.org'. Ignore results from 'godotengine.org/qa' if they are older than 2023."
+    }
+  },
+  "lsp": {
+    "godot": {
+      "command": ["nc", "127.0.0.1", "6005"],
+      "extensions": [".gd"],
+      "priority": 100,
+      "initialization_options": {
+        "host": "127.0.0.1",
+        "port": 6005,
+        "renderer": "GLES3",
+        "capabilities": {
+            "textDocument": {
+                "completion": {
+                    "completionItem": {
+                        "snippetSupport": true,
+                        "commitCharactersSupport": true,
+                        "documentationFormat": ["markdown", "plaintext"],
+                        "deprecatedSupport": true,
+                        "preselectSupport": true
+                    }
+                }
+            }
+        }
+      }
+    }
+  }
+}

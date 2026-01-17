@@ -10,7 +10,8 @@
 ### ✅ Phase 3: The Logic Gates
 * [x] `StateCondition` (Base Resource).
 * [x] `StateTransition` (AND/OR Logic).
-* [x] Standard Lib: `ConditionInput`, `ConditionIsGrounded`.
+* [x] **Generic Lib:** `ConditionInput`, `ConditionBoolCmp`, `ConditionFloatCmp`, `BehaviorSetProperty`.
+* [x] **Refactored:** Replaced specific conditions/behaviors with generic tools (Sharp Knives philosophy).
 
 ### ✅ Phase 4: Integration & Visuals
 * [x] **Debug UI:** `StateDebugger` (Visualize Tree Path + Memory).
@@ -23,7 +24,7 @@
 * [x] **Add Transitions button Error** TODO: add ERROR here
 * [x] **Unified Themes for all custom Inspectors** Transition Custom inspector resizes smaller than Behavior Custom Inspector, we should look into a theme to unify both.
 * [x] **Test Custom UI somehow** :shrug:
-* [ ] **Test Animation Sync:** Verify `StateAnimationLink` works with a real rigged character and BlendSpaces.
+* [x] **Test Animation Sync:** Verify `StateAnimationLink` works with a real rigged character and BlendSpaces. (Verified via `RefactoredMovement_BlendSpace.tscn`)
 * [ ] **Build example scenes to test all functionality** not sure what test cases we need, but we can use gdunit to run these and simulate input for each case.
 
 

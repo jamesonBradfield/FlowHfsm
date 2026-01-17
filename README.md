@@ -20,7 +20,7 @@
 
 ## 📦 Installation
 
-1. Copy the `addons/hfsm_editor` folder into your project's `addons/` directory.
+1. Copy the `addons/FlowHFSM` folder into your project's `addons/` directory.
 2. Go to **Project > Project Settings > Plugins**.
 3. Enable **Flow HFSM**.
 
@@ -81,7 +81,25 @@ If all three states can activate, **Jump wins** because it's last in the list.
 
 **To change priority:** Simply reorder states in the Scene Tree/Inspector.
 
-### 5. Animation Sync
+### 5. Smart Values (Data Injection)
+
+Behaviors often need data (speed, jump force, target location). Instead of hardcoding values or wiring spaghetti code, Flow HFSM uses **Smart Values**.
+
+Any `ValueFloat`, `ValueVector3`, or `ValueBool` property in the Inspector offers three modes:
+
+1.  **Constant:** A hardcoded value (e.g., Speed = 5.0).
+2.  **Blackboard:** Read a key from the shared Blackboard (e.g., Key = "input_magnitude").
+3.  **Property:** Read a property from a specific Node (e.g., Node = `../PlayerModel`, Property = `scale`).
+
+**Why is this cool?**
+You can create a generic "Move" behavior and reuse it for:
+-   **Player:** Reads input from Blackboard.
+-   **AI:** Reads direction from NavigationAgent.
+-   **Cutscene:** Reads velocity from an AnimationPlayer property.
+
+All without changing a single line of code in the Behavior itself!
+
+### 6. Animation Sync
 
 1. Add `HFSMAnimationController` node to your character.
 2. Assign `animation_tree` and `root_state`.
@@ -362,3 +380,10 @@ See project repository for license details.
 ---
 
 **Remember:** The Scene Tree order is your primary tool for managing state priority. **Lower = Higher Priority!**
+
+## 🛠️ Editor Tools
+
+Flow HFSM includes a custom Inspector plugin (`hfsm_inspector.gd`) to improve quality of life.
+
+*   **Inline Editing:** Instead of clicking into a Resource to edit its properties, the Inspector displays Behavior and Condition properties *inline*.
+*   **Context:** See everything at a glance without navigating back and forth between sub-resources.

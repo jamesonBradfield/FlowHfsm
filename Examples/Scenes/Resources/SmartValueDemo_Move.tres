@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="BehaviorPhysics" load_steps=6 format=3 uid="uid://c7hd3nsc0l2ce"]
+
+[ext_resource type="Script" uid="uid://c0a2ftxxng6bc" path="res://addons/FlowHFSM/presets/behaviors/BehaviorPhysics.gd" id="1_script"]
+[ext_resource type="Script" uid="uid://cysnscgjame1h" path="res://addons/FlowHFSM/runtime/values/ValueFloat.gd" id="2_float"]
+[ext_resource type="Script" uid="uid://c835nr1r782bv" path="res://addons/FlowHFSM/runtime/values/ValueVector3.gd" id="3_vector3"]
+
+[sub_resource type="Resource" id="ValueVector3_Dir"]
+script = ExtResource("3_vector3")
+mode = 2
+node_path = NodePath("PlayerController")
+property_name = "input_direction"
+
+[sub_resource type="Resource" id="ValueFloat_Speed"]
+script = ExtResource("2_float")
+mode = 2
+node_path = NodePath("../Control/Panel/VBoxContainer/SpeedSlider")
+property_name = "value"
+
+[resource]
+script = ExtResource("1_script")
+mode = 2
+planar_only = true
+apply_on_enter = false
+face_movement = true
+magnitude = SubResource("ValueFloat_Speed")
+direction = SubResource("ValueVector3_Dir")

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="BehaviorPhysics" load_steps=6 format=3 uid="uid://cfpmrods5sxhf"]
+
+[ext_resource type="Script" uid="uid://c835nr1r782bv" path="res://addons/FlowHFSM/runtime/values/ValueVector3.gd" id="1_oocq7"]
+[ext_resource type="Script" uid="uid://cysnscgjame1h" path="res://addons/FlowHFSM/runtime/values/ValueFloat.gd" id="2_wskkh"]
+[ext_resource type="Script" uid="uid://c0a2ftxxng6bc" path="res://addons/FlowHFSM/presets/behaviors/BehaviorPhysics.gd" id="3_dkcwy"]
+
+[sub_resource type="Resource" id="Resource_fh0jr"]
+script = ExtResource("1_oocq7")
+value = Vector3(0, 1, 0)
+
+[sub_resource type="Resource" id="Resource_44dk0"]
+script = ExtResource("2_wskkh")
+value = 12.0
+
+[resource]
+script = ExtResource("3_dkcwy")
+magnitude = SubResource("Resource_44dk0")
+direction = SubResource("Resource_fh0jr")
