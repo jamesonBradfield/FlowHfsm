@@ -1,15 +1,16 @@
 @tool
 class_name BehaviorPhysics extends FlowBehavior
 
-## Generic physics behavior using Smart Values (Blender Driver pattern).
-## Applies forces, impulses, or sets velocity based on ValueFloat/ValueVector3 sources.
+## Generic physics behavior.
+## Applies forces, impulses, or sets velocity directly on a CharacterBody3D.
+## Uses ValueFloat/ValueVector3 to allow binding to Blackboard variables.
 
 const ValueFloat = preload("res://addons/FlowHFSM/src/core/values/ValueFloat.gd")
 const ValueVector3 = preload("res://addons/FlowHFSM/src/core/values/ValueVector3.gd")
 
 enum PhysicsMode {
-	IMPULSE, 		## Apply instantaneous force once on enter (Add to velocity)
-	FORCE, 			## Apply continuous force every frame (Add to velocity * delta)
+	IMPULSE, 		## Apply instantaneous force once (Add to velocity)
+	FORCE, 			## Apply continuous force (Add to velocity * delta)
 	SET_VELOCITY 	## Overwrite velocity (Planar or Full)
 }
 
@@ -29,8 +30,10 @@ enum Space {
 @export var planar_only: bool = false
 ## If true, applies the force/impulse immediately on Enter. If false, applies every Update.
 @export var apply_on_enter: bool = true
-## If true, rotates the actor to face the calculated movement direction.
+## If true, rotates the actor to face the calculated movement direction (Only works in SET_VELOCITY).
 @export var face_movement: bool = false
+## Rotation speed for face_movement (radians/sec).
+@export var turn_speed: float = 10.0
 
 @export_group("Inputs")
 ## The magnitude of the force/velocity.
@@ -47,7 +50,7 @@ enum Space {
 @export var space_node_path: String = "Camera3D"
 
 func _validate_property(property: Dictionary) -> void:
-	if property.name == "planar_only":
+	if property.name == "planar_only" or property.name == "face_movement" or property.name == "turn_speed":
 		if mode != PhysicsMode.SET_VELOCITY:
 			property.usage = PROPERTY_USAGE_NONE
 
@@ -56,126 +59,85 @@ func _validate_property(property: Dictionary) -> void:
 			property.usage = PROPERTY_USAGE_NONE
 
 func enter(node: Node, actor: Node, blackboard: FlowBlackboard) -> void:
-	# Cache PhysicsManager in memory
-	if node is FlowState:
-		var pm = _find_physics_manager(actor)
-		if pm:
-			node.memory["_physics_manager"] = pm
-		else:
-			push_warning("BehaviorPhysics: PhysicsManager not found on actor " + actor.name)
-
 	if apply_on_enter:
-		_execute_physics(node, 0.0, actor, blackboard)
+		_execute_physics(delta_safe(actor), actor, blackboard)
 
 func update(node: Node, delta: float, actor: Node, blackboard: FlowBlackboard) -> void:
 	if not apply_on_enter:
-		_execute_physics(node, delta, actor, blackboard)
+		_execute_physics(delta, actor, blackboard)
 
-func _find_physics_manager(actor: Node) -> Node:
-	# 1. Direct child
-	var pm: Node = actor.get_node_or_null("PhysicsManager")
-	if pm: return pm
+# Helper to get a safe delta if called during enter (which might not have delta)
+func delta_safe(actor: Node) -> float:
+	return actor.get_process_delta_time()
 
-	# 2. Via PlayerController (if exists)
-	var pc: Node = actor.get_node_or_null("PlayerController")
-	if pc and "physics_manager" in pc and pc.physics_manager:
-		return pc.physics_manager
-
-	# 3. Search children for type (slow but robust)
-	for child: Node in actor.get_children():
-		if child is FlowPhysicsManager: # Assuming PhysicsManager is a class_name
-			return child
-		if child.name == "PhysicsManager": # Fallback if class_name not registered/loaded
-			return child
-
-	return null
-
-func _execute_physics(_node: Node, delta: float, actor: Node, blackboard: FlowBlackboard) -> void:
+func _execute_physics(delta: float, actor: Node, blackboard: FlowBlackboard) -> void:
 	var body: CharacterBody3D = actor as CharacterBody3D
 	if not body:
-		push_warning("BehaviorPhysics: Actor is not a CharacterBody3D")
-		return
-
-	# Get PhysicsManager (Cached or Find)
-	var physics_manager: Node = null
-	if _node is FlowState and _node.memory.has("_physics_manager"):
-		physics_manager = _node.memory["_physics_manager"]
-	
-	if not physics_manager:
-		physics_manager = _find_physics_manager(actor)
-		# Cache it if we found it now
-		if physics_manager and _node is FlowState:
-			_node.memory["_physics_manager"] = physics_manager
-
-	if not physics_manager:
-		# Warning already pushed in enter() or find()
+		# Fail silently in editor, warn in game
+		if not Engine.is_editor_hint():
+			push_warning("BehaviorPhysics: Actor '%s' is not a CharacterBody3D" % actor.name)
 		return
 
 	# 1. Resolve Magnitude
 	var final_magnitude: float = 0.0
 	if magnitude:
 		final_magnitude = magnitude.get_value(actor, blackboard)
-	else:
-		push_warning("BehaviorPhysics: No magnitude resource assigned")
 
 	# 2. Resolve Direction
 	var dir: Vector3 = Vector3.ZERO
 	if direction:
 		dir = direction.get_value(actor, blackboard)
-	else:
-		push_warning("BehaviorPhysics: No direction resource assigned")
 
-	# Normalize direction (unless it's zero, to avoid NaN)
+	# Normalize direction
 	if dir.length_squared() > 0.001:
 		dir = dir.normalized()
+	else:
+		dir = Vector3.ZERO
 
 	# 3. Resolve Space (Rotation)
 	var final_vector: Vector3 = dir * final_magnitude
 
 	match space:
 		Space.LOCAL:
-			# Rotate by Actor's Y rotation (assuming Y-up character)
+			# Rotate by Actor's Y rotation
 			final_vector = body.global_basis * final_vector
 
 		Space.RELATIVE_TO_NODE:
 			var ref_node: Node = actor.get_node_or_null(space_node_path)
 			if ref_node and ref_node is Node3D:
 				final_vector = ref_node.global_basis * final_vector
-			else:
-				push_warning("BehaviorPhysics: Reference node '%s' not found for RELATIVE_TO_NODE space, using world space" % space_node_path)
 
 		Space.WORLD:
-			pass # Already world space
+			pass 
 
-	# 4. Apply to PhysicsManager
+	# 4. Apply to CharacterBody3D
 	match mode:
 		PhysicsMode.IMPULSE:
-			if physics_manager.has_method("apply_impulse"):
-				physics_manager.apply_impulse(final_vector)
-			else:
-				# Fallback legacy
-				body.velocity += final_vector
+			body.velocity += final_vector
 
 		PhysicsMode.FORCE:
-			if physics_manager.has_method("apply_force"):
-				physics_manager.apply_force(final_vector, delta)
-			else:
-				# Fallback legacy
-				body.velocity += final_vector * delta
+			body.velocity += final_vector * delta
 
 		PhysicsMode.SET_VELOCITY:
-			if face_movement:
-				if physics_manager.has_method("face_direction"):
-					physics_manager.face_direction(final_vector, delta)
+			# Rotation Logic (Face Movement)
+			if face_movement and final_vector.length_squared() > 0.1:
+				var target_dir = final_vector.normalized()
+				var current_dir = -body.global_transform.basis.z # Forward is -Z in Godot
 
+				# Planar rotation only (Y-axis)
+				target_dir.y = 0
+				target_dir = target_dir.normalized()
+
+				if target_dir.length_squared() > 0.01:
+					var new_basis = body.global_transform.basis
+					# Smooth lookat
+					var target_basis = Basis.looking_at(target_dir, Vector3.UP)
+					new_basis = new_basis.slerp(target_basis, turn_speed * delta)
+					body.global_transform.basis = new_basis
+
+			# Velocity Application
 			if planar_only:
-				if physics_manager.has_method("set_planar_velocity"):
-					physics_manager.set_planar_velocity(final_vector)
-				else:
-					body.velocity.x = final_vector.x
-					body.velocity.z = final_vector.z
+				body.velocity.x = final_vector.x
+				body.velocity.z = final_vector.z
 			else:
-				if physics_manager.has_method("set_velocity"):
-					physics_manager.set_velocity(final_vector)
-				else:
-					body.velocity = final_vector
+				body.velocity = final_vector
