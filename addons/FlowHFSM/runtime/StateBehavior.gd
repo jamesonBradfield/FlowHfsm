@@ -12,7 +12,7 @@ class_name StateBehavior extends Resource
 ## @param node: The RecursiveState node using this behavior.
 ## @param actor: The owner of the state machine.
 ## @param blackboard: The shared data container.
-func enter(node: Node, actor: Node, blackboard: Blackboard) -> void:
+func enter(node: RecursiveState, actor: Node, blackboard: Blackboard) -> void:
 	pass
 
 ## Called when the state is exited.
@@ -21,7 +21,7 @@ func enter(node: Node, actor: Node, blackboard: Blackboard) -> void:
 ## @param node: The RecursiveState node using this behavior.
 ## @param actor: The owner of the state machine.
 ## @param blackboard: The shared data container.
-func exit(node: Node, actor: Node, blackboard: Blackboard) -> void:
+func exit(node: RecursiveState, actor: Node, blackboard: Blackboard) -> void:
 	pass
 
 ## Called every frame while the state is active.
@@ -31,5 +31,9 @@ func exit(node: Node, actor: Node, blackboard: Blackboard) -> void:
 ## @param delta: Time elapsed since the last frame.
 ## @param actor: The owner of the state machine.
 ## @param blackboard: The shared data container.
-func update(node: Node, delta: float, actor: Node, blackboard: Blackboard) -> void:
+func update(node: RecursiveState, delta: float, actor: Node, blackboard: Blackboard) -> void:
 	pass
+
+## Helper to get the structured memory object for this state.
+func get_memory(node: RecursiveState) -> RefCounted:
+	return node.memory_obj

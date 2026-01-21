@@ -2,22 +2,16 @@
 extends EditorProperty
 
 const ThemeResource = preload("res://addons/FlowHFSM/editor/flow_hfsm_theme.tres")
-const AssetCreationDialog = preload("res://addons/FlowHFSM/editor/asset_creation_dialog.gd")
+const HFSMPropertyFactory = preload("res://addons/FlowHFSM/editor/property_factory.gd")
 
 var container: VBoxContainer = VBoxContainer.new()
 var updating_from_ui: bool = false
-var folded_states: Dictionary = {}
-var creation_dialog: ConfirmationDialog
+var folded_states: Dictionary = {} # Resource ID -> bool
 
 func _init() -> void:
 	label = ""
 	container.theme = ThemeResource
 	add_child(container)
-	
-	creation_dialog = AssetCreationDialog.new()
-	creation_dialog.configure("StateCondition")
-	creation_dialog.resource_created.connect(_on_wizard_resource_created)
-	add_child(creation_dialog)
 
 func _update_property() -> void:
 	if updating_from_ui: return
@@ -29,7 +23,7 @@ func _update_property() -> void:
 	if not object: return
 	
 	var property: StringName = get_edited_property()
-	var conditions = object.get(property)
+	var conditions: Variant = object.get(property)
 	
 	if conditions == null or not (conditions is Array):
 		conditions = []
@@ -40,38 +34,31 @@ func _update_property() -> void:
 		_draw_list(conditions)
 
 func _draw_empty_state() -> void:
-	var panel = PanelContainer.new()
+	var panel: PanelContainer = PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", HFSMPropertyFactory.create_empty_slot_style())
 	
-	var vbox = VBoxContainer.new()
+	var vbox: VBoxContainer = VBoxContainer.new()
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	
-	var lbl = Label.new()
+	var lbl: Label = Label.new()
 	lbl.text = "No Activation Conditions"
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.modulate = Color(1, 1, 1, 0.5)
 	vbox.add_child(lbl)
 	
-	var add_btn = Button.new()
+	var add_btn: Button = Button.new()
 	add_btn.text = "Add Condition"
 	add_btn.icon = get_theme_icon("Add", "EditorIcons")
 	add_btn.custom_minimum_size.x = 120
 	add_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	add_btn.pressed.connect(_on_add_pressed)
 	
-	var wizard_btn = Button.new()
-	wizard_btn.text = "Wizard"
-	wizard_btn.icon = get_theme_icon("Tools", "EditorIcons")
-	wizard_btn.tooltip_text = "Create new Condition Script & Resource"
-	wizard_btn.pressed.connect(func(): creation_dialog.popup_centered())
-	
-	var btn_hbox = HBoxContainer.new()
+	var btn_hbox: HBoxContainer = HBoxContainer.new()
 	btn_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	btn_hbox.add_theme_constant_override("separation", 10)
 	btn_hbox.add_child(add_btn)
-	btn_hbox.add_child(wizard_btn)
 	
-	var margin = MarginContainer.new()
+	var margin: MarginContainer = MarginContainer.new()
 	margin.add_theme_constant_override("margin_top", 10)
 	margin.add_child(btn_hbox)
 	vbox.add_child(margin)
@@ -80,26 +67,26 @@ func _draw_empty_state() -> void:
 	container.add_child(panel)
 
 func _draw_list(conditions: Array) -> void:
-	var list_vbox = VBoxContainer.new()
+	var list_vbox: VBoxContainer = VBoxContainer.new()
 	list_vbox.add_theme_constant_override("separation", 8)
 	
 	for i in range(conditions.size()):
 		var condition: Resource = conditions[i]
 		
-		var card = PanelContainer.new()
+		var card: PanelContainer = PanelContainer.new()
 		card.add_theme_stylebox_override("panel", HFSMPropertyFactory.create_card_style())
 		
-		var card_vbox = VBoxContainer.new()
+		var card_vbox: VBoxContainer = VBoxContainer.new()
 		
 		# --- Header ---
-		var header = HBoxContainer.new()
+		var header: HBoxContainer = HBoxContainer.new()
 		
 		# Fold
-		var is_folded = false
+		var is_folded: bool = false
 		if condition:
 			is_folded = folded_states.get(condition.get_instance_id(), false)
 			
-		var fold_btn = HFSMPropertyFactory.create_fold_button(is_folded, func():
+		var fold_btn: Button = HFSMPropertyFactory.create_fold_button(is_folded, func():
 			if condition:
 				folded_states[condition.get_instance_id()] = not is_folded
 				_update_property()
@@ -108,7 +95,7 @@ func _draw_list(conditions: Array) -> void:
 		header.add_child(fold_btn)
 		
 		# Picker
-		var picker = EditorResourcePicker.new()
+		var picker: EditorResourcePicker = EditorResourcePicker.new()
 		picker.base_type = "StateCondition"
 		picker.edited_resource = condition
 		picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -116,7 +103,7 @@ func _draw_list(conditions: Array) -> void:
 		header.add_child(picker)
 		
 		# Delete
-		var del_btn = Button.new()
+		var del_btn: Button = Button.new()
 		del_btn.icon = get_theme_icon("Remove", "EditorIcons")
 		del_btn.tooltip_text = "Remove Condition"
 		del_btn.flat = true
@@ -127,11 +114,11 @@ func _draw_list(conditions: Array) -> void:
 		
 		# --- Body ---
 		if condition and not is_folded:
-			var margin = MarginContainer.new()
+			var margin: MarginContainer = MarginContainer.new()
 			margin.add_theme_constant_override("margin_left", 14)
 			margin.add_theme_constant_override("margin_top", 4)
 			
-			var props_list = HFSMPropertyFactory.create_property_list(condition, _on_condition_property_changed.bind(condition))
+			var props_list: Control = HFSMPropertyFactory.create_property_list(condition, _on_condition_property_changed.bind(condition))
 			margin.add_child(props_list)
 			card_vbox.add_child(margin)
 		
@@ -141,36 +128,17 @@ func _draw_list(conditions: Array) -> void:
 	container.add_child(list_vbox)
 	
 	# Bottom Add Button
-	var add_btn_row = HBoxContainer.new()
+	var add_btn_row: HBoxContainer = HBoxContainer.new()
 	add_btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	add_btn_row.add_theme_constant_override("separation", 10)
 	
-	var add_btn = Button.new()
+	var add_btn: Button = Button.new()
 	add_btn.text = "Add Condition"
 	add_btn.icon = get_theme_icon("Add", "EditorIcons")
 	add_btn.pressed.connect(_on_add_pressed)
 	add_btn_row.add_child(add_btn)
 	
-	var wizard_btn = Button.new()
-	wizard_btn.text = "Wizard"
-	wizard_btn.icon = get_theme_icon("Tools", "EditorIcons")
-	wizard_btn.tooltip_text = "Create new Condition Script & Resource"
-	wizard_btn.pressed.connect(func(): creation_dialog.popup_centered())
-	add_btn_row.add_child(wizard_btn)
-	
 	container.add_child(add_btn_row)
-
-func _on_wizard_resource_created(res: Resource) -> void:
-	var object: Object = get_edited_object()
-	var property: StringName = get_edited_property()
-	var conditions: Array = object.get(property)
-	if conditions:
-		conditions = conditions.duplicate()
-	else:
-		conditions = []
-	
-	conditions.append(res)
-	_apply_changes(conditions, "Create Condition via Wizard")
 
 func _on_condition_changed(new_res: Resource, index: int) -> void:
 	var object: Object = get_edited_object()
@@ -205,29 +173,40 @@ func _on_remove_condition(index: int) -> void:
 func _on_add_pressed() -> void:
 	var object: Object = get_edited_object()
 	var property: StringName = get_edited_property()
-	var conditions: Array = object.get(property)
-	if conditions:
-		conditions = conditions.duplicate()
-	else:
-		conditions = []
+	var raw_val: Variant = object.get(property)
 	
-	# Start with null so user can pick
-	conditions.append(null)
+	# Fix: Use duplicate() to preserve Typed Array info (Array[StateCondition])
+	var new_conditions: Array = []
+	if raw_val != null and raw_val is Array:
+		new_conditions = raw_val.duplicate()
 	
-	_apply_changes(conditions, "Add Condition")
+	# Append null
+	new_conditions.append(null)
+	
+	_apply_changes(new_conditions, "Add Condition")
 
 func _apply_changes(new_conditions: Array, action_name: String) -> void:
 	var object: Object = get_edited_object()
 	var property: StringName = get_edited_property()
-	var old_conditions: Array = object.get(property)
+	var old_conditions: Variant = object.get(property)
+	
+	if old_conditions == null:
+		old_conditions = []
+	elif old_conditions is Array:
+		old_conditions = old_conditions.duplicate()
 	
 	var ur: EditorUndoRedoManager = EditorInterface.get_editor_undo_redo()
 	ur.create_action(action_name)
-	ur.add_do_property(object, property, new_conditions)
-	ur.add_undo_property(object, property, old_conditions)
+	
+	# Use method calls for explicit setting
+	ur.add_do_method(object, "set", property, new_conditions)
+	ur.add_undo_method(object, "set", property, old_conditions)
 	
 	if object.has_method("notify_property_list_changed"):
 		ur.add_do_method(object, "notify_property_list_changed")
 		ur.add_undo_method(object, "notify_property_list_changed")
 		
 	ur.commit_action()
+	
+	# Force UI update immediately
+	_update_property()

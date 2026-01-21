@@ -23,6 +23,8 @@ class MockActor extends Node3D:
 		return null
 		
 	func _set(property: StringName, value: Variant) -> bool:
+		if property == "name":
+			return false
 		properties[property] = value
 		return true
 
@@ -60,17 +62,28 @@ func test_parameter_sync() -> Dictionary:
 	var test_name := "parameter_sync"
 	var test_passed := true
 	
-	# Setup: Define a mapping "speed" -> "parameters/Run/blend_position"
-	if animation_controller:
-		animation_controller.property_mapping = {
-			"speed": "parameters/Run/blend_position"
-		}
-	
 	# Mock source
 	var mock_source = MockActor.new()
+	mock_source.name = "MockSource"
 	add_child(mock_source)
+	
+	# Setup Driver
+	var AnimationDriver = load("res://addons/FlowHFSM/runtime/values/AnimationDriver.gd")
+	var ValueFloat = load("res://addons/FlowHFSM/runtime/values/ValueFloat.gd")
+	
+	var driver = AnimationDriver.new()
+	driver.parameter_path = "parameters/Run/blend_position"
+	driver.type = AnimationDriver.ValueType.FLOAT
+	
+	# Configure ValueFloat to read property
+	driver.value_float = ValueFloat.new()
+	driver.value_float.mode = ValueFloat.Mode.PROPERTY
+	driver.value_float.node_path = NodePath("MockSource") # Relative to parent (TestRunner)
+	driver.value_float.property_name = "speed"
+	
 	if animation_controller:
-		animation_controller.property_source = mock_source
+		animation_controller.drivers.clear()
+		animation_controller.drivers.append(driver)
 	
 	# Act: Set value in source
 	var test_val = 0.5
@@ -98,32 +111,37 @@ func test_blackboard_parameter_sync() -> Dictionary:
 	var test_name := "blackboard_parameter_sync"
 	var test_passed := true
 	
-	# Setup: Enable blackboard sync
+	# Setup Driver
+	var AnimationDriver = load("res://addons/FlowHFSM/runtime/values/AnimationDriver.gd")
+	var ValueFloat = load("res://addons/FlowHFSM/runtime/values/ValueFloat.gd")
+	
+	var driver = AnimationDriver.new()
+	driver.parameter_path = "parameters/Run/blend_position"
+	driver.type = AnimationDriver.ValueType.FLOAT
+	
+	# Configure ValueFloat to read blackboard
+	driver.value_float = ValueFloat.new()
+	driver.value_float.mode = ValueFloat.Mode.BLACKBOARD
+	driver.value_float.blackboard_key = "move_speed"
+	
 	if animation_controller:
-		animation_controller.sync_from_blackboard = true
-		animation_controller.property_mapping = {
-			"move_speed": "parameters/Run/blend_position"
-		}
-		# Ensure property_source is null to force blackboard usage (though logic allows fallback)
-		animation_controller.property_source = null
+		animation_controller.drivers.clear()
+		animation_controller.drivers.append(driver)
 	
 	# Act: Set value in Blackboard (via RootState)
 	# RootState should have initialized its blackboard in _ready()
 	var bb = root_state.get_blackboard()
 	if not bb:
-		# Maybe manually init if _ready didn't fire in test harness same way
-		# But _setup_environment creates new RecursiveState().
-		# RecursiveState._ready() creates blackboard if root.
-		# But if we didn't add it to SceneTree properly? add_child(root_state) isn't called in _setup_environment for root_state directly?
-		# Wait, _setup_environment does: root_state = RecursiveState.new()...
-		# But it doesn't add root_state to the test node via add_child()?
-		# Let's check _setup_environment.
+		# Ensure root_state is in tree to get _ready called if needed
+		# But we can also force creating one if we are just testing the controller integration
+		# Actually, HFSMAnimationController._ready connects to root_state.get_blackboard()
+		
+		# In _setup_environment, root_state is added to self (AnimationIntegrationTest) which is in tree?
+		# No, MainTestRunner adds AnimationIntegrationTest instance.
+		# So root_state should have _ready called.
 		pass
 		
-	# In _setup_environment: "root_state = RecursiveState.new() ... var idle... root.add_child(idle)"
-	# It DOES NOT add root_state to the scene tree! So _ready() never ran!
-	# We should fix _setup_environment to add root_state to this node.
-	
+	# Fix root_state in tree issue identified in previous code
 	if root_state.get_parent() == null:
 		add_child(root_state)
 		
@@ -282,7 +300,7 @@ func _setup_environment() -> void:
 	animation_controller = load("res://addons/FlowHFSM/runtime/components/HFSMAnimationController.gd").new()
 	animation_controller.root_state = root_state
 	animation_controller.animation_tree = mock_anim_tree
-	animation_controller.property_source = test_actor # Bind to our mock actor
+	# animation_controller.property_source = test_actor # Removed: Uses drivers now
 	add_child(animation_controller)
 	
 	# 5. Harness

@@ -1,18 +1,18 @@
-extends AnimationTree
-class_name MockAnimationTree
+class_name MockAnimationTree extends AnimationTree
 
 ## Mock AnimationTree for testing HFSM integration.
 ## Returns a MockPlayback object when "parameters/playback" is requested.
 
-var mock_playback
+const MockPlaybackScript = preload("res://addons/FlowHFSM/tests/Mocks/MockPlayback.gd")
 
-func _init() -> void:
-	mock_playback = load("res://addons/FlowHFSM/tests/Mocks/MockPlayback.gd").new()
-	active = true
-
+var mock_playback: MockPlayback
 var set_properties: Dictionary = {}
 
-func _get(property: StringName):
+func _init() -> void:
+	mock_playback = MockPlaybackScript.new()
+	active = true
+
+func _get(property: StringName) -> Variant:
 	if property == "parameters/playback":
 		return mock_playback
 	if set_properties.has(property):

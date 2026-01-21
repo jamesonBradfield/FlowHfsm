@@ -1,5 +1,4 @@
-extends Node
-class_name MockPlayback
+class_name MockPlayback extends Resource
 
 ## Mock for AnimationNodeStateMachinePlayback
 

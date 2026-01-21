@@ -64,13 +64,13 @@ func process_frame(delta: float, actor: Node) -> void:
 		push_error("Test harness not initialized. Call setup() first.")
 		return
 
-	var frame_start := Time.get_ticks_usec()
+	var frame_start: int = Time.get_ticks_usec()
 
 	# Process the state machine
 	test_root.process_state(delta, actor)
 
-	var frame_end := Time.get_ticks_usec()
-	var frame_time := frame_end - frame_start
+	var frame_end: int = Time.get_ticks_usec()
+	var frame_time: int = frame_end - frame_start
 
 	if profiling_enabled:
 		process_time_accum += frame_time
@@ -80,8 +80,8 @@ func process_frame(delta: float, actor: Node) -> void:
 
 ## State entered callback
 func _on_state_entered(state: RecursiveState) -> void:
-	var elapsed := float(Time.get_ticks_msec() - start_time) / 1000.0
-	state_log.append(state.name)
+	var elapsed: float = float(Time.get_ticks_msec() - start_time) / 1000.0
+	state_log.append(StringName(state.name))
 	entry_timestamps[state.name] = Time.get_ticks_msec()
 
 	print("[%7.3f] ENTER %s (path: %s)" % [
@@ -92,11 +92,11 @@ func _on_state_entered(state: RecursiveState) -> void:
 
 ## State exited callback
 func _on_state_exited(state: RecursiveState) -> void:
-	var elapsed := float(Time.get_ticks_msec() - start_time) / 1000.0
-	state_log.append(state.name + "_EXIT")
+	var elapsed: float = float(Time.get_ticks_msec() - start_time) / 1000.0
+	state_log.append(StringName(state.name + "_EXIT"))
 	exit_timestamps[state.name] = Time.get_ticks_msec()
 
-	var time_in_state := 0
+	var time_in_state: int = 0
 	# Calculate time spent in this state
 	if entry_timestamps.has(state.name):
 		time_in_state = exit_timestamps[state.name] - entry_timestamps[state.name]
@@ -106,7 +106,7 @@ func _on_state_exited(state: RecursiveState) -> void:
 
 ## Assert the current state matches expected
 func assert_state(expected: StringName) -> bool:
-	var current := test_root.get_active_hierarchy_path()
+	var current: Array[String] = test_root.get_active_hierarchy_path()
 	if current.is_empty() or current[-1] != expected:
 		push_error("Expected state '%s', got '%s'" % [expected, current[-1] if not current.is_empty() else "none"])
 		return false
@@ -114,17 +114,17 @@ func assert_state(expected: StringName) -> bool:
 
 ## Assert states were entered in the expected order
 func assert_entry_order(expected: Array[StringName]) -> bool:
-	var entries := state_log.filter(func(s: StringName): return not s.ends_with("_EXIT"))
+	var entries: Array[StringName] = state_log.filter(func(s: StringName): return not str(s).ends_with("_EXIT"))
 
 	if entries != expected:
-		var got := str(entries)
+		var got: String = str(entries)
 		push_error("Entry order mismatch.\nExpected: %s\nGot:      %s" % [expected, got])
 		return false
 	return true
 
 ## Assert a state was never entered
 func assert_never_entered(state_name: StringName) -> bool:
-	var entries := state_log.filter(func(s: StringName): return not s.ends_with("_EXIT"))
+	var entries: Array[StringName] = state_log.filter(func(s: StringName): return not str(s).ends_with("_EXIT"))
 
 	if state_name in entries:
 		push_error("State '%s' was entered but should not have been" % state_name)
@@ -133,7 +133,7 @@ func assert_never_entered(state_name: StringName) -> bool:
 
 ## Assert a state was entered at least once
 func assert_entered(state_name: StringName) -> bool:
-	var entries := state_log.filter(func(s: StringName): return not s.ends_with("_EXIT"))
+	var entries: Array[StringName] = state_log.filter(func(s: StringName): return not str(s).ends_with("_EXIT"))
 
 	if state_name not in entries:
 		push_error("State '%s' was never entered but should have been" % state_name)
@@ -142,7 +142,7 @@ func assert_entered(state_name: StringName) -> bool:
 
 ## Generate comprehensive test report
 func generate_report() -> Dictionary:
-	var unique_states := _count_unique_states()
+	var unique_states: int = _count_unique_states()
 
 	return {
 		"states_visited": unique_states,
@@ -156,9 +156,9 @@ func generate_report() -> Dictionary:
 
 ## Count unique states visited (excluding exits)
 func _count_unique_states() -> int:
-	var unique := {}
-	for s in state_log:
-		var s_str := String(s)
+	var unique: Dictionary = {}
+	for s: StringName in state_log:
+		var s_str: String = String(s)
 		var state_name: String = s_str if not s_str.ends_with("_EXIT") else s_str.trim_suffix("_EXIT")
 		unique[state_name] = true
 	return unique.size()
@@ -182,7 +182,7 @@ func print_summary() -> void:
 	print("Total Transitions: %d" % int(state_log.size() / 2.0))  # Each transition has enter + exit
 
 	if profiling_enabled:
-		var metrics := stop_profiling()
+		var metrics: Dictionary = stop_profiling()
 		print("\nPerformance Metrics:")
 		print("Avg Process Time: %.3f μs" % metrics.avg_process_time_us)
 		print("Max Process Time: %.3f μs" % metrics.max_process_time_us)
@@ -201,6 +201,8 @@ func print_summary() -> void:
 ## Cleanup - disconnect signals
 func cleanup() -> void:
 	if test_root:
-		test_root.state_entered.disconnect(_on_state_entered)
-		test_root.state_exited.disconnect(_on_state_exited)
+		if test_root.state_entered.is_connected(_on_state_entered):
+			test_root.state_entered.disconnect(_on_state_entered)
+		if test_root.state_exited.is_connected(_on_state_exited):
+			test_root.state_exited.disconnect(_on_state_exited)
 		test_root = null

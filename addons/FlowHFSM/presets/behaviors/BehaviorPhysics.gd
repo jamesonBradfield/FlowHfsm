@@ -1,26 +1,16 @@
 @tool
 class_name BehaviorPhysics extends StateBehavior
 
-## Generic physics behavior for applying forces, impulses, or setting velocity.
-## Flexible direction and magnitude sources allow for diverse use cases (Jump, Dash, Knockback, etc).
+## Generic physics behavior using Smart Values (Blender Driver pattern).
+## Applies forces, impulses, or sets velocity based on ValueFloat/ValueVector3 sources.
+
+const ValueFloat = preload("res://addons/FlowHFSM/runtime/values/ValueFloat.gd")
+const ValueVector3 = preload("res://addons/FlowHFSM/runtime/values/ValueVector3.gd")
 
 enum PhysicsMode {
 	IMPULSE, 		## Apply instantaneous force once on enter (Add to velocity)
 	FORCE, 			## Apply continuous force every frame (Add to velocity * delta)
 	SET_VELOCITY 	## Overwrite velocity (Planar or Full)
-}
-
-enum DirectionMode {
-	VECTOR, 		## Use the 'direction_vector' export
-	NODE_FORWARD, 	## Use the forward vector of a specific node (e.g. Camera)
-	INPUT, 			## Use input vector from PlayerController or Actor
-	BLACKBOARD_KEY 	## Read a Vector3 from the blackboard
-}
-
-enum MagnitudeMode {
-	FIXED, 			## Use the 'magnitude' export
-	BLACKBOARD_KEY, 	## Read a float from the blackboard
-	STATE_VARIABLE  ## Use a StateVariable resource
 }
 
 enum Space {
@@ -39,70 +29,41 @@ enum Space {
 @export var planar_only: bool = false
 ## If true, applies the force/impulse immediately on Enter. If false, applies every Update.
 @export var apply_on_enter: bool = true
+## If true, rotates the actor to face the calculated movement direction.
+@export var face_movement: bool = false
 
-@export_group("Magnitude")
-@export var magnitude_mode: MagnitudeMode = MagnitudeMode.FIXED:
-	set(value):
-		magnitude_mode = value
-		notify_property_list_changed()
-
-@export var magnitude: float = 10.0
-## Optional: Blackboard key to override static magnitude (reads float).
-@export var magnitude_blackboard_key: String = ""
-## Optional: StateVariable to use for magnitude (reads value from blackboard using variable name).
-@export var magnitude_variable: StateVariable
-
-@export_group("Direction")
-@export var direction_mode: DirectionMode = DirectionMode.VECTOR:
-	set(value):
-		direction_mode = value
-		notify_property_list_changed()
-
-@export var direction_vector: Vector3 = Vector3.UP
-## Path to node used for NODE_FORWARD or RELATIVE_TO_NODE space.
-@export var direction_node_path: String = "Camera3D"
-## Optional: Blackboard key to override direction (reads Vector3).
-@export var direction_blackboard_key: String = ""
+@export_group("Inputs")
+## The magnitude of the force/velocity.
+@export var magnitude: ValueFloat = ValueFloat.new()
+## The direction vector (will be normalized).
+@export var direction: ValueVector3 = ValueVector3.new()
 
 @export_group("Space")
 @export var space: Space = Space.WORLD:
 	set(value):
 		space = value
 		notify_property_list_changed()
-
+## Path to node used for RELATIVE_TO_NODE space.
+@export var space_node_path: String = "Camera3D"
 
 func _validate_property(property: Dictionary) -> void:
 	if property.name == "planar_only":
 		if mode != PhysicsMode.SET_VELOCITY:
 			property.usage = PROPERTY_USAGE_NONE
 
-	if property.name == "magnitude":
-		if magnitude_mode != MagnitudeMode.FIXED:
+	if property.name == "space_node_path":
+		if space != Space.RELATIVE_TO_NODE:
 			property.usage = PROPERTY_USAGE_NONE
-
-	if property.name == "magnitude_blackboard_key":
-		if magnitude_mode != MagnitudeMode.BLACKBOARD_KEY:
-			property.usage = PROPERTY_USAGE_NONE
-
-	if property.name == "magnitude_variable":
-		if magnitude_mode != MagnitudeMode.STATE_VARIABLE:
-			property.usage = PROPERTY_USAGE_NONE
-
-	if property.name == "direction_vector":
-		if direction_mode != DirectionMode.VECTOR:
-			property.usage = PROPERTY_USAGE_NONE
-
-	if property.name == "direction_node_path":
-		var needed: bool = (direction_mode == DirectionMode.NODE_FORWARD) or (space == Space.RELATIVE_TO_NODE)
-		if not needed:
-			property.usage = PROPERTY_USAGE_NONE
-
-	if property.name == "direction_blackboard_key":
-		if direction_mode != DirectionMode.BLACKBOARD_KEY:
-			property.usage = PROPERTY_USAGE_NONE
-
 
 func enter(node: Node, actor: Node, blackboard: Blackboard) -> void:
+	# Cache PhysicsManager in memory
+	if node is RecursiveState:
+		var pm = _find_physics_manager(actor)
+		if pm:
+			node.memory["_physics_manager"] = pm
+		else:
+			push_warning("BehaviorPhysics: PhysicsManager not found on actor " + actor.name)
+
 	if apply_on_enter:
 		_execute_physics(node, 0.0, actor, blackboard)
 
@@ -135,93 +96,40 @@ func _execute_physics(_node: Node, delta: float, actor: Node, blackboard: Blackb
 		push_warning("BehaviorPhysics: Actor is not a CharacterBody3D")
 		return
 
-	# Get PhysicsManager
-	var physics_manager: Node = _find_physics_manager(actor)
+	# Get PhysicsManager (Cached or Find)
+	var physics_manager: Node = null
+	if _node is RecursiveState and _node.memory.has("_physics_manager"):
+		physics_manager = _node.memory["_physics_manager"]
+	
 	if not physics_manager:
-		push_warning("BehaviorPhysics: PhysicsManager not found on actor " + actor.name)
+		physics_manager = _find_physics_manager(actor)
+		# Cache it if we found it now
+		if physics_manager and _node is RecursiveState:
+			_node.memory["_physics_manager"] = physics_manager
+
+	if not physics_manager:
+		# Warning already pushed in enter() or find()
 		return
 
 	# 1. Resolve Magnitude
-	var final_magnitude: float = magnitude
+	var final_magnitude: float = 0.0
+	if magnitude:
+		final_magnitude = magnitude.get_value(actor, blackboard)
+	else:
+		push_warning("BehaviorPhysics: No magnitude resource assigned")
 
-	match magnitude_mode:
-		MagnitudeMode.FIXED:
-			final_magnitude = magnitude
-
-		MagnitudeMode.BLACKBOARD_KEY:
-			if not magnitude_blackboard_key.is_empty():
-				if blackboard and blackboard.has_value(magnitude_blackboard_key):
-					var bb_val: Variant = blackboard.get_value(magnitude_blackboard_key)
-					if bb_val is float or bb_val is int:
-						final_magnitude = float(bb_val)
-				else:
-					push_warning("BehaviorPhysics: Blackboard key '%s' not found, using default magnitude" % magnitude_blackboard_key)
-
-		MagnitudeMode.STATE_VARIABLE:
-			if magnitude_variable:
-				var key: String = magnitude_variable.variable_name
-				if not key.is_empty():
-					if blackboard and blackboard.has_value(key):
-						var bb_val: Variant = blackboard.get_value(key)
-						if bb_val is float or bb_val is int:
-							final_magnitude = float(bb_val)
-					else:
-						# Fallback to initial_value if not in blackboard yet
-						var init_val: Variant = magnitude_variable.initial_value
-						if init_val is float or init_val is int:
-							final_magnitude = float(init_val)
-						push_warning("BehaviorPhysics: StateVariable key '%s' not found in blackboard, using initial_value" % key)
-				else:
-					push_warning("BehaviorPhysics: StateVariable has empty variable_name")
-			else:
-				push_warning("BehaviorPhysics: StateVariable mode selected but no variable assigned")
-
-	# 2. Resolve Direction (Unit Vector)
+	# 2. Resolve Direction
 	var dir: Vector3 = Vector3.ZERO
-
-	match direction_mode:
-		DirectionMode.VECTOR:
-			dir = direction_vector.normalized()
-
-		DirectionMode.NODE_FORWARD:
-			var ref_node: Node = actor.get_node_or_null(direction_node_path)
-			if ref_node and ref_node is Node3D:
-				dir = -ref_node.global_transform.basis.z # Forward is -Z in Godot
-			else:
-				push_warning("BehaviorPhysics: Reference node '%s' not found for NODE_FORWARD mode, falling back to direction_vector" % direction_node_path)
-				dir = direction_vector.normalized()
-
-		DirectionMode.INPUT:
-			# Try PlayerController first
-			var controller: Node = actor.get_node_or_null("PlayerController")
-			if controller and controller.get("input_direction") != null:
-				dir = controller.input_direction
-			elif "input_direction" in actor:
-				dir = actor.input_direction
-			else:
-				push_warning("BehaviorPhysics: INPUT mode selected but no input_direction found on actor or PlayerController")
-
-		DirectionMode.BLACKBOARD_KEY:
-			if not direction_blackboard_key.is_empty():
-				if blackboard and blackboard.has_value(direction_blackboard_key):
-					var val: Variant = blackboard.get_value(direction_blackboard_key)
-					if val is Vector3:
-						dir = val
-					else:
-						push_warning("BehaviorPhysics: Blackboard key '%s' is not a Vector3, got %s" % [direction_blackboard_key, type_string(typeof(val))])
-				else:
-					push_warning("BehaviorPhysics: Blackboard key '%s' not found for direction" % direction_blackboard_key)
-			else:
-				push_warning("BehaviorPhysics: BLACKBOARD_KEY mode selected but no key specified")
+	if direction:
+		dir = direction.get_value(actor, blackboard)
+	else:
+		push_warning("BehaviorPhysics: No direction resource assigned")
 
 	# Normalize direction (unless it's zero, to avoid NaN)
 	if dir.length_squared() > 0.001:
 		dir = dir.normalized()
 
 	# 3. Resolve Space (Rotation)
-	# Note: INPUT is usually already in world space (if from controller) or camera space.
-	# If DirectionMode is VECTOR, we typically want to rotate it.
-
 	var final_vector: Vector3 = dir * final_magnitude
 
 	match space:
@@ -230,11 +138,11 @@ func _execute_physics(_node: Node, delta: float, actor: Node, blackboard: Blackb
 			final_vector = body.global_basis * final_vector
 
 		Space.RELATIVE_TO_NODE:
-			var ref_node: Node = actor.get_node_or_null(direction_node_path)
+			var ref_node: Node = actor.get_node_or_null(space_node_path)
 			if ref_node and ref_node is Node3D:
 				final_vector = ref_node.global_basis * final_vector
 			else:
-				push_warning("BehaviorPhysics: Reference node '%s' not found for RELATIVE_TO_NODE space, using world space" % direction_node_path)
+				push_warning("BehaviorPhysics: Reference node '%s' not found for RELATIVE_TO_NODE space, using world space" % space_node_path)
 
 		Space.WORLD:
 			pass # Already world space
@@ -256,6 +164,10 @@ func _execute_physics(_node: Node, delta: float, actor: Node, blackboard: Blackb
 				body.velocity += final_vector * delta
 
 		PhysicsMode.SET_VELOCITY:
+			if face_movement:
+				if physics_manager.has_method("face_direction"):
+					physics_manager.face_direction(final_vector, delta)
+
 			if planar_only:
 				if physics_manager.has_method("set_planar_velocity"):
 					physics_manager.set_planar_velocity(final_vector)

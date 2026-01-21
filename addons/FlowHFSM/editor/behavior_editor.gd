@@ -2,22 +2,16 @@
 extends EditorProperty
 
 const ThemeResource = preload("res://addons/FlowHFSM/editor/flow_hfsm_theme.tres")
-const AssetCreationDialog = preload("res://addons/FlowHFSM/editor/asset_creation_dialog.gd")
+const HFSMPropertyFactory = preload("res://addons/FlowHFSM/editor/property_factory.gd")
 
 var container: VBoxContainer = VBoxContainer.new()
 var updating_from_ui: bool = false
-var folded_states: Dictionary = {} # Resource ID -> bool
-var creation_dialog: ConfirmationDialog
+var folded_states: Dictionary = {} # Resource ID (int) -> bool
 
 func _init() -> void:
 	label = "" # We draw our own label/header
 	container.theme = ThemeResource
 	add_child(container)
-	
-	creation_dialog = AssetCreationDialog.new()
-	creation_dialog.configure("StateBehavior")
-	creation_dialog.resource_created.connect(_on_wizard_resource_created)
-	add_child(creation_dialog)
 
 func _update_property() -> void:
 	if updating_from_ui: return
@@ -30,7 +24,7 @@ func _update_property() -> void:
 	if not edited_object: return
 	
 	var property_path: StringName = get_edited_property()
-	var behaviors = edited_object.get(property_path)
+	var behaviors: Variant = edited_object.get(property_path)
 	
 	if behaviors == null or not (behaviors is Array):
 		behaviors = []
@@ -41,38 +35,31 @@ func _update_property() -> void:
 		_draw_list(behaviors)
 
 func _draw_empty_state() -> void:
-	var panel = PanelContainer.new()
+	var panel: PanelContainer = PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", HFSMPropertyFactory.create_empty_slot_style())
 	
-	var vbox = VBoxContainer.new()
+	var vbox: VBoxContainer = VBoxContainer.new()
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	
-	var lbl = Label.new()
+	var lbl: Label = Label.new()
 	lbl.text = "No Behaviors Assigned"
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.modulate = Color(1, 1, 1, 0.5)
 	vbox.add_child(lbl)
 	
-	var add_btn = Button.new()
+	var add_btn: Button = Button.new()
 	add_btn.text = "Add Behavior"
 	add_btn.icon = get_theme_icon("Add", "EditorIcons")
 	add_btn.custom_minimum_size.x = 120
 	add_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	add_btn.pressed.connect(_on_add_pressed)
 	
-	var wizard_btn = Button.new()
-	wizard_btn.text = "Wizard"
-	wizard_btn.icon = get_theme_icon("Tools", "EditorIcons")
-	wizard_btn.tooltip_text = "Create new Behavior Script & Resource"
-	wizard_btn.pressed.connect(func(): creation_dialog.popup_centered())
-	
-	var btn_hbox = HBoxContainer.new()
+	var btn_hbox: HBoxContainer = HBoxContainer.new()
 	btn_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	btn_hbox.add_theme_constant_override("separation", 10)
 	btn_hbox.add_child(add_btn)
-	btn_hbox.add_child(wizard_btn)
 	
-	var margin = MarginContainer.new()
+	var margin: MarginContainer = MarginContainer.new()
 	margin.add_theme_constant_override("margin_top", 10)
 	margin.add_child(btn_hbox)
 	vbox.add_child(margin)
@@ -81,26 +68,26 @@ func _draw_empty_state() -> void:
 	container.add_child(panel)
 
 func _draw_list(behaviors: Array) -> void:
-	var list_vbox = VBoxContainer.new()
+	var list_vbox: VBoxContainer = VBoxContainer.new()
 	list_vbox.add_theme_constant_override("separation", 8)
 	
 	for i in range(behaviors.size()):
 		var behavior: Resource = behaviors[i]
 		
-		var card = PanelContainer.new()
+		var card: PanelContainer = PanelContainer.new()
 		card.add_theme_stylebox_override("panel", HFSMPropertyFactory.create_card_style(Color(0.18, 0.20, 0.25, 1.0)))
 		
-		var card_vbox = VBoxContainer.new()
+		var card_vbox: VBoxContainer = VBoxContainer.new()
 		
 		# --- Header ---
-		var header = HBoxContainer.new()
+		var header: HBoxContainer = HBoxContainer.new()
 		
 		# Fold Button
-		var is_folded = false
+		var is_folded: bool = false
 		if behavior:
 			is_folded = folded_states.get(behavior.get_instance_id(), false)
 			
-		var fold_btn = HFSMPropertyFactory.create_fold_button(is_folded, func():
+		var fold_btn: Button = HFSMPropertyFactory.create_fold_button(is_folded, func():
 			if behavior:
 				folded_states[behavior.get_instance_id()] = not is_folded
 				_update_property()
@@ -109,7 +96,7 @@ func _draw_list(behaviors: Array) -> void:
 		header.add_child(fold_btn)
 		
 		# Resource Picker
-		var picker = EditorResourcePicker.new()
+		var picker: EditorResourcePicker = EditorResourcePicker.new()
 		picker.base_type = "StateBehavior"
 		picker.edited_resource = behavior
 		picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -117,7 +104,7 @@ func _draw_list(behaviors: Array) -> void:
 		header.add_child(picker)
 		
 		# Delete Button
-		var del_btn = Button.new()
+		var del_btn: Button = Button.new()
 		del_btn.icon = get_theme_icon("Remove", "EditorIcons")
 		del_btn.tooltip_text = "Remove Behavior"
 		del_btn.flat = true
@@ -128,12 +115,12 @@ func _draw_list(behaviors: Array) -> void:
 		
 		# --- Body ---
 		if behavior and not is_folded:
-			var margin = MarginContainer.new()
+			var margin: MarginContainer = MarginContainer.new()
 			margin.add_theme_constant_override("margin_left", 14)
 			margin.add_theme_constant_override("margin_top", 10)
 			margin.add_theme_constant_override("margin_bottom", 4)
 			
-			var props_list = HFSMPropertyFactory.create_property_list(behavior, _on_behavior_property_changed.bind(behavior))
+			var props_list: Control = HFSMPropertyFactory.create_property_list(behavior, _on_behavior_property_changed.bind(behavior))
 			margin.add_child(props_list)
 			card_vbox.add_child(margin)
 		
@@ -143,36 +130,17 @@ func _draw_list(behaviors: Array) -> void:
 	container.add_child(list_vbox)
 	
 	# Bottom Add Button
-	var add_btn_row = HBoxContainer.new()
+	var add_btn_row: HBoxContainer = HBoxContainer.new()
 	add_btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	add_btn_row.add_theme_constant_override("separation", 10)
 	
-	var add_btn = Button.new()
+	var add_btn: Button = Button.new()
 	add_btn.text = "Add Behavior"
 	add_btn.icon = get_theme_icon("Add", "EditorIcons")
 	add_btn.pressed.connect(_on_add_pressed)
 	add_btn_row.add_child(add_btn)
 	
-	var wizard_btn = Button.new()
-	wizard_btn.text = "Wizard"
-	wizard_btn.icon = get_theme_icon("Tools", "EditorIcons")
-	wizard_btn.tooltip_text = "Create new Behavior Script & Resource"
-	wizard_btn.pressed.connect(func(): creation_dialog.popup_centered())
-	add_btn_row.add_child(wizard_btn)
-	
 	container.add_child(add_btn_row)
-
-func _on_wizard_resource_created(res: Resource) -> void:
-	var object: Object = get_edited_object()
-	var property: StringName = get_edited_property()
-	var behaviors: Array = object.get(property)
-	if behaviors:
-		behaviors = behaviors.duplicate()
-	else:
-		behaviors = []
-	
-	behaviors.append(res)
-	_apply_changes(behaviors, "Create Behavior via Wizard")
 
 func _on_behavior_changed(new_res: Resource, index: int) -> void:
 	var object: Object = get_edited_object()
@@ -205,29 +173,43 @@ func _on_remove_behavior(index: int) -> void:
 func _on_add_pressed() -> void:
 	var object: Object = get_edited_object()
 	var property: StringName = get_edited_property()
-	var behaviors: Array = object.get(property)
-	if behaviors:
-		behaviors = behaviors.duplicate()
-	else:
-		behaviors = []
+	var raw_val: Variant = object.get(property)
 	
-	# Append null to let user pick
-	behaviors.append(null)
+	# Fix: Use duplicate() to preserve Typed Array info (Array[StateBehavior])
+	# Creating a new [] and assigning converts it to an untyped array, 
+	# which fails when assigned back to a typed property via UndoRedo.
+	var new_behaviors: Array = []
+	if raw_val != null and raw_val is Array:
+		new_behaviors = raw_val.duplicate()
 	
-	_apply_changes(behaviors, "Add Behavior")
+	# Append null (valid for Array[Object])
+	new_behaviors.append(null)
+	
+	_apply_changes(new_behaviors, "Add Behavior")
 
 func _apply_changes(new_behaviors: Array, action_name: String) -> void:
 	var object: Object = get_edited_object()
 	var property: StringName = get_edited_property()
-	var old_behaviors: Array = object.get(property)
+	var old_behaviors: Variant = object.get(property)
+	
+	# Ensure valid array for Undo
+	if old_behaviors == null:
+		old_behaviors = []
+	elif old_behaviors is Array:
+		old_behaviors = old_behaviors.duplicate()
 	
 	var ur: EditorUndoRedoManager = EditorInterface.get_editor_undo_redo()
 	ur.create_action(action_name)
-	ur.add_do_property(object, property, new_behaviors)
-	ur.add_undo_property(object, property, old_behaviors)
+	
+	# Use method calls for explicit setting to bypass potential Property/TypedArray issues
+	ur.add_do_method(object, "set", property, new_behaviors)
+	ur.add_undo_method(object, "set", property, old_behaviors)
 	
 	if object.has_method("notify_property_list_changed"):
 		ur.add_do_method(object, "notify_property_list_changed")
 		ur.add_undo_method(object, "notify_property_list_changed")
 		
 	ur.commit_action()
+	
+	# Force UI update immediately
+	_update_property()

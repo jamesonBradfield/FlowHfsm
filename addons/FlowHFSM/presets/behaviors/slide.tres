@@ -1,6 +1,0 @@
-[gd_resource type="Resource" script_class="slide" load_steps=2 format=3 uid="uid://mxhyxjkmeuju"]
-
-[ext_resource type="Script" uid="uid://dyd7f7b62aiux" path="res://addons/FlowHFSM/presets/behaviors/slide.gd" id="1_6v0us"]
-
-[resource]
-script = ExtResource("1_6v0us")

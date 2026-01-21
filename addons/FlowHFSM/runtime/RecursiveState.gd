@@ -1,3 +1,4 @@
+@tool
 class_name RecursiveState extends Node
 
 ## THE CONTAINER
@@ -11,16 +12,24 @@ class_name RecursiveState extends Node
 
 # --- EXPORTS (The Strategy) ---
 ## Define variables here to auto-create them in the Blackboard.
-@export var declared_variables: Array[StateVariable]
+@export var declared_variables: Array[StateVariable] = []
 
 ## The "Brain" (Resource). Defines what this state does (e.g., Move, Jump).
-@export var behaviors: Array[StateBehavior]
+@export var behaviors: Array[StateBehavior] = []
+
+## LEGACY: Singular behavior support for backward compatibility.
+## Migrates to the behaviors array on set.
+var behavior: StateBehavior:
+	set(v):
+		if v and behaviors.is_empty():
+			behaviors.append(v)
 
 enum ActivationMode { AND, OR }
 
 ## The "Gate" (Conditions). A list of conditions that must be met for this state to be active.
 ## Used by the Parent to auto-select this child (e.g., Jump activates when Space is pressed).
-@export var activation_conditions: Array[StateCondition]
+@export var activation_conditions: Array[StateCondition] = []
+
 ## How to combine the activation conditions.
 ## AND: All conditions must be true.
 ## OR: At least one condition must be true.
@@ -28,9 +37,11 @@ enum ActivationMode { AND, OR }
 
 ## If true, this state will be the active child when the parent is entered.
 @export var is_starting_state: bool = false
+
 ## If true, this state will remember its active child when exited, resuming it on re-entry.
 ## If false, it resets to the starting child on re-entry.
 @export var has_history: bool = false
+
 ## If true, Parent cannot transition out of this state. Useful for committed actions like attacks.
 ## NOTE: This is a LOCAL lock. To check if the branch is locked, use `is_hierarchy_locked()`.
 @export var is_locked: bool = false 
@@ -38,6 +49,7 @@ enum ActivationMode { AND, OR }
 # --- STATE VARIABLES (The Memory) ---
 ## The parent state in the hierarchy. Null if this is the root state.
 var parent: RecursiveState = null
+
 ## The currently active child state. Null if this is a leaf state.
 var active_child: RecursiveState = null
 
@@ -46,16 +58,71 @@ var active_child: RecursiveState = null
 ## Cleared when the state is entered.
 var memory: Dictionary = {}
 
-const BlackboardScript = preload("res://addons/FlowHFSM/runtime/Blackboard.gd")
+## Structured memory object (Optional, for Type-Safe refactor).
+## If set, this will be used instead of the dictionary.
+var memory_obj: RefCounted = null
 
 ## The Blackboard instance. 
 ## If this is the Root State, it creates and owns this.
 ## If this is a Child State, this is usually null (passed via arguments).
-var _owned_blackboard
+var _owned_blackboard: Blackboard
 
 # --- SIGNALS ---
 signal state_entered(state: RecursiveState)
 signal state_exited(state: RecursiveState)
+
+# --- CONFIGURATION WARNINGS ---
+func _get_configuration_warnings() -> PackedStringArray:
+	var warnings: PackedStringArray = []
+	
+	# Check Smasher Integrity
+	var smash_error: String = validate_smashed_logic()
+	if not smash_error.is_empty():
+		warnings.append(smash_error)
+	
+	# Check for null behaviors
+	for i in range(behaviors.size()):
+		if behaviors[i] == null:
+			warnings.append("Behavior Slot #%d is empty. Please assign a StateBehavior or remove the slot." % i)
+			
+	# Check for null conditions
+	for i in range(activation_conditions.size()):
+		if activation_conditions[i] == null:
+			warnings.append("Condition Slot is empty.")
+			
+	# Check for multiple starting states
+	var starting_states_count: int = 0
+	for child in get_children():
+		if child is RecursiveState and child.is_starting_state:
+			starting_states_count += 1
+			
+	if starting_states_count > 1:
+		warnings.append("Multiple children are marked as 'Is Starting State'. Only the first one will be used.")
+		
+	return warnings
+
+# --- VALIDATION ---
+func validate_smashed_logic() -> String:
+	var scr: Script = get_script()
+	if not scr: return ""
+	
+	# Check if this is a Smashed Script
+	# We rely on the constant we injected: SMASHED_CHILD_COUNT
+	var smashed_count: Variant = scr.get_script_constant_map().get("SMASHED_CHILD_COUNT")
+	
+	if smashed_count == null:
+		return "" # Not a smashed script, normal operation
+		
+	# Count actual state children
+	var current_count: int = 0
+	for c in get_children():
+		if c is RecursiveState:
+			current_count += 1
+			
+	if current_count != int(smashed_count):
+		return "LOGIC MISMATCH: Smashed script expects %d children, found %d. Please Re-Smash!" % [smashed_count, current_count]
+		
+	return ""
 
 # --- LIFECYCLE ---
 
@@ -69,7 +136,7 @@ func _ready() -> void:
 	else:
 		# I AM ROOT.
 		if not _owned_blackboard: 
-			_owned_blackboard = BlackboardScript.new()
+			_owned_blackboard = Blackboard.new()
 
 		# THE HARVEST: Scan tree and populate blackboard
 		_initialize_hierarchy_data(self, _owned_blackboard)
@@ -77,7 +144,7 @@ func _ready() -> void:
 ## Recursively harvests variables from the tree and registers them.
 func _initialize_hierarchy_data(node: RecursiveState, root_blackboard: Blackboard) -> void:
 	# 1. Register THIS node's variables
-	for var_def in node.declared_variables:
+	for var_def: StateVariable in node.declared_variables:
 		if not var_def: continue # Skip empty slots
 		
 		if var_def.variable_name.is_empty(): 
@@ -88,7 +155,7 @@ func _initialize_hierarchy_data(node: RecursiveState, root_blackboard: Blackboar
 			# Only set if not already set to avoid overwriting (or remove check to allow overwrites)
 			if not root_blackboard.has_value(var_def.variable_name):
 				root_blackboard.set_value(var_def.variable_name, var_def.initial_value)
-				print_verbose("FlowHFSM: Registered global variable '%s' from state '%s'" % [var_def.variable_name, node.name])
+				# print_verbose("FlowHFSM: Registered global variable '%s' from state '%s'" % [var_def.variable_name, node.name])
 			else:
 				# Check if we should warn about duplicates or just ignore
 				pass
@@ -108,18 +175,17 @@ func _initialize_hierarchy_data(node: RecursiveState, root_blackboard: Blackboar
 ## @param delta: Time elapsed since the last frame.
 ## @param actor: The owner of the state machine (usually a CharacterBody3D/2D).
 ## @param blackboard: The shared data container.
-func process_state(delta: float, actor: Node, blackboard = null) -> void:
+func process_state(delta: float, actor: Node, blackboard: Blackboard = null) -> void:
 	# 0. BLACKBOARD RESOLUTION
 	if not blackboard:
 		if not parent:
 			# I am Root, use/create my own
-			if not _owned_blackboard: _owned_blackboard = BlackboardScript.new()
+			if not _owned_blackboard: _owned_blackboard = Blackboard.new()
 			blackboard = _owned_blackboard
 		else:
-			# Error fallback or just warn?
-			# Ideally we shouldn't reach here without a blackboard if parent exists.
 			push_warning("RecursiveState: process_state called without blackboard on child node.")
-			# return? No, maybe allow running without it for partial updates.
+			# Fallback, but dangerous
+			return
 
 	# 1. SELECTOR LOGIC (Priority-Based Child Activation)
 	# Iterate through children in order. The LAST one that CAN activate becomes the active child.
@@ -139,7 +205,7 @@ func process_state(delta: float, actor: Node, blackboard = null) -> void:
 			change_active_child(best_child, actor, blackboard)
 	
 	# 2. BEHAVIOR UPDATE (The "Brain")
-	for b in behaviors:
+	for b: StateBehavior in behaviors:
 		if b:
 			b.update(self, delta, actor, blackboard)
 
@@ -154,14 +220,17 @@ func process_state(delta: float, actor: Node, blackboard = null) -> void:
 ##
 ## @param actor: The owner of the state machine.
 ## @param blackboard: The shared data container.
-func enter(actor: Node, blackboard = null) -> void:
+func enter(actor: Node, blackboard: Blackboard = null) -> void:
 	# Blackboard fallback for entry (if called manually)
 	if not blackboard and not parent:
-		if not _owned_blackboard: _owned_blackboard = BlackboardScript.new()
+		if not _owned_blackboard: _owned_blackboard = Blackboard.new()
 		blackboard = _owned_blackboard
 
 	# Reset local memory on entry so we don't have stale data (e.g. old timers)
 	memory.clear()
+	if memory_obj and memory_obj.has_method("clear"):
+		memory_obj.call("clear")
+		
 	is_locked = false 
 	
 	state_entered.emit(self)
@@ -172,7 +241,7 @@ func enter(actor: Node, blackboard = null) -> void:
 		if start_node:
 			active_child = start_node
 
-	for b in behaviors:
+	for b: StateBehavior in behaviors:
 		if b:
 			b.enter(self, actor, blackboard)
 	
@@ -199,7 +268,7 @@ func _get_starting_child() -> RecursiveState:
 ##
 ## @param actor: The owner of the state machine.
 ## @param blackboard: The shared data container.
-func exit(actor: Node, blackboard = null) -> void:
+func exit(actor: Node, blackboard: Blackboard = null) -> void:
 	# Blackboard fallback
 	if not blackboard and not parent:
 		blackboard = _owned_blackboard
@@ -210,7 +279,7 @@ func exit(actor: Node, blackboard = null) -> void:
 		if not has_history:
 			active_child = null
 		
-	for b in behaviors:
+	for b: StateBehavior in behaviors:
 		if b:
 			b.exit(self, actor, blackboard)
 	
@@ -230,7 +299,7 @@ func is_hierarchy_locked() -> bool:
 
 ## Checks if this state can be active.
 ## Evaluates activation_conditions based on activation_mode.
-func can_activate(actor: Node, blackboard = null) -> bool:
+func can_activate(actor: Node, blackboard: Blackboard = null) -> bool:
 	# No conditions = Always Active (if reached by priority)
 	if activation_conditions.is_empty():
 		return true
@@ -238,14 +307,14 @@ func can_activate(actor: Node, blackboard = null) -> bool:
 	match activation_mode:
 		ActivationMode.AND:
 			# ALL conditions must be true
-			for condition in activation_conditions:
+			for condition: StateCondition in activation_conditions:
 				if not condition.evaluate(actor, blackboard):
 					return false
 			return true
 			
 		ActivationMode.OR:
 			# AT LEAST ONE condition must be true
-			for condition in activation_conditions:
+			for condition: StateCondition in activation_conditions:
 				if condition.evaluate(actor, blackboard):
 					return true
 			return false
@@ -265,7 +334,7 @@ func get_active_hierarchy_path() -> Array[String]:
 ## @param new_node: The new child state to make active.
 ## @param actor: The owner of the state machine.
 ## @param blackboard: The shared data container.
-func change_active_child(new_node: RecursiveState, actor: Node = null, blackboard = null) -> void:
+func change_active_child(new_node: RecursiveState, actor: Node = null, blackboard: Blackboard = null) -> void:
 	if active_child == new_node: return
 	
 	# Fallback to owner if actor is missing (e.g. signal call)
@@ -283,13 +352,13 @@ func change_active_child(new_node: RecursiveState, actor: Node = null, blackboar
 ## Returns the blackboard used by this state.
 ## If Root, returns the owned blackboard (creating it if necessary).
 ## If Child, recursively asks parent.
-func get_blackboard() -> BlackboardScript:
+func get_blackboard() -> Blackboard:
 	if parent:
 		return parent.get_blackboard()
 	
 	# I am Root
 	if not _owned_blackboard:
-		_owned_blackboard = BlackboardScript.new()
+		_owned_blackboard = Blackboard.new()
 		# We must ensure variables are initialized if we lazily created it
 		_initialize_hierarchy_data(self, _owned_blackboard)
 		

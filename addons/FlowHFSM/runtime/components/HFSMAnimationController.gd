@@ -1,17 +1,16 @@
 class_name HFSMAnimationController extends Node
 
 ## Connects the HFSM logic to a Godot AnimationTree.
-## Listens to state changes and drives the AnimationNodeStateMachine via .travel().
-## Also syncs Source variables to AnimationTree properties (e.g. BlendSpaces).
+## Listens to state changes and drives the AnimationNodeStateMachine.
+## Syncs Smart Values (Drivers) to AnimationTree properties.
+
+const AnimationDriver = preload("res://addons/FlowHFSM/runtime/values/AnimationDriver.gd")
 
 @export_group("References")
 ## The AnimationTree to control.
 @export var animation_tree: AnimationTree
 ## The root of the HFSM.
 @export var root_state: RecursiveState
-## Optional: The node containing the properties to sync (usually PlayerController).
-## If not set, tries to find the owner.
-@export var property_source: Node
 
 @export_group("Configuration")
 ## Path to the playback object in the AnimationTree.
@@ -19,15 +18,16 @@ class_name HFSMAnimationController extends Node
 ## Optional mapping from HFSM State Name to Animation State Name.
 ## If a state is not in this map, it defaults to using the HFSM State Name directly.
 @export var state_to_animation_map: Dictionary = {}
-## Mapping of Source Property Names to AnimationTree parameters.
-## Key = Property Name (e.g. "input_direction"), Value = AnimationTree Path (e.g. "parameters/Run/blend_position")
-@export var property_mapping: Dictionary = {}
+## If true, only Leaf States (states with no children) will drive the animation.
+## Prevents Container States (like "Grounded") from interrupting their children's animations.
+@export var ignore_containers: bool = true
 
-## If true, attempts to read properties from the Root State's Blackboard if not found in property_source.
-@export var sync_from_blackboard: bool = false
+## List of drivers to sync values to the AnimationTree.
+@export var drivers: Array[AnimationDriver] = []
 
 ## Cache the playback object
 var _playback: Variant
+var _blackboard: Blackboard
 
 func _ready() -> void:
 	if not animation_tree:
@@ -39,17 +39,12 @@ func _ready() -> void:
 		if parent:
 			root_state = parent.get_node_or_null("RootState")
 	
-	if not property_source:
-		# Try to auto-find a source
-		var parent: Node = get_parent()
-		if parent and parent.has_method("_process"): # Heuristic for a controller script
-			property_source = parent
-		elif owner:
-			property_source = owner
-			
 	if root_state:
 		# Connect to all states in the hierarchy
 		_connect_signals_recursive(root_state)
+		
+		if root_state.has_method("get_blackboard"):
+			_blackboard = root_state.get_blackboard()
 	else:
 		push_warning("HFSMAnimationController: No RootState found.")
 
@@ -61,26 +56,14 @@ func _process(_delta: float) -> void:
 		if playback_obj and (playback_obj is AnimationNodeStateMachinePlayback or playback_obj.has_method("travel")):
 			_playback = playback_obj
 		
-	# 2. Sync Properties (Source -> AnimationTree)
-	if animation_tree and not property_mapping.is_empty():
-		var bb = null
-		if sync_from_blackboard and root_state:
-			bb = root_state.get_blackboard()
-
-		for source_prop: String in property_mapping:
-			var anim_path: String = property_mapping[source_prop]
-			var value: Variant = null
-			
-			# Priority 1: Property Source
-			if property_source:
-				value = property_source.get(source_prop)
-			
-			# Priority 2: Blackboard (Fallback or Primary if source missing)
-			if value == null and bb and bb.has_value(source_prop):
-				value = bb.get_value(source_prop)
-			
-			if value != null:
-				animation_tree.set(anim_path, value)
+	# 2. Sync Drivers
+	if animation_tree and not drivers.is_empty():
+		# Determine actor (usually the owner or parent)
+		var actor = owner if owner else get_parent()
+		
+		for driver in drivers:
+			if driver:
+				driver.apply(actor, _blackboard, animation_tree)
 
 ## Recursively connects to state_entered signals
 func _connect_signals_recursive(state: RecursiveState) -> void:
@@ -114,6 +97,11 @@ func _on_state_entered(state: RecursiveState) -> void:
 	if state_to_animation_map.has(state.name):
 		target_anim_name = state_to_animation_map[state.name]
 	
+	# Filter Containers if requested
+	# logic: If ignore_containers is true AND state has children AND it's not explicitly mapped... SKIP.
+	# We allow explicitly mapped containers because the user might WANT "Grounded" to play a specific blend tree.
+	if ignore_containers and state.get_child_count() > 0 and not state_to_animation_map.has(state.name):
+		return
+
 	# Attempt to travel
 	_playback.travel(target_anim_name)
-

@@ -2,6 +2,8 @@
 extends EditorProperty
 
 const ThemeResource = preload("res://addons/FlowHFSM/editor/flow_hfsm_theme.tres")
+const HFSMPropertyFactory = preload("res://addons/FlowHFSM/editor/property_factory.gd")
+const StateVariableScript = preload("res://addons/FlowHFSM/runtime/StateVariable.gd")
 
 var container: VBoxContainer = VBoxContainer.new()
 var updating_from_ui: bool = false
@@ -22,7 +24,7 @@ func _update_property() -> void:
 	if not object: return
 	
 	var property: StringName = get_edited_property()
-	var variables = object.get(property)
+	var variables: Variant = object.get(property)
 	
 	if variables == null or not (variables is Array):
 		variables = []
@@ -33,26 +35,26 @@ func _update_property() -> void:
 		_draw_list(variables)
 
 func _draw_empty_state() -> void:
-	var panel = PanelContainer.new()
+	var panel: PanelContainer = PanelContainer.new()
 	panel.add_theme_stylebox_override("panel", HFSMPropertyFactory.create_empty_slot_style())
 	
-	var vbox = VBoxContainer.new()
+	var vbox: VBoxContainer = VBoxContainer.new()
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	
-	var lbl = Label.new()
+	var lbl: Label = Label.new()
 	lbl.text = "No Variables Defined"
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl.modulate = Color(1, 1, 1, 0.5)
 	vbox.add_child(lbl)
 	
-	var add_btn = Button.new()
+	var add_btn: Button = Button.new()
 	add_btn.text = "Add Variable"
 	add_btn.icon = get_theme_icon("Add", "EditorIcons")
 	add_btn.custom_minimum_size.x = 120
 	add_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	add_btn.pressed.connect(_on_add_pressed)
 	
-	var margin = MarginContainer.new()
+	var margin: MarginContainer = MarginContainer.new()
 	margin.add_theme_constant_override("margin_top", 10)
 	margin.add_child(add_btn)
 	vbox.add_child(margin)
@@ -62,26 +64,26 @@ func _draw_empty_state() -> void:
 
 func _draw_list(variables: Array) -> void:
 	# List Container
-	var list_vbox = VBoxContainer.new()
+	var list_vbox: VBoxContainer = VBoxContainer.new()
 	list_vbox.add_theme_constant_override("separation", 8)
 	
 	for i in range(variables.size()):
 		var variable: StateVariable = variables[i]
 		
-		var card = PanelContainer.new()
+		var card: PanelContainer = PanelContainer.new()
 		card.add_theme_stylebox_override("panel", HFSMPropertyFactory.create_card_style())
 		
-		var card_vbox = VBoxContainer.new()
+		var card_vbox: VBoxContainer = VBoxContainer.new()
 		
 		# --- Header ---
-		var header = HBoxContainer.new()
+		var header: HBoxContainer = HBoxContainer.new()
 		
 		# Fold
-		var is_folded = false
+		var is_folded: bool = false
 		if variable:
 			is_folded = folded_states.get(variable.get_instance_id(), false)
 		
-		var fold_btn = HFSMPropertyFactory.create_fold_button(is_folded, func():
+		var fold_btn: Button = HFSMPropertyFactory.create_fold_button(is_folded, func():
 			if variable:
 				folded_states[variable.get_instance_id()] = not is_folded
 				_update_property()
@@ -91,7 +93,7 @@ func _draw_list(variables: Array) -> void:
 		header.add_child(fold_btn)
 		
 		# Picker
-		var picker = EditorResourcePicker.new()
+		var picker: EditorResourcePicker = EditorResourcePicker.new()
 		picker.base_type = "StateVariable"
 		picker.edited_resource = variable
 		picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -99,7 +101,7 @@ func _draw_list(variables: Array) -> void:
 		header.add_child(picker)
 		
 		# Delete
-		var del_btn = Button.new()
+		var del_btn: Button = Button.new()
 		del_btn.icon = get_theme_icon("Remove", "EditorIcons")
 		del_btn.tooltip_text = "Remove Variable"
 		del_btn.flat = true
@@ -110,11 +112,11 @@ func _draw_list(variables: Array) -> void:
 		
 		# --- Body ---
 		if variable and not is_folded:
-			var margin = MarginContainer.new()
+			var margin: MarginContainer = MarginContainer.new()
 			margin.add_theme_constant_override("margin_left", 14)
 			margin.add_theme_constant_override("margin_top", 4)
 			
-			var props_list = HFSMPropertyFactory.create_property_list(variable, _on_variable_property_changed.bind(variable))
+			var props_list: Control = HFSMPropertyFactory.create_property_list(variable, _on_variable_property_changed.bind(variable))
 			margin.add_child(props_list)
 			card_vbox.add_child(margin)
 		
@@ -124,9 +126,9 @@ func _draw_list(variables: Array) -> void:
 	container.add_child(list_vbox)
 	
 	# Bottom Add Button
-	var add_btn_row = HBoxContainer.new()
+	var add_btn_row: HBoxContainer = HBoxContainer.new()
 	add_btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	var add_btn = Button.new()
+	var add_btn: Button = Button.new()
 	add_btn.text = "Add Variable"
 	add_btn.icon = get_theme_icon("Add", "EditorIcons")
 	add_btn.pressed.connect(_on_add_pressed)
@@ -166,30 +168,42 @@ func _on_remove_variable(index: int) -> void:
 func _on_add_pressed() -> void:
 	var object: Object = get_edited_object()
 	var property: StringName = get_edited_property()
-	var variables: Array = object.get(property)
-	if variables:
-		variables = variables.duplicate()
-	else:
-		variables = []
+	var raw_val: Variant = object.get(property)
 	
-	var new_var = StateVariable.new()
+	# Fix: Use duplicate() to preserve Typed Array info
+	var new_variables: Array = []
+	if raw_val != null and raw_val is Array:
+		new_variables = raw_val.duplicate()
+	
+	# Safe instantiation
+	var new_var: StateVariable = StateVariableScript.new()
 	new_var.variable_name = "new_var"
-	variables.append(new_var)
+	new_variables.append(new_var)
 	
-	_apply_changes(variables, "Add Variable")
+	_apply_changes(new_variables, "Add Variable")
 
 func _apply_changes(new_variables: Array, action_name: String) -> void:
 	var object: Object = get_edited_object()
 	var property: StringName = get_edited_property()
-	var old_variables: Array = object.get(property)
+	var old_variables: Variant = object.get(property)
+	
+	if old_variables == null:
+		old_variables = []
+	elif old_variables is Array:
+		old_variables = old_variables.duplicate()
 	
 	var ur: EditorUndoRedoManager = EditorInterface.get_editor_undo_redo()
 	ur.create_action(action_name)
-	ur.add_do_property(object, property, new_variables)
-	ur.add_undo_property(object, property, old_variables)
+	
+	# Use method calls for explicit setting
+	ur.add_do_method(object, "set", property, new_variables)
+	ur.add_undo_method(object, "set", property, old_variables)
 	
 	if object.has_method("notify_property_list_changed"):
 		ur.add_do_method(object, "notify_property_list_changed")
 		ur.add_undo_method(object, "notify_property_list_changed")
 		
 	ur.commit_action()
+	
+	# Force UI update immediately
+	_update_property()

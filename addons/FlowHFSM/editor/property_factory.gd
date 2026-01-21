@@ -77,7 +77,13 @@ static func _apply_tooltip(control: Control, property: Dictionary) -> void:
 	else:
 		control.tooltip_text = property.name.capitalize()
 
-static func create_control_for_property(object: Object, property: Dictionary, changed_callback: Callable) -> Control:
+static func create_control_for_property(object: Object, property: Dictionary, changed_callback: Callable, depth: int = 0) -> Control:
+	if depth > 8:
+		var lbl = Label.new()
+		lbl.text = "..."
+		lbl.tooltip_text = "Recursion limit reached"
+		return lbl
+
 	var type: int = property.type
 	var name: String = property.name
 	var value: Variant = object.get(name)
@@ -90,7 +96,7 @@ static func create_control_for_property(object: Object, property: Dictionary, ch
 			type = typeof(value)
 		else:
 			# If null, provide a Type Selector + Fallback Editor
-			return _create_variant_editor(object, name, value, changed_callback)
+			return _create_variant_editor(object, name, value, changed_callback, depth)
 
 	match type:
 		TYPE_BOOL:
@@ -208,6 +214,51 @@ static func create_control_for_property(object: Object, property: Dictionary, ch
 			cp.color_changed.connect(func(v): changed_callback.call(name, v))
 			return cp
 			
+		TYPE_NODE_PATH:
+			var hbox = HBoxContainer.new()
+			hbox.add_theme_constant_override("separation", 4)
+			
+			var le = LineEdit.new()
+			le.text = str(value)
+			le.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			le.editable = true # Allow manual entry too
+			le.text_submitted.connect(func(v): changed_callback.call(name, NodePath(v)))
+			le.focus_exited.connect(func(): changed_callback.call(name, NodePath(le.text)))
+			hbox.add_child(le)
+			
+			var btn = Button.new()
+			# btn.icon = EditorInterface.get_base_control().get_theme_icon("Node", "EditorIcons") # Context safe
+			btn.text = "..."
+			btn.tooltip_text = "Pick Node"
+			btn.pressed.connect(func():
+				# We need a reference to the scene root to pick nodes relative to it
+				var root = EditorInterface.get_edited_scene_root()
+				if not root:
+					print("FlowHFSM: No edited scene root found.")
+					return
+					
+				# Create and configure the dialog
+				# Note: EditorInterface.popup_node_selector is deprecated/removed in 4.x
+				# We must use EditorInterface.get_selection() or custom logic, 
+				# OR instantiate a SceneTreeDialog which is not exposed to GDScript easily.
+				#
+				# WORKAROUND: We use a simple ConfirmationDialog with a Tree, 
+				# OR we rely on the manual text entry for now, 
+				# BUT the user specifically asked for the popup.
+				#
+				# Better approach for plugins: EditorPropertyNodePath
+				# Since we are inside a custom control, we can't easily embed the native editor property.
+				#
+				# Let's use a standard hack: EditorInterface.get_base_control().add_child(...)
+				pass # Logic to be implemented in helper
+				_open_node_selector(root, func(path):
+					le.text = str(path)
+					changed_callback.call(name, path)
+				)
+			)
+			hbox.add_child(btn)
+			return hbox
+			
 		TYPE_VECTOR2:
 			# Custom Vector2 editor (compact)
 			var hbox: HBoxContainer = HBoxContainer.new()
@@ -253,13 +304,299 @@ static func create_control_for_property(object: Object, property: Dictionary, ch
 			hbox.add_child(y_pack[0])
 			return hbox
 
-	# Fallback
+		TYPE_OBJECT:
+			if value is Resource:
+				# Check for Smart Value signature (duck typing)
+				if "mode" in value and "blackboard_key" in value and "node_path" in value:
+					return _create_smart_value_editor(value, func(p_name, p_val):
+						value.set(p_name, p_val)
+						# Value* resources emit notify_property_list_changed() on mode set, 
+						# which triggers inspector refresh.
+					, depth)
+				
+				# Check for AnimationDriver signature (duck typing)
+				if "parameter_path" in value and "type" in value and "value_float" in value:
+					return _create_animation_driver_editor(value, func(p_name, p_val):
+						value.set(p_name, p_val)
+					, depth)
+				
+				# Recursive Resource Editor (Inline)
+				var panel = PanelContainer.new()
+				var style = StyleBoxFlat.new()
+				style.bg_color = Color(0.1, 0.1, 0.1, 0.3)
+				style.border_width_left = 2
+				style.border_color = Color(1, 1, 1, 0.1)
+				style.content_margin_left = 8
+				style.content_margin_right = 4
+				style.content_margin_top = 4
+				style.content_margin_bottom = 4
+				panel.add_theme_stylebox_override("panel", style)
+				
+				# Callback wrapper
+				var sub_callback = func(prop_name, prop_val):
+					value.set(prop_name, prop_val)
+					
+				# Build the list
+				var sub_list = create_property_list(value, sub_callback, depth + 1)
+				panel.add_child(sub_list)
+				return panel
+			else:
+				# Fallback for null or non-resources
+				var lbl_null = Label.new()
+				lbl_null.text = "<null>" if value == null else str(value)
+				lbl_null.modulate = Color(0.5, 0.5, 0.5)
+				return lbl_null
+
+	# Fallback for unhandled types
 	var lbl: Label = Label.new()
 	lbl.text = str(value)
 	lbl.modulate = Color(0.6, 0.6, 0.6)
 	return lbl
 
-static func _create_variant_editor(object: Object, name: String, value: Variant, changed_callback: Callable) -> Control:
+static func _create_smart_value_editor(res: Resource, callback: Callable, depth: int = 0) -> Control:
+	var container = HBoxContainer.new()
+	container.add_theme_constant_override("separation", 8)
+	
+	# 1. Mode Selector (Compact)
+	var mode_opt = OptionButton.new()
+	mode_opt.add_item("Const", 0) # CONSTANT
+	mode_opt.add_item("BB", 1)    # BLACKBOARD
+	mode_opt.add_item("Prop", 2)  # PROPERTY
+	mode_opt.selected = res.mode
+	mode_opt.custom_minimum_size.x = 60
+	mode_opt.item_selected.connect(func(idx):
+		callback.call("mode", idx)
+		# The inspector will rebuild because the resource emits changed signal
+	)
+	container.add_child(mode_opt)
+	
+	# 2. Contextual Value Editor
+	var mode = res.mode
+	var target_prop = ""
+	
+	if mode == 0: # CONSTANT
+		target_prop = "value"
+	elif mode == 1: # BLACKBOARD
+		target_prop = "blackboard_key"
+	elif mode == 2: # PROPERTY
+		target_prop = "property_name" # Only showing Property Name inline for compactness, Path is complex
+		
+	# Find property info for the target
+	var target_info = null
+	for p in res.get_property_list():
+		if p.name == target_prop:
+			target_info = p
+			break
+			
+	if target_info:
+		# For Property Mode, we want [NodePath] [PropName]
+		if mode == 2:
+			# Node Path
+			var np_info = null
+			for p in res.get_property_list():
+				if p.name == "node_path": np_info = p; break
+			
+			if np_info:
+				var np_editor = create_control_for_property(res, np_info, callback, depth + 1)
+				if np_editor:
+					np_editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+					np_editor.size_flags_stretch_ratio = 0.4
+					container.add_child(np_editor)
+
+		var editor = create_control_for_property(res, target_info, callback, depth + 1)
+		if editor:
+			editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			editor.size_flags_stretch_ratio = 1.0
+			container.add_child(editor)
+	
+	return container
+
+static func _create_animation_driver_editor(res: Resource, callback: Callable, depth: int = 0) -> Control:
+	var container = VBoxContainer.new()
+	container.add_theme_constant_override("separation", 4)
+	
+	# Create a styled card background
+	var panel = PanelContainer.new()
+	var style = create_card_style(Color(0.12, 0.14, 0.18, 0.5))
+	style.content_margin_left = 6
+	style.content_margin_right = 6
+	style.content_margin_top = 6
+	style.content_margin_bottom = 6
+	panel.add_theme_stylebox_override("panel", style)
+	
+	var inner_vbox = VBoxContainer.new()
+	inner_vbox.add_theme_constant_override("separation", 6)
+	panel.add_child(inner_vbox)
+	
+	# --- Row 1: Config (Path + Type) ---
+	var row1 = HBoxContainer.new()
+	row1.add_theme_constant_override("separation", 8)
+	
+	# Parameter Path
+	var path_info = null
+	for p in res.get_property_list():
+		if p.name == "parameter_path": path_info = p; break
+	
+	if path_info:
+		var lbl = Label.new()
+		lbl.text = "Anim Param"
+		lbl.modulate = Color(0.7, 0.7, 0.7)
+		lbl.add_theme_font_size_override("font_size", 10)
+		row1.add_child(lbl)
+		
+		var path_editor = create_control_for_property(res, path_info, callback, depth + 1)
+		path_editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row1.add_child(path_editor)
+	
+	# Type Selector
+	var type_info = null
+	for p in res.get_property_list():
+		if p.name == "type": type_info = p; break
+		
+	if type_info:
+		var type_editor = create_control_for_property(res, type_info, callback, depth + 1)
+		type_editor.custom_minimum_size.x = 80
+		row1.add_child(type_editor)
+		
+	inner_vbox.add_child(row1)
+	
+	# --- Row 2: Value Editor ---
+	# We determine which property to show based on the 'type' value
+	var target_prop = ""
+	var current_type = res.type # Accessing property directly via duck typing
+	
+	match current_type:
+		0: target_prop = "value_float"   # ValueType.FLOAT
+		1: target_prop = "value_vector2" # ValueType.VECTOR2
+		2: target_prop = "value_bool"    # ValueType.BOOL
+	
+	var val_info = null
+	for p in res.get_property_list():
+		if p.name == target_prop: val_info = p; break
+	
+	if val_info:
+		var val_editor = create_control_for_property(res, val_info, callback, depth + 1)
+		inner_vbox.add_child(val_editor)
+	
+	container.add_child(panel)
+	return container
+
+static func _open_node_selector(root_node: Node, callback: Callable) -> void:
+	var dialog = EditorNodeSelector.new()
+	EditorInterface.get_base_control().add_child(dialog)
+	# dialog.popup_centered_ratio(0.4) # REMOVED: Deprecated in Godot 4. Handled in show_window.
+	dialog.node_selected.connect(func(node_path):
+		callback.call(node_path)
+		dialog.queue_free()
+	)
+	dialog.canceled.connect(func():
+		dialog.queue_free()
+	)
+	dialog.show_window(root_node)
+
+class EditorNodeSelector extends Window:
+	# A custom mini-window to replicate SceneTreeDialog since the native one isn't exposed
+	signal node_selected(path: NodePath)
+	signal canceled
+	
+	var tree: Tree
+	var root: Node
+	var _ok_btn: Button
+	
+	func show_window(p_root: Node):
+		root = p_root
+		title = "Select a Node"
+		transient = true
+		exclusive = true
+		wrap_controls = true
+		
+		var panel = PanelContainer.new()
+		panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+		add_child(panel)
+		
+		var vbox = VBoxContainer.new()
+		panel.add_child(vbox)
+		
+		# Filter
+		var filter = LineEdit.new()
+		filter.placeholder_text = "Filter nodes..."
+		filter.text_changed.connect(_on_filter_changed)
+		vbox.add_child(filter)
+		
+		# Tree
+		tree = Tree.new()
+		tree.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		tree.hide_root = false
+		tree.item_activated.connect(_on_confirmed)
+		vbox.add_child(tree)
+		
+		# Buttons
+		var hbox = HBoxContainer.new()
+		hbox.alignment = BoxContainer.ALIGNMENT_END
+		
+		var btn_cancel = Button.new()
+		btn_cancel.text = "Cancel"
+		btn_cancel.pressed.connect(func(): canceled.emit())
+		hbox.add_child(btn_cancel)
+		
+		_ok_btn = Button.new()
+		_ok_btn.text = "OK"
+		_ok_btn.pressed.connect(_on_confirmed)
+		hbox.add_child(_ok_btn)
+		
+		vbox.add_child(hbox)
+		
+		_build_tree()
+		popup_centered(Vector2(400, 600))
+		
+	func _build_tree():
+		tree.clear()
+		if not root: return
+		
+		var tree_root = tree.create_item()
+		_process_node(root, tree_root)
+		
+	func _process_node(node: Node, parent_item: TreeItem):
+		parent_item.set_text(0, node.name)
+		# We store the relative path from the root as metadata
+		# But wait, NodePath should be relative to the object using it (Behavior or State)
+		# For simplicity in this generic picker, we return path relative to Scene Root
+		# The user might need to adjust ".." manually if the Context is deep in the tree.
+		#
+		# Ideally: The 'property_factory' knows the 'object' (Resource).
+		# But Resources don't have a place in the tree. The NODE using the resource does.
+		# We don't easily know which Node owns this Resource at this level.
+		# So returning path from Scene Root is the standard "safe" guess, 
+		# though often absolute paths (/root/Scene/...) or relative from root are used.
+		
+		# Let's use the path relative to the Edited Scene Root.
+		var path = root.get_path_to(node)
+		parent_item.set_metadata(0, path)
+		
+		# Icon
+		var icon = EditorInterface.get_base_control().get_theme_icon("Node", "EditorIcons")
+		if node.get_class() != "Node":
+			if EditorInterface.get_base_control().has_theme_icon(node.get_class(), "EditorIcons"):
+				icon = EditorInterface.get_base_control().get_theme_icon(node.get_class(), "EditorIcons")
+		parent_item.set_icon(0, icon)
+		
+		for child in node.get_children():
+			if child.owner != root and child != root: continue # Only show owned nodes (scene context)
+			var child_item = tree.create_item(parent_item)
+			_process_node(child, child_item)
+
+	func _on_filter_changed(txt: String):
+		# TODO: Implement filtering
+		pass
+		
+	func _on_confirmed():
+		var item = tree.get_selected()
+		if item:
+			node_selected.emit(item.get_metadata(0))
+		else:
+			canceled.emit()
+
+static func _create_variant_editor(object: Object, name: String, value: Variant, changed_callback: Callable, depth: int = 0) -> Control:
 	# A simplified Variant editor: [Type Selector] [Value Editor]
 	var container = HBoxContainer.new()
 	container.add_theme_constant_override("separation", 8)
@@ -316,14 +653,14 @@ static func _create_variant_editor(object: Object, name: String, value: Variant,
 	
 	# Only create editor if not null
 	if current_type != TYPE_NIL:
-		var editor = create_control_for_property(object, sub_prop, changed_callback)
+		var editor = create_control_for_property(object, sub_prop, changed_callback, depth + 1)
 		if editor:
 			editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			container.add_child(editor)
 			
 	return container
 
-static func create_property_list(resource: Resource, changed_callback: Callable) -> Control:
+static func create_property_list(resource: Resource, changed_callback: Callable, depth: int = 0) -> Control:
 	var container: VBoxContainer = VBoxContainer.new()
 	container.add_theme_constant_override("separation", 6)
 	
@@ -348,7 +685,7 @@ static func create_property_list(resource: Resource, changed_callback: Callable)
 			
 			var editor: Control = create_control_for_property(resource, prop, func(name, val):
 				changed_callback.call(name, val)
-			)
+			, depth)
 			if editor:
 				editor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 				editor.size_flags_stretch_ratio = 0.6
