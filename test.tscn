@@ -24,7 +24,10 @@ graph_offset = Vector2(-220, 43)
 
 [sub_resource type="Resource" id="Resource_00tp4"]
 script = ExtResource("4_vbegm")
+camera_property = "camera"
+rotation_node_property = "model"
 acceleration = 5.0
+turn_speed = null
 metadata/_custom_type_script = "uid://c0a2ftxxng6bc"
 
 [sub_resource type="Resource" id="Resource_77dp3"]
@@ -17560,20 +17563,22 @@ _data = {
 
 [node name="Node3D" type="Node3D"]
 
-[node name="FlowCharacter" type="CharacterBody3D" parent="." node_paths=PackedStringArray("root_state", "animation_tree")]
+[node name="FlowCharacter" type="CharacterBody3D" parent="." node_paths=PackedStringArray("root_state", "animation_tree", "camera", "model")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1980624, 0)
 script = ExtResource("1_8uh7m")
 root_state = NodePath("RootState")
 animation_tree = NodePath("AnimationTree")
+camera = NodePath("../Camera3D")
+model = NodePath("Model")
 metadata/_custom_type_script = "uid://c4tjqtm73h847"
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="FlowCharacter"]
 shape = SubResource("CapsuleShape3D_ppyta")
 
 [node name="AnimationTree" type="AnimationTree" parent="FlowCharacter"]
-root_node = NodePath("../AnimationLibrary_Godot_Standard")
+root_node = NodePath("../Model")
 tree_root = SubResource("AnimationNodeStateMachine_ykrsh")
-anim_player = NodePath("../AnimationLibrary_Godot_Standard/AnimationPlayer")
+anim_player = NodePath("../Model/AnimationPlayer")
 
 [node name="RootState" type="Node" parent="FlowCharacter"]
 script = ExtResource("2_6uqi0")
@@ -17593,12 +17598,12 @@ behaviors = Array[ExtResource("3_g14j6")]([SubResource("Resource_00tp4")])
 activation_conditions = Array[ExtResource("5_ehkex")]([SubResource("Resource_77dp3")])
 metadata/_custom_type_script = "uid://dcocpr3diu5rg"
 
-[node name="AnimationLibrary_Godot_Standard" type="Node3D" parent="FlowCharacter"]
+[node name="Model" type="Node3D" parent="FlowCharacter"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1, 0)
 
-[node name="Rig" type="Node3D" parent="FlowCharacter/AnimationLibrary_Godot_Standard"]
+[node name="Rig" type="Node3D" parent="FlowCharacter/Model"]
 
-[node name="Skeleton3D" type="Skeleton3D" parent="FlowCharacter/AnimationLibrary_Godot_Standard/Rig"]
+[node name="Skeleton3D" type="Skeleton3D" parent="FlowCharacter/Model/Rig"]
 bones/0/name = "root"
 bones/0/parent = -1
 bones/0/rest = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 0, 0)
@@ -17971,11 +17976,11 @@ bones/52/position = Vector3(-3.5306584e-09, 0.17330109, -8.185452e-09)
 bones/52/rotation = Quaternion(-0.00013712789, 0.9643068, -0.26478708, -0.00049943436)
 bones/52/scale = Vector3(1, 1.0000004, 0.99999976)
 
-[node name="Mannequin" type="MeshInstance3D" parent="FlowCharacter/AnimationLibrary_Godot_Standard/Rig/Skeleton3D"]
+[node name="Mannequin" type="MeshInstance3D" parent="FlowCharacter/Model/Rig/Skeleton3D"]
 mesh = SubResource("ArrayMesh_wkjnq")
 skin = SubResource("Skin_145mc")
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="FlowCharacter/AnimationLibrary_Godot_Standard"]
+[node name="AnimationPlayer" type="AnimationPlayer" parent="FlowCharacter/Model"]
 libraries = {
 &"": SubResource("AnimationLibrary_6dwrn")
 }

@@ -11,6 +11,8 @@ class_name FlowCharacter extends CharacterBody3D
 @export_group("References")
 @export var root_state: FlowState
 @export var animation_tree: AnimationTree
+@export var camera: Node3D
+@export var model: Node3D
 
 @export_group("Physics Settings")
 @export var gravity: float = 20.0
