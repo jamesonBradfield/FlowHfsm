@@ -123,11 +123,11 @@ func _execute_physics(delta: float, actor: Node, blackboard: FlowBlackboard) -> 
 			if face_movement and final_vector.length_squared() > 0.1:
 				var target_dir = final_vector.normalized()
 				var current_dir = -body.global_transform.basis.z # Forward is -Z in Godot
-
+				
 				# Planar rotation only (Y-axis)
 				target_dir.y = 0
 				target_dir = target_dir.normalized()
-
+				
 				if target_dir.length_squared() > 0.01:
 					var new_basis = body.global_transform.basis
 					# Smooth lookat
