@@ -1,7 +1,7 @@
 @tool
 extends EditorPlugin
 
-const InspectorPlugin = preload("res://addons/FlowHFSM/editor/hfsm_inspector.gd")
+const InspectorPlugin = preload("res://addons/FlowHFSM/src/editor/inspector/hfsm_inspector.gd")
 # NO SCENE PRELOAD. We load the script raw.
 
 var inspector_plugin: EditorInspectorPlugin
@@ -14,7 +14,7 @@ func _enter_tree() -> void:
 	
 	# 2. Workbench (DIRECT SCRIPT LOAD)
 	# This bypasses the .tscn cache entirely.
-	var workbench_script = ResourceLoader.load("res://addons/FlowHFSM/editor/hfsm_workbench.gd", "", ResourceLoader.CACHE_MODE_IGNORE)
+	var workbench_script = ResourceLoader.load("res://addons/FlowHFSM/src/editor/workbench/hfsm_workbench.gd", "", ResourceLoader.CACHE_MODE_IGNORE)
 	if workbench_script:
 		workbench_instance = workbench_script.new()
 		# Add to bottom panel

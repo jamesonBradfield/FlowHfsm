@@ -1,6 +1,0 @@
-[gd_scene load_steps=2 format=3]
-
-[ext_resource type="Script" path="res://addons/FlowHFSM/tests/MainTestRunner.gd" id="1_5k3m4"]
-
-[node name="MainTestRunner" type="Node"]
-script = ExtResource("1_5k3m4")
