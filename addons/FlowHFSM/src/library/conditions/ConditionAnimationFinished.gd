@@ -6,7 +6,7 @@ class_name ConditionAnimationFinished extends FlowCondition
 @export var state_machine_path: String = "parameters/playback"
 @export var end_margin: float = 0.1 # Seconds before end to consider finished
 
-func _evaluate(actor: Node, blackboard: FlowBlackboard) -> bool:
+func _evaluate(actor: Node) -> bool:
 	var anim_tree: AnimationTree = null
 	
 	# Try to find AnimationTree on actor
@@ -20,9 +20,7 @@ func _evaluate(actor: Node, blackboard: FlowBlackboard) -> bool:
 				break
 	
 	if not anim_tree:
-		return true # Fail safe: if no animation, don't block? Or do we block? 
-		# If we block, we might get stuck forever. If we return true, we skip.
-		# Returning true is safer for "blocking" logic to avoid soft-locks.
+		return true # Fail safe
 	
 	var playback: Variant = anim_tree.get(state_machine_path)
 	if playback and playback is AnimationNodeStateMachinePlayback:

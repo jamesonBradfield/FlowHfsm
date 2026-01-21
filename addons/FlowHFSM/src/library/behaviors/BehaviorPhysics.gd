@@ -1,143 +1,92 @@
 @tool
 class_name BehaviorPhysics extends FlowBehavior
 
-## Generic physics behavior.
-## Applies forces, impulses, or sets velocity directly on a CharacterBody3D.
-## Uses ValueFloat/ValueVector3 to allow binding to Blackboard variables.
+## THE PHYSICS BEHAVIOR
+## "Separate Body & Mind" Edition.
+## 
+## MOVEMENT: Applied to the 'actor' (PhysicsBody or Node3D).
+## ROTATION: Applied to the 'rotation_node' (Visuals) IF defined, else 'actor'.
+## 
+## DATA: Fetched from Actor properties (Dependency Injection).
 
-const ValueFloat = preload("res://addons/FlowHFSM/src/core/values/ValueFloat.gd")
-const ValueVector3 = preload("res://addons/FlowHFSM/src/core/values/ValueVector3.gd")
+enum Mode { IMPULSE, FORCE, SET_VELOCITY }
+@export var mode: Mode = Mode.SET_VELOCITY
 
-enum PhysicsMode {
-	IMPULSE, 		## Apply instantaneous force once (Add to velocity)
-	FORCE, 			## Apply continuous force (Add to velocity * delta)
-	SET_VELOCITY 	## Overwrite velocity (Planar or Full)
-}
+@export_group("Dependency Injection")
+@export var input_property: String = "move_input"
+@export var camera_property: String = ""
+## Optional: The Node to rotate (e.g., "Skin", "Model"). 
+## If defined, we rotate THIS instead of the Actor.
+@export var rotation_node_property: String = ""
 
-enum Space {
-	WORLD, 			## Apply in global world coordinates
-	LOCAL, 			## Rotate by the Actor's rotation
-	RELATIVE_TO_NODE ## Rotate by a specific Node's rotation
-}
+@export_group("State Logic")
+@export var speed: float = 5.0
+@export var acceleration: float = 0.0
 
-@export_group("Operation")
-@export var mode: PhysicsMode = PhysicsMode.IMPULSE:
-	set(value):
-		mode = value
-		notify_property_list_changed()
-
-## If true, SET_VELOCITY only affects X/Z (planar), preserving gravity (Y).
-@export var planar_only: bool = false
-## If true, applies the force/impulse immediately on Enter. If false, applies every Update.
-@export var apply_on_enter: bool = true
-## If true, rotates the actor to face the calculated movement direction (Only works in SET_VELOCITY).
-@export var face_movement: bool = false
-## Rotation speed for face_movement (radians/sec).
+@export_group("Rotation")
+@export var face_movement: bool = true
 @export var turn_speed: float = 10.0
 
-@export_group("Inputs")
-## The magnitude of the force/velocity.
-@export var magnitude: ValueFloat = ValueFloat.new()
-## The direction vector (will be normalized).
-@export var direction: ValueVector3 = ValueVector3.new()
+func update(_node: Node, delta: float, actor: Node) -> void:
+	# 1. Fetch Dependencies
+	var input_vec = Vector3.ZERO
+	if input_property and input_property in actor:
+		input_vec = actor.get(input_property)
+	
+	# 2. Transform Input (Camera Space)
+	var final_vec = input_vec
+	if camera_property and camera_property in actor:
+		var cam = actor.get(camera_property)
+		if cam and cam is Node3D:
+			var cam_basis = cam.global_transform.basis
+			cam_basis.y = Vector3.ZERO
+			cam_basis.z = cam_basis.z.normalized()
+			cam_basis.x = cam_basis.x.normalized()
+			final_vec = cam_basis * input_vec
 
-@export_group("Space")
-@export var space: Space = Space.WORLD:
-	set(value):
-		space = value
-		notify_property_list_changed()
-## Path to node used for RELATIVE_TO_NODE space.
-@export var space_node_path: String = "Camera3D"
+	final_vec = final_vec.normalized() * speed
 
-func _validate_property(property: Dictionary) -> void:
-	if property.name == "planar_only" or property.name == "face_movement" or property.name == "turn_speed":
-		if mode != PhysicsMode.SET_VELOCITY:
-			property.usage = PROPERTY_USAGE_NONE
+	# 3. ROTATION (Visuals vs Actor)
+	if face_movement and final_vec.length_squared() > 0.1:
+		var target_node: Node3D = actor as Node3D
+		
+		# If a separate rotation node is defined, use it!
+		if rotation_node_property and rotation_node_property in actor:
+			var ref = actor.get(rotation_node_property)
+			if ref is Node3D:
+				target_node = ref
+		
+		var target_dir = final_vec.normalized()
+		target_dir.y = 0 
+		if target_dir.length_squared() > 0.001 and target_node:
+			var current_basis = target_node.global_transform.basis
+			var target_basis = Basis.looking_at(target_dir, Vector3.UP)
+			var new_basis = current_basis.slerp(target_basis, turn_speed * delta)
+			target_node.global_transform.basis = new_basis
 
-	if property.name == "space_node_path":
-		if space != Space.RELATIVE_TO_NODE:
-			property.usage = PROPERTY_USAGE_NONE
+	# 4. MOVEMENT (Physics vs Simple Node3D)
+	if "velocity" in actor: # CharacterBody3D
+		match mode:
+			Mode.SET_VELOCITY: 
+				var old_y = actor.velocity.y
+				if acceleration > 0:
+					var target_h = Vector2(final_vec.x, final_vec.z)
+					var current_h = Vector2(actor.velocity.x, actor.velocity.z)
+					current_h = current_h.move_toward(target_h, acceleration * delta)
+					actor.velocity.x = current_h.x
+					actor.velocity.z = current_h.y
+				else:
+					actor.velocity.x = final_vec.x
+					actor.velocity.z = final_vec.z
+				if input_vec.y == 0: actor.velocity.y = old_y
+			Mode.IMPULSE: actor.velocity += final_vec
+			Mode.FORCE: actor.velocity += final_vec * delta
 
-func enter(node: Node, actor: Node, blackboard: FlowBlackboard) -> void:
-	if apply_on_enter:
-		_execute_physics(delta_safe(actor), actor, blackboard)
-
-func update(node: Node, delta: float, actor: Node, blackboard: FlowBlackboard) -> void:
-	if not apply_on_enter:
-		_execute_physics(delta, actor, blackboard)
-
-# Helper to get a safe delta if called during enter (which might not have delta)
-func delta_safe(actor: Node) -> float:
-	return actor.get_process_delta_time()
-
-func _execute_physics(delta: float, actor: Node, blackboard: FlowBlackboard) -> void:
-	var body: CharacterBody3D = actor as CharacterBody3D
-	if not body:
-		# Fail silently in editor, warn in game
-		if not Engine.is_editor_hint():
-			push_warning("BehaviorPhysics: Actor '%s' is not a CharacterBody3D" % actor.name)
-		return
-
-	# 1. Resolve Magnitude
-	var final_magnitude: float = 0.0
-	if magnitude:
-		final_magnitude = magnitude.get_value(actor, blackboard)
-
-	# 2. Resolve Direction
-	var dir: Vector3 = Vector3.ZERO
-	if direction:
-		dir = direction.get_value(actor, blackboard)
-
-	# Normalize direction
-	if dir.length_squared() > 0.001:
-		dir = dir.normalized()
-	else:
-		dir = Vector3.ZERO
-
-	# 3. Resolve Space (Rotation)
-	var final_vector: Vector3 = dir * final_magnitude
-
-	match space:
-		Space.LOCAL:
-			# Rotate by Actor's Y rotation
-			final_vector = body.global_basis * final_vector
-
-		Space.RELATIVE_TO_NODE:
-			var ref_node: Node = actor.get_node_or_null(space_node_path)
-			if ref_node and ref_node is Node3D:
-				final_vector = ref_node.global_basis * final_vector
-
-		Space.WORLD:
-			pass 
-
-	# 4. Apply to CharacterBody3D
-	match mode:
-		PhysicsMode.IMPULSE:
-			body.velocity += final_vector
-
-		PhysicsMode.FORCE:
-			body.velocity += final_vector * delta
-
-		PhysicsMode.SET_VELOCITY:
-			# Rotation Logic (Face Movement)
-			if face_movement and final_vector.length_squared() > 0.1:
-				var target_dir = final_vector.normalized()
-				var current_dir = -body.global_transform.basis.z # Forward is -Z in Godot
-				
-				# Planar rotation only (Y-axis)
-				target_dir.y = 0
-				target_dir = target_dir.normalized()
-				
-				if target_dir.length_squared() > 0.01:
-					var new_basis = body.global_transform.basis
-					# Smooth lookat
-					var target_basis = Basis.looking_at(target_dir, Vector3.UP)
-					new_basis = new_basis.slerp(target_basis, turn_speed * delta)
-					body.global_transform.basis = new_basis
-
-			# Velocity Application
-			if planar_only:
-				body.velocity.x = final_vector.x
-				body.velocity.z = final_vector.z
-			else:
-				body.velocity = final_vector
+	elif "linear_velocity" in actor: # RigidBody3D
+		match mode:
+			Mode.IMPULSE: actor.apply_central_impulse(final_vec)
+			Mode.FORCE: actor.apply_central_force(final_vec)
+	
+	elif actor is Node3D: # Standard Node3D (No Physics)
+		# Just translate it!
+		actor.global_translate(final_vec * delta)

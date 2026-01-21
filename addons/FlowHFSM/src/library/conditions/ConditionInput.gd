@@ -1,26 +1,20 @@
 @tool
 class_name ConditionInput extends FlowCondition
 
-## Generic input trigger condition.
-## Replaces custom conditions like JumpPressed, AttackPressed, etc.
-## Supports PRESSED, JUST_PRESSED, and JUST_RELEASED triggers.
+## "The Gatekeeper"
+## Checks Global Input for State Transitions.
 
-enum Trigger {
-	PRESSED,
-	JUST_PRESSED,
-	JUST_RELEASED
-}
+enum Check { IS_PRESSED, JUST_PRESSED, JUST_RELEASED }
+@export var actions: Array[String] = ["ui_accept"]
+@export var check: Check = Check.JUST_PRESSED
 
-@export var action: String = "ui_accept"
-@export var trigger: Trigger = Trigger.JUST_PRESSED
-
-func _evaluate(actor: Node, blackboard: FlowBlackboard) -> bool:
-	match trigger:
-		Trigger.PRESSED:
-			return Input.is_action_pressed(action)
-		Trigger.JUST_PRESSED:
-			return Input.is_action_just_pressed(action)
-		Trigger.JUST_RELEASED:
-			return Input.is_action_just_released(action)
-
+func _evaluate(_actor: Node) -> bool:
+	for action in actions:
+		match check:
+			Check.IS_PRESSED:
+				if Input.is_action_pressed(action): return true
+			Check.JUST_PRESSED:
+				if Input.is_action_just_pressed(action): return true
+			Check.JUST_RELEASED:
+				if Input.is_action_just_released(action): return true
 	return false

@@ -15,15 +15,15 @@ enum LogType { PRINT, WARNING, ERROR }
 @export var on_exit: bool = false
 @export var on_update: bool = false
 
-func enter(state: Node, _actor: Node, _blackboard: FlowBlackboard) -> void:
+func enter(state: Node, _actor: Node) -> void:
 	if on_enter:
 		_log("[%s] ENTER: %s" % [state.name, message])
 
-func exit(state: Node, _actor: Node, _blackboard: FlowBlackboard) -> void:
+func exit(state: Node, _actor: Node) -> void:
 	if on_exit:
 		_log("[%s] EXIT: %s" % [state.name, message])
 
-func update(state: Node, _delta: float, _actor: Node, _blackboard: FlowBlackboard) -> void:
+func update(state: Node, _delta: float, _actor: Node) -> void:
 	if on_update:
 		_log("[%s] UPDATE: %s" % [state.name, message])
 
