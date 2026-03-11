@@ -9,8 +9,8 @@ enum Mode { IMPULSE, FORCE, SET_VELOCITY }
 @export var mode: Mode = Mode.SET_VELOCITY
 
 @export_group("Dependency Injection")
-@export var input_property: String = "move_input"
-@export var camera_property: String = ""
+@export var input_property: StringName = &"move_input"
+@export var camera_property: StringName = &"camera"
 
 @export_group("State Logic")
 @export var speed: float = 5.0

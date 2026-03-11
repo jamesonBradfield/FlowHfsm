@@ -30,6 +30,9 @@ class_name FlowCharacter extends CharacterBody3D
 var _anim_playback: AnimationNodeStateMachinePlayback
 
 # Public State Variables (Read by Logic Island Behaviors)
+var state_packet: StatePacket
+var last_actions: Dictionary[StringName, bool] = {}
+
 var move_input: Vector3 = Vector3.ZERO
 var is_moving: bool = false
 var jump_pressed: bool = false
@@ -38,6 +41,20 @@ var jump_just_pressed: bool = false
 # -- VIRTUAL: INPUT --
 # Override this to define your own inputs.
 func _poll_input() -> void:
+	if state_packet:
+		# Use StatePacket if available (Puppet Mode)
+		var move_vec := state_packet.move_vec
+		move_input.x = move_vec.x
+		move_input.z = move_vec.y
+		
+		# Sync standard variables for backward compatibility with Behaviors
+		is_moving = move_input.length_squared() > 0.01
+		
+		# We'll handle actions generically in ConditionInput, but keep these for legacy
+		jump_pressed = state_packet.actions.get(&"jump", false)
+		jump_just_pressed = jump_pressed and not last_actions.get(&"jump", false)
+		return
+
 	# Default Implementation: WASD + Space
 	var input_dir := Vector3.ZERO
 	var move_vec := Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
@@ -82,6 +99,10 @@ func _physics_process(delta: float) -> void:
 	
 	# 4. Sync Animation (Visuals)
 	# (Logic Island removed auto-syncing of parameters from blackboard)
+
+	# 5. Update last_actions for next frame
+	if state_packet:
+		last_actions = state_packet.actions.duplicate()
 
 # -- PHYSICS LOGIC --
 

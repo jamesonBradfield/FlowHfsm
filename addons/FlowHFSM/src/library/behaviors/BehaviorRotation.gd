@@ -6,9 +6,9 @@ class_name BehaviorRotation extends FlowBehavior
 ## Handles visuals/model rotation independently of physics.
 
 @export_group("Dependency Injection")
-@export var input_property: String = "move_input"
-@export var camera_property: String = "camera" # Defaulting to likely name
-@export var rotation_node_property: String = "model" # Defaulting to likely name
+@export var input_property: StringName = &"move_input"
+@export var camera_property: StringName = &"camera"
+@export var rotation_node_property: StringName = &"model"
 
 @export_group("Settings")
 @export var turn_speed: float = 10.0

@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="ConditionIsMoving" format=3 uid="uid://lfe685mhqfie"]
+
+[ext_resource type="Script" uid="uid://fmlko2xqvxg0" path="res://addons/FlowHFSM/src/library/conditions/ConditionIsMoving.gd" id="1_mmlfd"]
+
+[resource]
+script = ExtResource("1_mmlfd")
+metadata/_custom_type_script = "uid://fmlko2xqvxg0"

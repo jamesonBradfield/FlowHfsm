@@ -5,6 +5,8 @@ class_name FlowState extends Node
 ## Holds Behaviors and Conditions. 
 ## Can store 'Custom Code' for rapid prototyping.
 
+@export var is_concurrent: bool = false
+
 @export var behaviors: Array[FlowBehavior] = []
 
 enum ActivationMode { AND, OR }
@@ -22,6 +24,7 @@ enum ActivationMode { AND, OR }
 # --- STATE MEMORY ---
 var parent: FlowState = null
 var active_child: FlowState = null
+var is_active: bool = false
 
 signal state_entered(state: FlowState)
 signal state_exited(state: FlowState)
@@ -32,10 +35,20 @@ func _ready() -> void:
 		parent = p
 
 func process_state(delta: float, actor: Node) -> void:
-	# 1. SELECTOR
+	# 1. HANDLE CONCURRENT STATES (Parallel Machines)
+	for child in get_children():
+		if child is FlowState and child.is_concurrent:
+			if child.can_activate(actor):
+				if not child.is_active: 
+					child.enter(actor)
+				child.process_state(delta, actor)
+			elif child.is_active:
+				child.exit(actor)
+
+	# 2. SELECTOR (Exclusive Machine)
 	var best_child: FlowState = null
 	for child in get_children():
-		if child is FlowState:
+		if child is FlowState and not child.is_concurrent:
 			if child.can_activate(actor):
 				best_child = child
 	
@@ -43,15 +56,16 @@ func process_state(delta: float, actor: Node) -> void:
 		if not active_child or not active_child.is_hierarchy_locked():
 			change_active_child(best_child, actor)
 	
-	# 2. BEHAVIOR
+	# 3. BEHAVIOR
 	for b in behaviors:
 		if b: b.update(self, delta, actor)
 
-	# 3. RECURSION
+	# 4. RECURSION
 	if active_child:
 		active_child.process_state(delta, actor)
 
 func enter(actor: Node) -> void:
+	is_active = true
 	is_locked = false 
 	state_entered.emit(self)
 	
@@ -65,6 +79,7 @@ func enter(actor: Node) -> void:
 		active_child.enter(actor)
 
 func exit(actor: Node) -> void:
+	is_active = false
 	if active_child:
 		active_child.exit(actor)
 		active_child = null
@@ -102,5 +117,5 @@ func _get_starting_child() -> FlowState:
 	for child in get_children():
 		if child is FlowState and child.is_starting_state: return child
 	for child in get_children():
-		if child is FlowState: return child
+		if child is FlowState and not child.is_concurrent: return child
 	return null
