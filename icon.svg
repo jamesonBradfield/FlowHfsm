@@ -12,16 +12,32 @@
       <stop offset="0%" stop-color="#41c99f" />
       <stop offset="100%" stop-color="#2a8569" />
     </linearGradient>
+    <linearGradient id="state3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c94178" />
+      <stop offset="100%" stop-color="#852a4b" />
+    </linearGradient>
   </defs>
 
+  <!-- Outer background -->
   <rect x="16" y="16" width="224" height="224" rx="48" fill="url(#bg)" stroke="#478cbf" stroke-width="8"/>
 
-  <rect x="48" y="48" width="160" height="160" rx="24" fill="none" stroke="#4a566e" stroke-width="6" stroke-dasharray="12 12" />
+  <!-- Super State (Hierarchy container) -->
+  <rect x="48" y="48" width="160" height="112" rx="16" fill="rgba(71, 140, 191, 0.15)" stroke="#609bd1" stroke-width="6" stroke-dasharray="10 6" />
 
-  <rect x="64" y="64" width="56" height="56" rx="16" fill="url(#state1)" />
+  <!-- Sub State 1 -->
+  <rect x="64" y="72" width="48" height="48" rx="12" fill="url(#state1)" />
   
-  <rect x="136" y="136" width="56" height="56" rx="16" fill="url(#state2)" />
+  <!-- Sub State 2 -->
+  <rect x="144" y="72" width="48" height="48" rx="12" fill="url(#state2)" />
 
-  <path d="M 92 120 L 92 164 L 124 164" fill="none" stroke="#e0e0e0" stroke-width="8" stroke-linejoin="round" />
-  <polygon points="138,164 122,154 122,174" fill="#e0e0e0" />
+  <!-- Transition Sub 1 -> Sub 2 -->
+  <path d="M 112 96 L 135 96" fill="none" stroke="#e0e0e0" stroke-width="6" stroke-linecap="round" />
+  <polygon points="144,96 134,90 134,102" fill="#e0e0e0" />
+
+  <!-- External State -->
+  <rect x="104" y="180" width="48" height="48" rx="12" fill="url(#state3)" />
+
+  <!-- Transition Super State -> External State -->
+  <path d="M 128 160 L 128 171" fill="none" stroke="#e0e0e0" stroke-width="6" stroke-linecap="round" />
+  <polygon points="128,180 122,170 134,170" fill="#e0e0e0" />
 </svg>
