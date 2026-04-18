@@ -12,6 +12,14 @@ enum Mode { IMPULSE, FORCE, SET_VELOCITY }
 @export var input_binding: FlowBinding
 @export var camera_binding: FlowBinding
 
+func _init() -> void:
+	if not input_binding:
+		input_binding = FlowBinding.new()
+		input_binding.path = NodePath(":move_input")
+	if not camera_binding:
+		camera_binding = FlowBinding.new()
+		camera_binding.path = NodePath(":camera")
+
 @export_group("State Logic")
 @export var speed: float = 5.0
 @export var acceleration: float = 0.0

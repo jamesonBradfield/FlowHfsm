@@ -10,6 +10,17 @@ class_name BehaviorRotation extends FlowBehavior
 @export var camera_binding: FlowBinding
 @export var rotation_node_binding: FlowBinding
 
+func _init() -> void:
+	if not input_binding:
+		input_binding = FlowBinding.new()
+		input_binding.path = NodePath(":move_input")
+	if not camera_binding:
+		camera_binding = FlowBinding.new()
+		camera_binding.path = NodePath(":camera")
+	if not rotation_node_binding:
+		rotation_node_binding = FlowBinding.new()
+		rotation_node_binding.path = NodePath(":model")
+
 @export_group("Settings")
 @export var turn_speed: float = 10.0
 @export var face_movement: bool = true
