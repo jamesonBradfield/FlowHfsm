@@ -52,7 +52,7 @@ func _poll_input() -> void:
 		return
 
 	var input_dir := Vector3.ZERO
-	var move_vec := Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
+	var move_vec := Input.get_vector("left", "right", "up", "down")
 	input_dir.x = move_vec.x
 	input_dir.z = move_vec.y
 	move_input = input_dir
