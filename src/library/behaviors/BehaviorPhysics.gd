@@ -15,10 +15,10 @@ enum Mode { IMPULSE, FORCE, SET_VELOCITY }
 func _init() -> void:
 	if not input_binding:
 		input_binding = FlowBinding.new()
-		input_binding.path = NodePath(":move_input")
+		input_binding.path = ^":move_input"
 	if not camera_binding:
 		camera_binding = FlowBinding.new()
-		camera_binding.path = NodePath(":camera")
+		camera_binding.path = ^":camera"
 
 @export_group("State Logic")
 @export var speed: float = 5.0
@@ -36,7 +36,7 @@ func update(_node: Node, delta: float, actor: Node) -> void:
 	var final_vec = input_vec
 	if camera_binding:
 		var cam = camera_binding.get_value(actor)
-		if cam and cam is Node3D:
+		if cam is Node3D:
 			var cam_basis = cam.global_transform.basis
 			cam_basis.y = Vector3.ZERO
 			cam_basis.z = cam_basis.z.normalized()

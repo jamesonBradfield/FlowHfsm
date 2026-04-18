@@ -13,29 +13,16 @@ func get_value(actor: Node) -> Variant:
 		return null
 		
 	var target: Node = actor
+	var node_path := path.get_concatenated_names()
 	
-	# Resolve the node if the path contains node names
-	if path.get_name_count() > 0:
-		# Create a NodePath with only the node names
-		var node_path_str = ""
-		for i in range(path.get_name_count()):
-			if i > 0:
-				node_path_str += "/"
-			node_path_str += path.get_name(i)
-		
-		target = actor.get_node_or_null(NodePath(node_path_str))
+	if not node_path.is_empty():
+		target = actor.get_node_or_null(NodePath(node_path))
 		if not target:
 			return null
 			
-	# Resolve the property if the path contains subnames
-	if path.get_subname_count() > 0:
-		var subpath_str = ":"
-		for i in range(path.get_subname_count()):
-			if i > 0:
-				subpath_str += ":"
-			subpath_str += path.get_subname(i)
-			
-		return target.get_indexed(NodePath(subpath_str))
+	var sub_path := path.get_concatenated_subnames()
+	if not sub_path.is_empty():
+		return target.get_indexed(NodePath(sub_path))
 		
 	return target
 
@@ -45,25 +32,13 @@ func set_value(actor: Node, value: Variant) -> void:
 		return
 		
 	var target: Node = actor
+	var node_path := path.get_concatenated_names()
 	
-	# Resolve the node if the path contains node names
-	if path.get_name_count() > 0:
-		var node_path_str = ""
-		for i in range(path.get_name_count()):
-			if i > 0:
-				node_path_str += "/"
-			node_path_str += path.get_name(i)
-		
-		target = actor.get_node_or_null(NodePath(node_path_str))
+	if not node_path.is_empty():
+		target = actor.get_node_or_null(NodePath(node_path))
 		if not target:
 			return
 			
-	# Resolve the property if the path contains subnames
-	if path.get_subname_count() > 0:
-		var subpath_str = ":"
-		for i in range(path.get_subname_count()):
-			if i > 0:
-				subpath_str += ":"
-			subpath_str += path.get_subname(i)
-			
-		target.set_indexed(NodePath(subpath_str), value)
+	var sub_path := path.get_concatenated_subnames()
+	if not sub_path.is_empty():
+		target.set_indexed(NodePath(sub_path), value)

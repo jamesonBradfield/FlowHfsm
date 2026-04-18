@@ -13,13 +13,13 @@ class_name BehaviorRotation extends FlowBehavior
 func _init() -> void:
 	if not input_binding:
 		input_binding = FlowBinding.new()
-		input_binding.path = NodePath(":move_input")
+		input_binding.path = ^":move_input"
 	if not camera_binding:
 		camera_binding = FlowBinding.new()
-		camera_binding.path = NodePath(":camera")
+		camera_binding.path = ^":camera"
 	if not rotation_node_binding:
 		rotation_node_binding = FlowBinding.new()
-		rotation_node_binding.path = NodePath(":model")
+		rotation_node_binding.path = ^":model"
 
 @export_group("Settings")
 @export var turn_speed: float = 10.0
@@ -38,7 +38,7 @@ func update(_node: Node, delta: float, actor: Node) -> void:
 	var final_vec = input_vec
 	if camera_binding:
 		var cam = camera_binding.get_value(actor)
-		if cam and cam is Node3D:
+		if cam is Node3D:
 			var cam_basis = cam.global_transform.basis
 			# We flatten the camera basis relative to our chosen Up Axis
 			# so looking down doesn't make us move into the floor.
