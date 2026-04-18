@@ -63,6 +63,10 @@ func _poll_input() -> void:
 # -- LIFECYCLE --
 
 func _ready() -> void:
+	# Ensure a data_map exists — auto-build one from common properties
+	if not data_map:
+		data_map = _build_default_data_map()
+
 	if not root_state:
 		root_state = get_node_or_null("RootState")
 	if not root_state:
@@ -74,6 +78,35 @@ func _ready() -> void:
 		_anim_playback = animation_tree.get(animation_state_machine_path)
 		if auto_travel_states:
 			_connect_state_signals(root_state)
+
+
+## Builds a default FlowDataMap that binds common properties from this actor.
+## Users can override by assigning a custom data_map in the inspector.
+func _build_default_data_map() -> FlowDataMap:
+	var map := FlowDataMap.new()
+	var entries: Array[FlowDataEntry] = []
+
+	var bindings := {
+		&"move_input": ^":move_input",
+		&"camera": ^":camera",
+		&"is_moving": ^":is_moving",
+		&"state_packet": ^":state_packet",
+		&"last_actions": ^":last_actions",
+		&"animation_tree": ^":animation_tree",
+		&"model": ^":model",
+	}
+
+	for key: StringName in bindings:
+		var entry := FlowDataEntry.new()
+		entry.key = key
+		var binding := FlowBinding.new()
+		binding.source = FlowBinding.Source.PATH
+		binding.path = bindings[key] as NodePath
+		entry.binding = binding
+		entries.append(entry)
+
+	map.entries = entries
+	return map
 
 func _physics_process(delta: float) -> void:
 	_poll_input()
