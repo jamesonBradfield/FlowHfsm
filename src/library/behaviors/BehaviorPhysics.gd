@@ -9,8 +9,8 @@ enum Mode { IMPULSE, FORCE, SET_VELOCITY }
 @export var mode: Mode = Mode.SET_VELOCITY
 
 @export_group("Dependency Injection")
-@export var input_property: StringName = &"move_input"
-@export var camera_property: StringName = &"camera"
+@export var input_binding: FlowBinding
+@export var camera_binding: FlowBinding
 
 @export_group("State Logic")
 @export var speed: float = 5.0
@@ -19,13 +19,15 @@ enum Mode { IMPULSE, FORCE, SET_VELOCITY }
 func update(_node: Node, delta: float, actor: Node) -> void:
 	# 1. Fetch Dependencies
 	var input_vec = Vector3.ZERO
-	if input_property and input_property in actor:
-		input_vec = actor.get(input_property)
+	if input_binding:
+		var val = input_binding.get_value(actor)
+		if val is Vector3:
+			input_vec = val
 	
 	# 2. Transform Input (Camera Space)
 	var final_vec = input_vec
-	if camera_property and camera_property in actor:
-		var cam = actor.get(camera_property)
+	if camera_binding:
+		var cam = camera_binding.get_value(actor)
 		if cam and cam is Node3D:
 			var cam_basis = cam.global_transform.basis
 			cam_basis.y = Vector3.ZERO

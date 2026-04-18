@@ -6,9 +6,9 @@ class_name BehaviorRotation extends FlowBehavior
 ## Handles visuals/model rotation independently of physics.
 
 @export_group("Dependency Injection")
-@export var input_property: StringName = &"move_input"
-@export var camera_property: StringName = &"camera"
-@export var rotation_node_property: StringName = &"model"
+@export var input_binding: FlowBinding
+@export var camera_binding: FlowBinding
+@export var rotation_node_binding: FlowBinding
 
 @export_group("Settings")
 @export var turn_speed: float = 10.0
@@ -18,13 +18,15 @@ class_name BehaviorRotation extends FlowBehavior
 func update(_node: Node, delta: float, actor: Node) -> void:
 	# 1. Fetch Input
 	var input_vec = Vector3.ZERO
-	if input_property and input_property in actor:
-		input_vec = actor.get(input_property)
+	if input_binding:
+		var val = input_binding.get_value(actor)
+		if val is Vector3:
+			input_vec = val
 	
 	# 2. Transform Input (Camera Space)
 	var final_vec = input_vec
-	if camera_property and camera_property in actor:
-		var cam = actor.get(camera_property)
+	if camera_binding:
+		var cam = camera_binding.get_value(actor)
 		if cam and cam is Node3D:
 			var cam_basis = cam.global_transform.basis
 			# We flatten the camera basis relative to our chosen Up Axis
@@ -41,8 +43,8 @@ func update(_node: Node, delta: float, actor: Node) -> void:
 		var target_node: Node3D = actor as Node3D
 		
 		# Use the specific rotation node (Visuals) if defined
-		if rotation_node_property and rotation_node_property in actor:
-			var ref = actor.get(rotation_node_property)
+		if rotation_node_binding:
+			var ref = rotation_node_binding.get_value(actor)
 			if ref is Node3D:
 				target_node = ref
 		
