@@ -12,7 +12,7 @@ const TEMPLATE = """extends FlowState
 func _get_property_list() -> Array[Dictionary]:
 	return {property_list_data}
 
-func process_state(delta: float, actor: Node) -> void:
+func process_state(delta: float, actor: Node, context: Dictionary[StringName, Variant]) -> void:
 	# 1. PRIORITY EVALUATION
 	var best_child: FlowState = null
 	
@@ -30,7 +30,7 @@ func process_state(delta: float, actor: Node) -> void:
 		
 	# 4. RECURSION
 	if active_child:
-		active_child.process_state(delta, actor)
+		active_child.process_state(delta, actor, context)
 """
 
 static func smash(node: FlowState) -> String:
@@ -63,7 +63,7 @@ static func smash(node: FlowState) -> String:
 				var cond_var = "_cond_%s_%d_%d" % [safe_name, i, j]
 				prop_decls.append("var %s: FlowCondition" % cond_var)
 				prop_list_items.append('\t\t{ "name": "%s", "type": TYPE_OBJECT, "usage": PROPERTY_USAGE_STORAGE },' % cond_var)
-				cond_checks.append("%s.evaluate(actor)" % cond_var)
+				cond_checks.append("%s.evaluate(actor, context)" % cond_var)
 		
 		var expr = "true"
 		if not (cond_checks.size() == 1 and cond_checks[0] == "true"):
@@ -83,7 +83,7 @@ static func smash(node: FlowState) -> String:
 			var beh_var = "_beh_%d" % i
 			prop_decls.append("var %s: FlowBehavior" % beh_var)
 			prop_list_items.append('\t\t{ "name": "%s", "type": TYPE_OBJECT, "usage": PROPERTY_USAGE_STORAGE },' % beh_var)
-			behavior_lines.append("if %s: %s.update(self, delta, actor)" % [beh_var, beh_var])
+			behavior_lines.append("if %s: %s.update(self, delta, actor, context)" % [beh_var, beh_var])
 
 	var custom_code = node.get("custom_code")
 	if not custom_code: custom_code = ""

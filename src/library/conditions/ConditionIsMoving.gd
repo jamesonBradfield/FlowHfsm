@@ -2,35 +2,26 @@
 class_name ConditionIsMoving extends FlowCondition
 
 ## Checks if the character is moving.
-## Checks "is_moving" property (bool) or "move_input" (Vector3) magnitude.
+## Reads "is_moving" (bool) or "move_input" (Vector3) from context.
 
-@export_group("Dependency Injection")
-@export var is_moving_binding: FlowBinding
-@export var move_input_binding: FlowBinding
-
-func _init() -> void:
-	if not is_moving_binding:
-		is_moving_binding = FlowBinding.new()
-		is_moving_binding.path = ^":is_moving"
-	if not move_input_binding:
-		move_input_binding = FlowBinding.new()
-		move_input_binding.path = ^":move_input"
+@export_group("Context Keys")
+@export var is_moving_key: StringName = &"is_moving"
+@export var move_input_key: StringName = &"move_input"
 
 @export_group("Threshold Settings")
-## Minimum input magnitude to consider as "moving".
 @export var input_threshold: float = 0.1
 
-func _evaluate(actor: Node) -> bool:
+func _evaluate(actor: Node, context: Dictionary[StringName, Variant] = {}) -> bool:
 	# 1. Check explicit flag
-	if is_moving_binding:
-		var val = is_moving_binding.get_value(actor)
+	if context.has(is_moving_key):
+		var val = context[is_moving_key]
 		if val is bool and val:
 			return true
 	
 	# 2. Check Input Vector
 	var move_dir: Vector3 = Vector3.ZERO
-	if move_input_binding:
-		var val = move_input_binding.get_value(actor)
+	if context.has(move_input_key):
+		var val = context[move_input_key]
 		if val is Vector3:
 			move_dir = val
 		

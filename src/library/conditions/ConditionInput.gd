@@ -3,52 +3,45 @@ class_name ConditionInput extends FlowCondition
 
 ## "The Gatekeeper"
 ## Checks Global Input for State Transitions.
+##
+## Reads from context dict (pushed from FlowDataMap):
+##   "state_packet" → StatePacket (optional, for puppet mode)
+##   "last_actions" → Dictionary (optional, for just-pressed detection)
 
-@export_group("Dependency Injection")
-@export var state_packet_binding: FlowBinding
-@export var last_actions_binding: FlowBinding
+enum Check { IS_PRESSED, JUST_PRESSED, JUST_RELEASED }
 
-func _init() -> void:
-	if not state_packet_binding:
-		state_packet_binding = FlowBinding.new()
-		state_packet_binding.path = ^":state_packet"
-	if not last_actions_binding:
-		last_actions_binding = FlowBinding.new()
-		last_actions_binding.path = ^":last_actions"
+@export_group("Context Keys")
+@export var state_packet_key: StringName = &"state_packet"
+@export var last_actions_key: StringName = &"last_actions"
 
 @export_group("Settings")
-enum Check { IS_PRESSED, JUST_PRESSED, JUST_RELEASED }
 @export var actions: Array[String] = ["ui_accept"]
 @export var check: Check = Check.JUST_PRESSED
 
-func _evaluate(actor: Node) -> bool:
-	# 1. Try to use StatePacket from FlowCharacter if it exists
-	var packet: StatePacket = null
-	if state_packet_binding:
-		var val = state_packet_binding.get_value(actor)
-		if val is StatePacket:
-			packet = val
+func _evaluate(actor: Node, context: Dictionary[StringName, Variant] = {}) -> bool:
+	# 1. Try StatePacket from context (Puppet Mode)
+	if context.has(state_packet_key):
+		var packet = context[state_packet_key]
+		if packet is StatePacket:
+			var last_actions: Dictionary = {}
+			if context.has(last_actions_key):
+				var val = context[last_actions_key]
+				if val is Dictionary:
+					last_actions = val
 			
-	if packet:
-		var last_actions: Dictionary = {}
-		if last_actions_binding:
-			var val = last_actions_binding.get_value(actor)
-			if val is Dictionary:
-				last_actions = val
-		
-		for action in actions:
-			var action_name = StringName(action)
-			var is_pressed: bool = packet.actions.get(action_name, false)
-			var was_pressed: bool = last_actions.get(action_name, false)
-			
-			match check:
-				Check.IS_PRESSED:
-					if is_pressed: return true
-				Check.JUST_PRESSED:
-					if is_pressed and not was_pressed: return true
-				Check.JUST_RELEASED:
-					if not is_pressed and was_pressed: return true
-		return false
+			for action in actions:
+				var action_name = StringName(action)
+				var is_pressed: bool = packet.actions.get(action_name, false)
+				var was_pressed: bool = last_actions.get(action_name, false)
+				
+				match check:
+					Check.IS_PRESSED:
+						if is_pressed: return true
+					Check.JUST_PRESSED:
+						if is_pressed and not was_pressed: return true
+					Check.JUST_RELEASED:
+						if not is_pressed and was_pressed: return true
+			return false
 
 	# 2. Fallback to Global Input (Non-Puppet Mode)
 	for action in actions:

@@ -2,25 +2,20 @@
 class_name ConditionAnimationFinished extends FlowCondition
 
 ## Checks if the current animation in the linked AnimationTree has finished.
-## Useful for "Blocking" states like Attacks or Interactions.
+## Reads "animation_tree" from context.
 
-@export_group("Dependency Injection")
-@export var animation_tree_binding: FlowBinding
-
-func _init() -> void:
-	if not animation_tree_binding:
-		animation_tree_binding = FlowBinding.new()
-		animation_tree_binding.path = ^"AnimationTree"
+@export_group("Context Keys")
+@export var animation_tree_key: StringName = &"animation_tree"
 
 @export_group("Settings")
 @export var state_machine_path: String = "parameters/playback"
-@export var end_margin: float = 0.1 # Seconds before end to consider finished
+@export var end_margin: float = 0.1
 
-func _evaluate(actor: Node) -> bool:
+func _evaluate(actor: Node, context: Dictionary[StringName, Variant] = {}) -> bool:
 	var anim_tree: AnimationTree = null
 	
-	if animation_tree_binding:
-		var val = animation_tree_binding.get_value(actor)
+	if context.has(animation_tree_key):
+		var val = context[animation_tree_key]
 		if val is AnimationTree:
 			anim_tree = val
 	
@@ -29,13 +24,10 @@ func _evaluate(actor: Node) -> bool:
 	
 	var playback: Variant = anim_tree.get(state_machine_path)
 	if playback and playback is AnimationNodeStateMachinePlayback:
-		# Check if playing
 		if not playback.is_playing():
 			return true
-			
 		var current_pos: float = playback.get_current_play_position()
 		var length: float = playback.get_current_length()
-		
 		return current_pos >= (length - end_margin)
 		
-	return true # Default to finished if something is wrong
+	return true

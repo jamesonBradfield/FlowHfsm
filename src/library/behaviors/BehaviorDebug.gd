@@ -23,7 +23,7 @@ func exit(state: Node, _actor: Node) -> void:
 	if on_exit:
 		_log("[%s] EXIT: %s" % [state.name, message])
 
-func update(state: Node, _delta: float, _actor: Node) -> void:
+func update(state: Node, _delta: float, _actor: Node, _context: Dictionary[StringName, Variant] = {}) -> void:
 	if on_update:
 		_log("[%s] UPDATE: %s" % [state.name, message])
 

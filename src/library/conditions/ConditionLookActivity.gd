@@ -2,25 +2,17 @@
 class_name ConditionLookActivity extends FlowCondition
 
 ## Checks if there is any activity on the look vector.
-## Useful for transitioning to "Aiming" or "Observing" states.
+## Reads "state_packet" from context.
 
-@export_group("Dependency Injection")
-@export var state_packet_binding: FlowBinding
-
-func _init() -> void:
-	if not state_packet_binding:
-		state_packet_binding = FlowBinding.new()
-		state_packet_binding.path = ^":state_packet"
+@export_group("Context Keys")
+@export var state_packet_key: StringName = &"state_packet"
 
 @export_group("Settings")
 @export var threshold: float = 0.01
 
-func _evaluate(actor: Node) -> bool:
-	if state_packet_binding:
-		var packet = state_packet_binding.get_value(actor)
+func _evaluate(actor: Node, context: Dictionary[StringName, Variant] = {}) -> bool:
+	if context.has(state_packet_key):
+		var packet = context[state_packet_key]
 		if packet is StatePacket:
 			return packet.look_vec.length_squared() > (threshold * threshold)
-	
-	# Fallback: In non-packet mode, look activity is harder to track globally 
-	# without a specific look input setup, so we return false.
 	return false

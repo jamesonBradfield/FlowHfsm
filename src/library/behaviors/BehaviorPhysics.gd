@@ -4,38 +4,34 @@ class_name BehaviorPhysics extends FlowBehavior
 ## THE PHYSICS BEHAVIOR
 ## "Just the Body" Edition.
 ## MOVEMENT: Applied to the 'actor' (PhysicsBody or Node3D).
+##
+## Reads from context dict (pushed from FlowDataMap):
+##   "move_input" → Vector3 (required)
+##   "camera"     → Node3D  (optional, for camera-relative movement)
 
 enum Mode { IMPULSE, FORCE, SET_VELOCITY }
 @export var mode: Mode = Mode.SET_VELOCITY
 
-@export_group("Dependency Injection")
-@export var input_binding: FlowBinding
-@export var camera_binding: FlowBinding
-
-func _init() -> void:
-	if not input_binding:
-		input_binding = FlowBinding.new()
-		input_binding.path = ^":move_input"
-	if not camera_binding:
-		camera_binding = FlowBinding.new()
-		camera_binding.path = ^":camera"
+@export_group("Context Keys")
+@export var move_input_key: StringName = &"move_input"
+@export var camera_key: StringName = &"camera"
 
 @export_group("State Logic")
 @export var speed: float = 5.0
 @export var acceleration: float = 0.0
 
-func update(_node: Node, delta: float, actor: Node) -> void:
-	# 1. Fetch Dependencies
+func update(_node: Node, delta: float, actor: Node, context: Dictionary[StringName, Variant]) -> void:
+	# 1. Fetch Input from context
 	var input_vec = Vector3.ZERO
-	if input_binding:
-		var val = input_binding.get_value(actor)
+	if context.has(move_input_key):
+		var val = context[move_input_key]
 		if val is Vector3:
 			input_vec = val
 	
 	# 2. Transform Input (Camera Space)
 	var final_vec = input_vec
-	if camera_binding:
-		var cam = camera_binding.get_value(actor)
+	if context.has(camera_key):
+		var cam = context[camera_key]
 		if cam is Node3D:
 			var cam_basis = cam.global_transform.basis
 			cam_basis.y = Vector3.ZERO
