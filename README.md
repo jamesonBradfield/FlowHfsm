@@ -2,7 +2,7 @@
 
 FlowHFSM is a standalone, general-purpose Hierarchical Finite State Machine addon for Godot 4. It provides a simple, structured, and flexible way to implement state logic, allowing anyone to organize complex behaviors in their Godot projects.
 
-FlowHFSM is currently in a stable but experimental state. It was built as an architectural exploration of push-data-down state machines in Godot. It is aimed at advanced developers who want to fork and adapt the code. Active maintenance, beginner tutorials, and issue resolution are currently paused.
+Developer's Note: I built FlowHFSM as a deep dive into advanced architecture, dependency injection, and metaprogramming in Godot. It successfully handles incredibly complex use cases like AI reuse and local multiplayer. However, after building it, I found that for my personal solo projects, I prefer the simplicity of standard state machines. I am leaving this repository open and documented for advanced developers who need this level of decoupling, but active development is paused while I go make some games!
 
 ## Architecture and Core Philosophy
 
