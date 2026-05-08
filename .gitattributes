@@ -1,7 +1,14 @@
-# Normalize line endings for all files that Git considers text files.
+# Normalize EOL for all files that Git considers text files.
 * text=auto eol=lf
 
-# Only include the addons folder when downloading from the Asset Library.
-/**        export-ignore
+# --- GODOT ASSET LIBRARY EXPORT RULES ---
+# 1. Ignore absolutely everything by default
+/** export-ignore
+
+# 2. Un-ignore the addons folder and everything inside it
 /addons    !export-ignore
 /addons/** !export-ignore
+
+# 3. Un-ignore the documentation and license (Highly Recommended)
+/README.md !export-ignore
+/LICENSE   !export-ignore
