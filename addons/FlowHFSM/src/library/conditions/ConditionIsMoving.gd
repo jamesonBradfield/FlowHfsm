@@ -1,25 +1,12 @@
+@tool
 class_name ConditionIsMoving extends FlowCondition
 
-## Checks if the character is moving.
-## Checks "is_moving" property (bool) or "move_input" (Vector3) magnitude.
+## Checks if any movement input is pressed.
 
-@export_group("Threshold Settings")
-## Minimum input magnitude to consider as "moving".
-@export var input_threshold: float = 0.1
+@export var actions: Array[String] = ["move_left", "move_right", "move_up", "move_down"]
 
-func _evaluate(actor: Node) -> bool:
-	# 1. Check explicit flag
-	if "is_moving" in actor:
-		if actor.is_moving: return true
-		# If false, check vector just in case? No, trust the flag if it exists.
-		# But wait, maybe the flag is not set but velocity is?
-		# The prompt implies "Input Condition", so usually it's about input.
-	
-	# 2. Check Input Vector
-	var move_dir: Vector3 = Vector3.ZERO
-	if "move_input" in actor:
-		move_dir = actor.move_input
-	elif "input_direction" in actor: # Backward compat
-		move_dir = actor.input_direction
-		
-	return move_dir.length_squared() > (input_threshold * input_threshold)
+func evaluate(_host: Node, data: Dictionary) -> bool:
+	for action in actions:
+		if data.get("input/" + action, false):
+			return true
+	return false
