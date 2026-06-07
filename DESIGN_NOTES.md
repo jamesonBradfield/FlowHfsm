@@ -46,7 +46,7 @@ addon legitimately production-ready.
 
 ### Expression-based bindings (longer term)
 Instead of static typed keys, entries could be GDScript expressions evaluated
-via Godot's `Expression` class — e.g.
+via Godot's [`Expression`](https://docs.godotengine.org/en/stable/classes/class_expression.html) class — e.g.
 `current_health = clampf(current_health, 0, damage_object.damage - current_health)`
 or `spider_leg1.pos = spider_leg2.pos - xyz`. Dependencies are named variables,
 NodePaths resolve to actual nodes. Similar to Blender's driver system.
