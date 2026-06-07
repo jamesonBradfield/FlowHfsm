@@ -16,25 +16,25 @@ invisible until something breaks, and no type safety to help find it.
 
 ## Ideas explored
 
-**Cascading data through the hierarchy**
+### Cascading data through the hierarchy
 States transform data before passing it down to children. Interesting but
 conflates control flow (what HFSM hierarchy is actually for) with data flow.
 Raises hard questions: mutation vs. copy? Can children push data back up?
 Starts feeling more like a behavior tree with a working memory stack than an
 HFSM. Cool, different beast.
 
-**Flat untyped blackboard with scoped string keys**
+### Flat untyped blackboard with scoped string keys
 Drop the cascading idea. Keep one global dict, but scope keys by convention:
 `player/health`, `input/jump`, `combat/last_hit_time`. States don't need to
 know who wrote what, just read/write their keys. Works with GDScript's dynamic
 nature instead of fighting it. Probably the right call for a Godot addon.
 
-**Local vs global dict split**
+### Local vs global dict split
 Two dicts: global persists across states, local is created on `_enter` and
 destroyed on `_exit`. Children read global, write local, explicitly promote to
 global if a value needs to outlive the state. Limits blast radius.
 
-**Optional typed schema (most promising)**
+### Optional typed schema (most promising)
 A `BlackboardSchema.tres` Resource maps string keys to expected Variant types.
 Edited through a custom editor panel (rows of key/type/default) — you never
 touch the `.tres` directly, same pattern as AnimationTree or TileSet.
@@ -44,7 +44,7 @@ touch the `.tres` directly, same pattern as AnimationTree or TileSet.
 runtime cost. Opt-in, so the simple case stays simple. This would make the
 addon legitimately production-ready.
 
-**Expression-based bindings (longer term)**
+### Expression-based bindings (longer term)
 Instead of static typed keys, entries could be GDScript expressions evaluated
 via Godot's `Expression` class — e.g.
 `current_health = clampf(current_health, 0, damage_object.damage - current_health)`
@@ -55,7 +55,7 @@ The editor safety problem: there's no way to LSP-check a string export today,
 but a `@tool` script could parse and dry-run expressions on save and surface
 errors as warnings — catches syntax at least.
 
-**Why expression bindings matter: LLM-assisted tuning**
+### Why expression bindings matter: LLM-assisted tuning
 If behaviors are small isolated resources and the blackboard is named
 expressions, you've created a search space a small local LLM can navigate.
 "Adjust these expressions until the walk feels floaty" is tractable — the
