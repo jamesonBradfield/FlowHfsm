@@ -35,20 +35,35 @@ destroyed on `_exit`. Children read global, write local, explicitly promote to
 global if a value needs to outlive the state. Limits blast radius.
 
 **Optional typed schema (most promising)**
-A `BlackboardSchema.tres` Resource maps string keys to expected Variant types:
-
-```gdscript
-entries = {
-    "player/health": TYPE_FLOAT,
-    "player/velocity": TYPE_VECTOR3,
-    "input/jump": TYPE_BOOL,
-}
-```
+A `BlackboardSchema.tres` Resource maps string keys to expected Variant types.
+Edited through a custom editor panel (rows of key/type/default) — you never
+touch the `.tres` directly, same pattern as AnimationTree or TileSet.
 
 `FlowHost` loads the schema and validates reads/writes via
 `_get_configuration_warnings()` — mismatches surface as editor warnings, zero
 runtime cost. Opt-in, so the simple case stays simple. This would make the
 addon legitimately production-ready.
+
+**Expression-based bindings (longer term)**
+Instead of static typed keys, entries could be GDScript expressions evaluated
+via Godot's `Expression` class — e.g.
+`current_health = clampf(current_health, 0, damage_object.damage - current_health)`
+or `spider_leg1.pos = spider_leg2.pos - xyz`. Dependencies are named variables,
+NodePaths resolve to actual nodes. Similar to Blender's driver system.
+
+The editor safety problem: there's no way to LSP-check a string export today,
+but a `@tool` script could parse and dry-run expressions on save and surface
+errors as warnings — catches syntax at least.
+
+**Why expression bindings matter: LLM-assisted tuning**
+If behaviors are small isolated resources and the blackboard is named
+expressions, you've created a search space a small local LLM can navigate.
+"Adjust these expressions until the walk feels floaty" is tractable — the
+model can read blackboard state and propose edits without touching behavior
+logic. The architecture separates *what a state does* (stable, written once by
+a human) from *how it's tuned* (malleable expressions, iterable by tooling).
+A human stays in the loop because the expressions are readable, not an opaque
+float array. Rapid iteration on character feel without rewriting controllers.
 
 ## Current verdict
 
