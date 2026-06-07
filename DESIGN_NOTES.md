@@ -40,7 +40,7 @@ Edited through a custom editor panel (rows of key/type/default) — you never
 touch the `.tres` directly, same pattern as AnimationTree or TileSet.
 
 `FlowHost` loads the schema and validates reads/writes via
-`_get_configuration_warnings()` — mismatches surface as editor warnings, zero
+[`_get_configuration_warnings()`](https://docs.godotengine.org/en/stable/classes/class_node.html#class-node-method-get-configuration-warnings) — mismatches surface as editor warnings, zero
 runtime cost. Opt-in, so the simple case stays simple. This would make the
 addon legitimately production-ready.
 
