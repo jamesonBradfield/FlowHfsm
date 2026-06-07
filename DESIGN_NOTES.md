@@ -65,6 +65,18 @@ a human) from *how it's tuned* (malleable expressions, iterable by tooling).
 A human stays in the loop because the expressions are readable, not an opaque
 float array. Rapid iteration on character feel without rewriting controllers.
 
+### Set/Get behaviors as the output layer
+The blackboard is internal state only. `SetBehavior` and `GetBehavior` are the
+boundary — they push blackboard values out to external nodes (AnimationPlayer,
+CharacterBody, UI, anything with a property) each tick. External nodes never
+write back into the machine. Unidirectional, state machine is the single source
+of truth.
+
+This keeps external nodes as dumb consumers. They don't need to know the state
+machine exists, and the state machine doesn't need to know what's consuming it.
+Similar to flux/redux — the machine owns the data, outside world just receives
+what it's given.
+
 ## Current verdict
 
 Not recommended for production as-is. The blackboard coupling gets unmanageable
